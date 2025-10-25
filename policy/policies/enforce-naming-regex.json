@@ -1,0 +1,27 @@
+{
+  "properties": {
+    "displayName": "Audit resource name pattern",
+    "policyType": "Custom",
+    "mode": "All",
+    "description": "Audits common resources to follow {env}-{svc}-{region}-{name}.",
+    "metadata": { "category": "Naming" },
+    "parameters": {
+      "namePattern": {
+        "type": "String",
+        "metadata": { "description": "Regex for names" },
+        "defaultValue": "^(dev|test|prod)-(app|vnet|kv|sql|st|la|ai|vm|func)-[a-z]{2,3}u-[a-z0-9-]+$"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "anyOf": [
+          { "allOf": [ { "field": "type", "like": "Microsoft.Storage/*" },
+                       { "field": "name", "notMatches": "[parameters('namePattern')]" } ] },
+          { "allOf": [ { "field": "type", "like": "Microsoft.Web/*" },
+                       { "field": "name", "notMatches": "[parameters('namePattern')]" } ] }
+        ]
+      },
+      "then": { "effect": "audit" }
+    }
+  }
+}
