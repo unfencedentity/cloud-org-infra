@@ -24,4 +24,14 @@
 
 > Creează vNet `{env}-vnet-{region}-{app}` și subnets: `snet-web`, `snet-app`, `snet-data` cu NSG-uri dedicate.
 
+## Full Environment Deploy
+Run the end-to-end deployment (RG → Network → Storage → App Service):
+./deploy-environment.ps1 -Env dev -Region weu -AppName core -Location westeurope
+
+
+**Prerequisites**
+- PowerShell 7+
+- Az PowerShell modules installed
+- Logged in to Azure (`Connect-AzAccount`) with rights to create resources
+
 
