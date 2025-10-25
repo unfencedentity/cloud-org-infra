@@ -1,0 +1,31 @@
+{
+  "properties": {
+    "displayName": "Require standard tags on resources",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "description": "Ensures env, owner, costCenter, app, dataClass tags exist.",
+    "metadata": { "category": "Tags" },
+    "parameters": {},
+    "policyRule": {
+      "if": {
+        "field": "type",
+        "notEquals": "Microsoft.Resources/subscriptions/resourceGroups"
+      },
+      "then": {
+        "effect": "auditIfNotExists",
+        "details": {
+          "type": "Microsoft.Resources/tags",
+          "existenceCondition": {
+            "allOf": [
+              { "field": "tags['env']", "exists": "true" },
+              { "field": "tags['owner']", "exists": "true" },
+              { "field": "tags['costCenter']", "exists": "true" },
+              { "field": "tags['app']", "exists": "true" },
+              { "field": "tags['dataClass']", "exists": "true" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
