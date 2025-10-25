@@ -17,3 +17,11 @@
 ./cleanup.ps1 -Env dev -Region weu -AppName core -Location westeurope -Force
 
 > Atenție: șterge întregul Resource Group pentru aplicația respectivă.
+
+
+## Create Network (vNet + Subnets + NSG)
+./create-network.ps1 -Env dev -Region weu -AppName core -Location westeurope -AddressPrefix 10.10.0.0/16
+
+> Creează vNet `{env}-vnet-{region}-{app}` și subnets: `snet-web`, `snet-app`, `snet-data` cu NSG-uri dedicate.
+
+
