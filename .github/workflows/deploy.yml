@@ -31,9 +31,6 @@ jobs:
       - name: Set up PowerShell
         uses: PowerShell/PowerShell@v2
 
-        with:
-          pwsh-version: '7.4.x'
-
       - name: Azure Login
         uses: azure/login@v2
         with:
