@@ -29,25 +29,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup PowerShell
-        uses: actions/setup-pwsh@v2
+        uses: PowerShell/PowerShell@v1
+        with:
+          pwsh-version: "7.3.8"
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Az PowerShell
+      - name: Install Az Module
         shell: pwsh
         run: |
-          Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
           Install-Module Az -Scope CurrentUser -Force -AllowClobber
-          Get-Module Az -ListAvailable | Select-Object Name,Version | Sort-Object Name
+          Get-Module Az -ListAvailable | Select Name,Version
 
       - name: Deploy Environment
         shell: pwsh
         run: |
           ./automation/deploy-environment.ps1 `
-            -Env ${{ github.event.inputs.env }} `
-            -Region ${{ github.event.inputs.region }} `
-            -AppName ${{ github.event.inputs.appName }} `
-            -Location ${{ github.event.inputs.location }}
+            -Env "${{ github.event.inputs.env }}" `
+            -Region "${{ github.event.inputs.region }}" `
+            -AppName "${{ github.event.inputs.appName }}" `
+            -Location "${{ github.event.inputs.location }}"
