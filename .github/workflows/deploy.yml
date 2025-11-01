@@ -4,50 +4,45 @@ on:
   workflow_dispatch:
     inputs:
       env:
-        description: "Environment (dev/test/prod)"
+        description: "Environment name (dev or test)"
         required: true
-        default: dev
+        default: "dev"
       region:
-        description: "Region code (weu/neu/eus/wus)"
+        description: "Azure region"
         required: true
-        default: weu
+        default: "westeurope"
       appName:
         description: "Application name"
         required: true
-        default: core
+        default: "core"
       location:
         description: "Azure location"
         required: true
-        default: westeurope
+        default: "westeurope"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell
-        uses: PowerShell/PowerShell@v1
-        with:
-          pwsh-version: "7.3.8"
+      - name: Set up PowerShell
+        uses: actions/setup-powershell@v1
 
-      - name: Azure Login
+      - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Az Module
-        shell: pwsh
+      - name: Install Az PowerShell modules
         run: |
-          Install-Module Az -Scope CurrentUser -Force -AllowClobber
-          Get-Module Az -ListAvailable | Select Name,Version
+          pwsh -Command "Install-Module Az -Force -AllowClobber"
 
-      - name: Deploy Environment
-        shell: pwsh
+      - name: Deploy environment
         run: |
-          ./automation/deploy-environment.ps1 `
+          pwsh -File automation/deploy-environment.ps1 `
             -Env "${{ github.event.inputs.env }}" `
             -Region "${{ github.event.inputs.region }}" `
             -AppName "${{ github.event.inputs.appName }}" `
