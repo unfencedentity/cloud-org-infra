@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup PowerShell
-        uses: PowerShell/PowerShell@v1
+        uses: PowerShell/setup-powershell@v1
         with:
           pwsh-version: '7.4.x'
 
