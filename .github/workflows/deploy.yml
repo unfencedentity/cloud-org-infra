@@ -5,14 +5,10 @@ on:
     inputs:
       env:
         description: "Environment (dev/test/prod)"
-        type: choice
-        options: [dev, test, prod]
         required: true
         default: dev
       region:
-        description: "Short region (weu/neu/eus/wus)"
-        type: choice
-        options: [weu, neu, eus, wus]
+        description: "Region code (weu/neu/eus/wus)"
         required: true
         default: weu
       appName:
@@ -20,39 +16,38 @@ on:
         required: true
         default: core
       location:
-        description: "Azure location (ARM)"
+        description: "Azure location"
         required: true
         default: westeurope
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PowerShell
-        uses: PowerShell/setup-powershell@v1
-        with:
-          pwsh-version: '7.4.x'
+        uses: actions/setup-pwsh@v2
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Az modules (current user)
+      - name: Install Az PowerShell
         shell: pwsh
         run: |
           Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
           Install-Module Az -Scope CurrentUser -Force -AllowClobber
-          Get-Module Az -ListAvailable | Select Name,Version | Sort-Object Name
+          Get-Module Az -ListAvailable | Select-Object Name,Version | Sort-Object Name
 
-      - name: Deploy
+      - name: Deploy Environment
         shell: pwsh
         run: |
           ./automation/deploy-environment.ps1 `
-            -Env       "${{ github.event.inputs.env }}" `
-            -Region    "${{ github.event.inputs.region }}" `
-            -AppName   "${{ github.event.inputs.appName }}" `
-            -Location  "${{ github.event.inputs.location }}"
+            -Env ${{ github.event.inputs.env }} `
+            -Region ${{ github.event.inputs.region }} `
+            -AppName ${{ github.event.inputs.appName }} `
+            -Location ${{ github.event.inputs.location }}
