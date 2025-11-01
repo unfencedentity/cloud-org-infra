@@ -28,21 +28,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up PowerShell
-        uses: actions/setup-powershell@v1
+      # No setup-powershell step needed; pwsh is already on ubuntu-latest
 
-      - name: Login to Azure
+      - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Install Az PowerShell modules
+        shell: pwsh
         run: |
-          pwsh -Command "Install-Module Az -Force -AllowClobber"
+          Install-Module Az -Force -AllowClobber
 
       - name: Deploy environment
+        shell: pwsh
         run: |
-          pwsh -File automation/deploy-environment.ps1 `
+          ./automation/deploy-environment.ps1 `
             -Env "${{ github.event.inputs.env }}" `
             -Region "${{ github.event.inputs.region }}" `
             -AppName "${{ github.event.inputs.appName }}" `
