@@ -8,7 +8,7 @@ on:
         required: true
         default: "dev"
       region:
-        description: "Region code (weu/neu/eus/wus)"
+        description: "Region (weu/neu/eus/wus)"
         required: true
         default: "weu"
       appName:
@@ -20,30 +20,26 @@ on:
         required: true
         default: "westeurope"
 
+permissions:
+  contents: read  # id-token NOT needed for client-secret
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Azure Login (Client Secret authentication)
+      # ✅ Client secret login with JSON
+      - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.ARM_CLIENT_ID }}
-          tenant-id: ${{ secrets.ARM_TENANT_ID }}
-          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Verify Azure session
-        shell: pwsh
-        run: az account show
-
-      - name: Install Az PowerShell modules
+      - name: Install Az modules
         shell: pwsh
         run: |
-          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
           Install-Module Az -Scope CurrentUser -Force -AllowClobber
           Get-Module Az -ListAvailable | Select-Object Name,Version | Sort-Object Name
 
@@ -51,7 +47,7 @@ jobs:
         shell: pwsh
         run: |
           ./automation/deploy-environment.ps1 `
-            -Env      "${{ github.event.inputs.env }}" `
-            -Region   "${{ github.event.inputs.region }}" `
-            -AppName  "${{ github.event.inputs.appName }}" `
-            -Location "${{ github.event.inputs.location }}"
+            -Env ${{ github.event.inputs.env }} `
+            -Region ${{ github.event.inputs.region }} `
+            -AppName ${{ github.event.inputs.appName }} `
+            -Location ${{ github.event.inputs.location }}
