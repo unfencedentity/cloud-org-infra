@@ -1,41 +1,45 @@
-# automation/deploy-environment.ps1
-# Deploy a full environment: RG + Network + Storage + App Service
-
-[CmdletBinding()]
 param(
-    [ValidateSet("dev","test","prod")]
-    [string]$Env,
-
-    [ValidateSet("weu","neu","eus","wus")]
-    [string]$Region,
-
-    [string]$AppName = "core",
-
-    # Location Azure (e.g. westeurope). Keep both Region (short) + Location (ARM)
-    [string]$Location = "westeurope"
+    [string]$Environment = "dev",
+    [string]$App         = "core",
+    [string]$Region      = "weu",
+    [string]$Location    = "westeurope"
 )
 
 $ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
 
-Write-Host "🚀 Starting full deployment for Env=$Env  App=$AppName  Region=$Region  Location=$Location" -ForegroundColor Cyan
+Write-Host "🚀 Starting full deployment for Env=$Environment  App=$App  Region=$Region  Location=$Location"
 
-# resolve paths relative to this script
-$base = Split-Path -Parent $PSCommandPath  # equivalent with $PSScriptRoot in pwsh 7+
-$rgScript      = Join-Path $base "create-rg.ps1"
-$netScript     = Join-Path $base "create-network.ps1"
-$storageScript = Join-Path $base "create-storage.ps1"
-$appScript     = Join-Path $base "create-appservice.ps1"
+function Ensure-AzContext {
+    param([string]$SubscriptionId)
 
-# quick existence checks
-@($rgScript,$netScript,$storageScript,$appScript) | ForEach-Object {
-    if (-not (Test-Path $_)) { throw "Required child script missing: $_" }
+    # Do we have an active context already? (expected in GitHub Actions after azure/login)
+    $ctx = Get-AzContext -ErrorAction SilentlyContinue
+    if (-not $ctx) {
+        # Fallback for local runs using service principal env vars
+        if ($env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET -and $env:AZURE_TENANT_ID) {
+            $sec  = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
+            $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
+            Connect-AzAccount -ServicePrincipal -Tenant $env:AZURE_TENANT_ID -Credential $cred -Subscription $SubscriptionId | Out-Null
+        } else {
+            throw "No Azure context available. Run via azure/login or set SP env vars (AZURE_CLIENT_ID/SECRET/TENANT_ID)."
+        }
+    }
+
+    if ($SubscriptionId) {
+        Select-AzSubscription -SubscriptionId $SubscriptionId | Out-Null
+    }
+
+    $ctx = Get-AzContext
+    Write-Host "✔ Using subscription: $($ctx.Subscription.Id) - $($ctx.Subscription.Name)"
 }
 
-# run in order
-& $rgScript      -Env $Env -Region $Region -AppName $AppName -Location $Location
-& $netScript     -Env $Env -Region $Region -AppName $AppName -Location $Location
-& $storageScript -Env $Env -Region $Region -AppName $AppName -Location $Location
-& $appScript     -Env $Env -Region $Region -AppName $AppName -Location $Location
+Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
-Write-Host "✅ Environment '$Env-$AppName' deployed successfully!" -ForegroundColor Green
+# --- Call sub-scripts (first: create RG)
+$rgScript = Join-Path $PSScriptRoot "create-rg.ps1"
+if (-not (Test-Path $rgScript)) {
+    throw "Sub-script not found: $rgScript"
+}
+
+# Pass down parameters as needed by your sub-script
+& $rgScript -Environment $Environment -App $App -Region $Region -Location $Location
