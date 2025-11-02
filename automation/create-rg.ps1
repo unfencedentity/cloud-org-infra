@@ -1,27 +1,28 @@
-# create-rg.ps1
-# Script PowerShell pentru crearea unui Resource Group în Azure cu naming și tagging corect
-
 param(
-    [string]$Env = "dev",
-    [string]$Svc = "rg",
-    [string]$Region = "weu",
-    [string]$Name = "core",
-    [string]$Location = "westeurope"
+    [Parameter(Mandatory=$true)][string]$Environment,
+    [Parameter(Mandatory=$true)][string]$App,
+    [Parameter(Mandatory=$true)][string]$Region,
+    [Parameter(Mandatory=$true)][string]$Location
 )
 
-# Creează denumirea completă conform convenției
-$resourceGroupName = "$Env-$Svc-$Region-$Name"
+$ErrorActionPreference = 'Stop'
 
-# Creează dicționarul de taguri
+# Derive RG name (adjust if you have a different naming convention)
+$resourceGroupName = "$($App)-$($Environment)-rg-$($Region)"
+
+# Optional tags
 $tags = @{
-    env        = $Env
-    owner      = "lucian.s@cloudorg.local"
-    costCenter = "CC1001"
-    app        = "cloud-org-core"
-    dataClass  = "internal"
+    "environment" = $Environment
+    "app"         = $App
+    "region"      = $Region
+    "owner"       = "cloud-org-infra"
 }
 
-# Creează Resource Group-ul
-New-AzResourceGroup -Name $resourceGroupName -Location $Location -Tag $tags
-
-Write-Host "Resource Group '$resourceGroupName' created successfully in $Location"
+$existing = Get-AzResourceGroup -Name $resourceGroupName -ErrorAction SilentlyContinue
+if ($existing) {
+    Write-Host "ℹ Resource group '$resourceGroupName' already exists in '$($existing.Location)'. Skipping create."
+} else {
+    Write-Host "🆕 Creating resource group '$resourceGroupName' in '$Location'..."
+    New-AzResourceGroup -Name $resourceGroupName -Location $Location -Tag $tags | Out-Null
+    Write-Host "✔ Resource group '$resourceGroupName' created."
+}
