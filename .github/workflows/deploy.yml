@@ -1,39 +1,47 @@
-param(
-    [string]$Environment = "dev",
-    [string]$App         = "core",
-    [string]$Region      = "weu",
-    [string]$Location    = "westeurope"
-)
+name: Deploy Azure infra
 
-$ErrorActionPreference = 'Stop'
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'automation/**'
+      - '.github/workflows/deploy.yml'
 
-Write-Host "🚀 Starting full deployment for Env=$Environment  App=$App  Region=$Region  Location=$Location"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
-function Ensure-AzContext {
-    param([string]$SubscriptionId)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    $ctx = Get-AzContext -ErrorAction SilentlyContinue
-    if (-not $ctx) {
-        if ($env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET -and $env:AZURE_TENANT_ID) {
-            $sec  = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
-            $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
-            Connect-AzAccount -ServicePrincipal -Tenant $env:AZURE_TENANT_ID -Credential $cred -Subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
-        } else {
-            throw "No Azure context available. Run via azure/login or set SP env vars (AZURE_CLIENT_ID/SECRET/TENANT_ID)."
-        }
-    }
+      - name: Azure Login (client secret)
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          enable-AzPSSession: true
 
-    if ($SubscriptionId) {
-        Select-AzSubscription -SubscriptionId $SubscriptionId | Out-Null
-    }
+      - name: Install Az modules
+        uses: azure/powershell@v1
+        with:
+          azPSVersion: '10.4.1'
+          errorActionPreference: 'Stop'
+          inlineScript: |
+            $ErrorActionPreference = 'Stop'
+            if (-not (Get-Module -ListAvailable Az.Accounts)) {
+              Set-PSRepository PSGallery -InstallationPolicy Trusted
+              Install-Module Az -Scope CurrentUser -Force -AllowClobber
+            }
+            Import-Module Az.Accounts -ErrorAction Stop
+            Import-Module Az.Resources -ErrorAction Stop
 
-    $ctx = Get-AzContext
-    Write-Host "✔ Using subscription: $($ctx.Subscription.Id) - $($ctx.Subscription.Name)"
-}
-
-Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
-
-$rgScript = Join-Path $PSScriptRoot "create-rg.ps1"
-if (-not (Test-Path $rgScript)) { throw "Sub-script not found: $rgScript" }
-
-& $rgScript -Environment $Environment -App $App -Region $Region -Location $Location
+      - name: Deploy environment
+        uses: azure/powershell@v1
+        with:
+          azPSVersion: '10.4.1'
+          errorActionPreference: 'Stop'
+          inlineScript: |
+            $ErrorActionPreference = 'Stop'
+            & "$env:GITHUB_WORKSPACE/automation/deploy-environment.ps1" -Environment dev -App core -Region weu -Location westeurope
