@@ -10,6 +10,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -31,7 +33,6 @@ jobs:
             if (-not (Get-Module -ListAvailable Az.Accounts)) {
               Install-Module Az -Scope CurrentUser -Force -AllowClobber
             }
-            # (opțional) vezi ce e instalat
             Get-Module Az.* -ListAvailable | Sort-Object Name | Format-Table Name,Version
 
       - name: Deploy environment
