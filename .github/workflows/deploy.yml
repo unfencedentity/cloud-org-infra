@@ -2,46 +2,50 @@ name: Deploy Azure infra
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'automation/**'
-      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # Permisiuni necesare pentru OIDC (obligatoriu)
     permissions:
+      id-token: write
       contents: read
 
     steps:
+      - name: Pre Azure Login (OIDC)
+        run: echo "Starting OIDC login…"
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Azure Login (client secret)
-        uses: azure/login@v1
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
 
       - name: Install Az modules
         uses: azure/powershell@v1
         with:
-          azPSVersion: '10.4.1'
-          errorActionPreference: 'Stop'
           inlineScript: |
-            $ErrorActionPreference = 'Stop'
-            if (-not (Get-Module -ListAvailable Az.Accounts)) {
-              Set-PSRepository PSGallery -InstallationPolicy Trusted
-              Install-Module Az -Scope CurrentUser -Force -AllowClobber
-            }
-            Import-Module Az.Accounts -ErrorAction Stop
-            Import-Module Az.Resources -ErrorAction Stop
+            # optional: vezi ce versiuni sunt disponibile
+            Get-Module Az.Accounts -ListAvailable | Select-Object Name,Version
+          azPSVersion: latest
 
       - name: Deploy environment
         uses: azure/powershell@v1
         with:
-          azPSVersion: '10.4.1'
-          errorActionPreference: 'Stop'
           inlineScript: |
-            $ErrorActionPreference = 'Stop'
-            & "$env:GITHUB_WORKSPACE/automation/deploy-environment.ps1" -Environment dev -App core -Region weu -Location westeurope
+            ./automation/deploy-environment.ps1 `
+              -Env dev `
+              -App core `
+              -Region weu `
+              -Location westeurope
+          azPSVersion: latest
+
+      - name: Post Azure Login (OIDC)
+        if: always()
+        run: echo "Deployment finished."
