@@ -1,60 +1,57 @@
 # cloud-org-infra
 
-A simulated organizational Azure environment designed for hands-on learning, automation practice, and portfolio demonstration.
-
-This project focuses on building scalable cloud infrastructure using **PowerShell**, **Azure**, and **GitHub Actions (CI/CD)** with **OIDC authentication** (no stored secrets).
+A simulated organizational Azure environment designed for hands-on learning, automation practice, and portfolio demonstration.  
+This project focuses on building scalable cloud infrastructure using **PowerShell**, **Azure**, and **GitHub Actions (CI/CD)** with **OIDC authentication** — avoiding stored secrets.
 
 ---
 
 ## 1. Introduction
 
-This repository represents a clean and modular approach to deploying Azure resources using automation.
+This repository showcases a clean, modular approach to deploying Azure environments using automation:
 
-The goal is to show how real organizations structure and manage cloud environments:
+- Clear separation of responsibility and resource layout
+- Consistent deployments through GitHub Actions pipelines
+- Secure authentication using **OpenID Connect (OIDC)** instead of saved credentials
+- Reusable PowerShell modules for provisioning tasks
 
-- Clear separation of responsibility and resource organization
-- Consistent deployments using CI/CD pipelines
-- Secure authentication **without storing secrets** (OIDC)
-- Reusable PowerShell modules for infrastructure tasks
-
-This setup can be extended into a real **production-style blueprint**.
+This setup can be extended into real-world enterprise blueprints.
 
 ---
 
 ## 2. Architecture Overview
 
-This project simulates a standard organizational Azure structure:
+This project simulates a common organizational Azure structure:
 
-```
+```text
 Tenant (Microsoft Entra ID)
 │
 └── Subscription (core-services / development / sandbox)
     │
     ├── Resource Group: rg-core
-    │   ├── Storage Accounts (data, logs, state)
+    │   └── Storage Accounts (logs, data, state)
     │   └── Shared Utilities (future: Key Vault, Container Registry, etc.)
     │
     ├── Resource Group: rg-network
     │   └── Virtual Network + Subnets (future expansion)
     │
     └── Resource Group: rg-security
-        ├── RBAC role assignments
+        └── RBAC role assignments
         └── Azure Policy (naming, compliance & governance)
 ```
 
-This structure keeps **core**, **network**, and **security** responsibilities separated — similar to real enterprise cloud environments.
+This keeps **core**, **network**, and **security** responsibilities clearly separated — similar to real enterprise environments.
 
 ---
 
 ## 3. Technology Stack
 
-| Component        | Purpose                                                    |
-|-----------------|------------------------------------------------------------|
-| **Azure**       | Cloud platform where infrastructure is deployed            |
-| **PowerShell**  | Scripting engine for IaC-style modules and automation      |
-| **GitHub Actions** | CI/CD workflow engine that executes deployments        |
-| **OIDC Federation** | Secure authentication without secrets                  |
-| **RBAC & Policy** | Organizational access and governance controls            |
+| Component      | Purpose                                        |
+|----------------|------------------------------------------------|
+| Azure          | Cloud platform where resources are deployed    |
+| PowerShell     | IaC scripting engine for automation modules    |
+| GitHub Actions | CI/CD workflow engine                          |
+| OIDC           | Secure authentication — no stored secrets      |
+| RBAC & Policy  | Org-wide governance and access control         |
 
 ---
 
@@ -62,10 +59,10 @@ This structure keeps **core**, **network**, and **security** responsibilities se
 
 The deployment pipeline runs through GitHub Actions:
 
-1. Workflow is triggered (manually or via push)
-2. GitHub **authenticates to Azure using OIDC** — **no secrets stored**
-3. PowerShell installs required Az modules
-4. `deploy-environment.ps1` provisions Azure resources consistently
+1. Workflow is triggered (manual / push / schedule)
+2. GitHub authenticates to Azure using **OIDC**
+3. PowerShell modules install required Az tools
+4. `deploy-environment.ps1` creates/updates resources
 5. Output is logged and validated
 
 This ensures **repeatable, consistent deployments**.
@@ -74,48 +71,42 @@ This ensures **repeatable, consistent deployments**.
 
 ## 5. Folder Structure
 
-```
+```text
 cloud-org-infra/
 │
-├── .github/workflows/        # CI/CD pipelines (GitHub Actions)
-│   └── deploy.yml            # Deployment workflow
+├── .github/workflows/          # CI/CD pipelines (GitHub Actions)
+│   └── deploy.yml              # Deployment workflow
 │
-├── automation/               # PowerShell deployment scripts & modules
-│   ├── deploy-environment.ps1
-│   └── modules/              # Reusable functions and helpers
+├── automation/                 # PowerShell automation logic
+│   ├── deploy-environment.ps1  # Main environment deployment script
+│   └── modules/                # Reusable helper functions
 │
-├── architecture/             # Conceptual & visual topology diagrams (future)
-│
-├── policy/                   # Azure Policy definitions & governance rules
-│
-├── security/                 # RBAC role mappings & access documentation
-│
-└── documentation/            # Notes, guides, and usage examples
+├── architecture/               # Diagrams and conceptual layouts (future)
+├── policy/                     # Azure Policy definitions
+├── security/                   # RBAC mappings & governance
+└── documentation/              # Notes & usage guides
 ```
 
-This structure separates code, documentation, and operations — making the repo **maintainable and scalable**.
+This layout keeps code, docs, and governance **separated and maintainable**.
 
 ---
 
 ## 6. How to Deploy
 
-From GitHub:
+From GitHub UI →  
+**Actions → Deploy Azure infra → Run Workflow**
 
-```
-Actions → Deploy Azure infra → Run workflow → Select environment
-```
-
-No local secrets or manual auth needed.
+No local secrets required.  
+Authentication happens via **OIDC Federation**.
 
 ---
 
-## 7. Future Enhancements (Backlog)
+## 7. Planned Enhancements
 
-- Add Virtual Network + subnets
-- Add Azure Key Vault + Container Registry
-- Expand logging + diagnostics design
-- Strengthen naming/tagging policy
-- Additional reusable PowerShell modules
+- Add VNet subnets + NSGs
+- Add Key Vault + Container Registry
+- Expand tagging & naming governance
+- Add monitoring setup (Log Analytics + Alerts)
 
 ---
 
