@@ -1,7 +1,7 @@
 # cloud-org-infra
 
 A simulated organizational Azure environment designed for hands-on learning, automation practice, and portfolio demonstration.  
-This project focuses on building scalable cloud infrastructure using **PowerShell**, **Azure**, and **GitHub Actions (CI/CD)** with **OIDC authentication** — avoiding stored secrets.
+This project demonstrates building scalable Azure infrastructure using PowerShell and GitHub Actions (CI/CD), authenticated via OpenID Connect (OIDC) — eliminating the need for stored secrets.
 
 ---
 
