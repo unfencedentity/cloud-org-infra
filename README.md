@@ -25,23 +25,22 @@ This setup can be extended into a real **production-style blueprint**.
 
 This project simulates a standard organizational Azure structure:
 
+```
 Tenant (Microsoft Entra ID)
 │
 └── Subscription (core-services / development / sandbox)
-│
-├── Resource Group: rg-core
-│ ├── Storage Accounts (data, logs, state)
-│ └── Shared Utilities (future: Key Vault, Container Registry, etc.)
-│
-├── Resource Group: rg-network
-│ └── Virtual Network + Subnets (future expansion)
-│
-└── Resource Group: rg-security
-├── RBAC role assignments
-└── Azure Policy (naming, compliance & governance)
-
-yaml
-Copy code
+    │
+    ├── Resource Group: rg-core
+    │   ├── Storage Accounts (data, logs, state)
+    │   └── Shared Utilities (future: Key Vault, Container Registry, etc.)
+    │
+    ├── Resource Group: rg-network
+    │   └── Virtual Network + Subnets (future expansion)
+    │
+    └── Resource Group: rg-security
+        ├── RBAC role assignments
+        └── Azure Policy (naming, compliance & governance)
+```
 
 This structure keeps **core**, **network**, and **security** responsibilities separated — similar to real enterprise cloud environments.
 
@@ -75,25 +74,24 @@ This ensures **repeatable, consistent deployments**.
 
 ## 5. Folder Structure
 
+```
 cloud-org-infra/
 │
-├── .github/workflows/ # CI/CD pipelines (GitHub Actions)
-│ └── deploy.yml # Deployment workflow
+├── .github/workflows/        # CI/CD pipelines (GitHub Actions)
+│   └── deploy.yml            # Deployment workflow
 │
-├── automation/ # PowerShell deployment scripts & modules
-│ ├── deploy-environment.ps1
-│ └── modules/ # Reusable functions and helpers
+├── automation/               # PowerShell deployment scripts & modules
+│   ├── deploy-environment.ps1
+│   └── modules/              # Reusable functions and helpers
 │
-├── architecture/ # Conceptual & visual topology diagrams (future)
+├── architecture/             # Conceptual & visual topology diagrams (future)
 │
-├── policy/ # Azure Policy definitions & governance rules
+├── policy/                   # Azure Policy definitions & governance rules
 │
-├── security/ # RBAC role mappings & access documentation
+├── security/                 # RBAC role mappings & access documentation
 │
-└── documentation/ # Notes, guides, and usage examples
-
-yaml
-Copy code
+└── documentation/            # Notes, guides, and usage examples
+```
 
 This structure separates code, documentation, and operations — making the repo **maintainable and scalable**.
 
@@ -103,10 +101,9 @@ This structure separates code, documentation, and operations — making the repo
 
 From GitHub:
 
+```
 Actions → Deploy Azure infra → Run workflow → Select environment
-
-yaml
-Copy code
+```
 
 No local secrets or manual auth needed.
 
