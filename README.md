@@ -1,7 +1,7 @@
 # cloud-org-infra
 
 A simulated organizational Azure environment designed for hands-on learning, automation practice, and portfolio demonstration.  
-This project focuses on building scalable cloud infrastructure using **PowerShell**, **Azure**, and **GitHub Actions (CI/CD)** with **OIDC authentication**.
+This project focuses on building scalable cloud infrastructure using **PowerShell**, **Azure**, and **GitHub Actions (CI/CD)** with **OIDC authentication** (no stored secrets).
 
 ---
 
@@ -21,20 +21,24 @@ This setup can be extended into a real production blueprint.
 
 ## 2. Architecture Overview
 
-The environment simulates a standard Azure organizational structure:
+This project simulates a common organizational Azure structure:
+
 Tenant (Microsoft Entra ID)
 │
-└── Subscription (Core Services / Development / Sandbox)
+└── Subscription (core-services / development / sandbox)
 │
 ├── Resource Group: rg-core
-│ ├── Storage Accounts (logs, data, state)
-│ └── Shared Core Resources
+│ ├── Storage Accounts (data, logs, state)
+│ └── Shared utilities (future: Key Vault, Container Registry, etc.)
 │
 ├── Resource Group: rg-network
-│ └── Virtual Network + Subnets (future expansion)
+│ └── Virtual Network + Subnets (placeholder for future expansion)
 │
 └── Resource Group: rg-security
-└── RBAC, Policy, and Access Governance
+├── RBAC roles and assignments
+└── Azure Policy (naming, compliance, tagging rules)
+
+This structure keeps core, network, and security responsibilities clearly separated, similar to real enterprise environments.
 
 
 ---
@@ -64,13 +68,26 @@ The deployment pipeline runs through GitHub Actions:
 ---
 
 ## 5. Folder Structure
-.github/workflows # CI/CD pipelines
-automation/ # Deployment PowerShell scripts & modules
-architecture/ # Environment topology & reference diagrams
-policy/ # Azure Policy definitions (future extension)
-security/ # RBAC & access configuration
-documentation/ # Notes and extended usage guides
+.cloud-org-infra/
+│
+├── .github/workflows/ # CI/CD pipelines (GitHub Actions)
+│ └── deploy.yml
+│
+├── automation/ # PowerShell deployment scripts & modules
+│ ├── deploy-environment.ps1
+│ └── modules/
+│ └── (reusable infrastructure functions)
+│
+├── architecture/ # Diagrams, conceptual layout, service maps
+│
+├── policy/ # Azure Policy definitions & assignments
+│
+├── security/ # RBAC role mappings and access configuration
+│
+└── documentation/ # Notes, guides, decisions, and usage examples
 
+
+This layout separates code, documentation, governance, and operations — making the repo scalable and maintainable.
 
 ---
 
