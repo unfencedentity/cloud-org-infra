@@ -157,4 +157,6 @@ Get-AzResourceGroup -Name $rgName
 - We will introduce **environment parameter files** (`.psd1`)
 - We will apply this to VNet, Storage, Key Vault, Identity
 
+Updating...
+
 You now have the base language skills needed to build reusable cloud automation.
