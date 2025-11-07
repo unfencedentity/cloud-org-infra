@@ -1,6 +1,7 @@
 # PowerShell Fundamentals (Cloud-focused)
 
-PowerShell is a programming language and shell that works with **objects**, not plain text. That is what makes it ideal for Azure automation and CI/CD.
+PowerShell works with **objects**, not plain text.  
+This makes it ideal for Azure automation, CI/CD pipelines, and infrastructure-as-code.
 
 ---
 
@@ -10,43 +11,49 @@ Every command (cmdlet) returns **objects** with properties and methods.
 
 Examples:
 
+```powershell
 Get-Service
 Get-Service | Get-Member
 Get-Service | Select Name, Status | Sort-Object Status
+```
 
 `Get-Member` is how we inspect the structure of an object.
 
 ---
 
-## 2) Cmdlet structure: Verb-Noun
+## 2) Cmdlet Structure (Verb-Noun)
 
-PowerShell commands follow this pattern:
+PowerShell commands follow a predictable naming pattern:
 
+```powershell
 New-AzResourceGroup
 Get-AzStorageAccount
 Set-AzResourceGroup
 Remove-AzRoleAssignment
+```
 
-This makes scripts readable and predictable.
+This makes scripts readable and consistent.
 
 ---
 
 ## 3) Pipeline passes objects
 
-The pipe `|` sends objects, not strings:
+The pipe `|` passes **objects**, not text.
 
+```powershell
 Get-Process |
   Where-Object { $_.CPU -gt 1 } |
   Select Name, CPU |
   Sort-Object CPU -Descending
+```
 
-This is fundamentally different from Bash or CMD.
-You are filtering *object properties*, not text lines.
+You are filtering **object properties**, not text lines.
 
 ---
 
 ## 4) Variables, Arrays, Hashtables
 
+```powershell
 # Variable
 $env = "dev"
 
@@ -56,26 +63,29 @@ $names[0]   # one
 
 # Hashtable (key/value)
 $tags = @{ env="dev"; app="core"; owner="lucian" }
-$tags.app   # "core"
+$tags.app   # core
+```
 
-Hashtables are heavily used for **tags**, **parameters**, and **resource definitions**.
+Hashtables are heavily used for tagging and parameterized deployments.
 
 ---
 
 ## 5) Discoverability (how to learn any command)
 
+```powershell
 Get-Command *ResourceGroup*
 Get-Help New-AzStorageAccount -Examples
+```
 
-You do **not** memorize cmdlets.
-You learn **how to search** for them.
+You do **not** memorize cmdlets — you learn how to **search**.
 
 ---
 
-## 6) Idempotent pattern (critical for cloud deploys)
+## 6) Idempotent deployment pattern
 
-We use this pattern in the repo to avoid duplicates on re-run.
+Ensures **running deployments multiple times does NOT duplicate resources**.
 
+```powershell
 param([string]$Name,[string]$Location,[hashtable]$Tags)
 
 $rg = Get-AzResourceGroup -Name $Name -ErrorAction SilentlyContinue
@@ -87,13 +97,13 @@ if ($rg) {
     New-AzResourceGroup -Name $Name -Location $Location -Tag $Tags | Out-Null
     Write-Host "RG created: $Name"
 }
-
-This ensures multiple deployments give one consistent state.
+```
 
 ---
 
-## 7) Professional function pattern
+## 7) Professional function structure
 
+```powershell
 function New-CoreResourceGroup {
   [CmdletBinding()]
   param(
@@ -114,13 +124,15 @@ function New-CoreResourceGroup {
   Write-Host "RG created: $Name"
   return $created
 }
+```
 
-This is how our infrastructure scripts should be structured.
+This is the recommended structure for infrastructure modules.
 
 ---
 
-## 8) Practical Azure snippets (copy-ready)
+## 8) Practical Azure snippets
 
+```powershell
 Get-AzContext
 Get-AzSubscription | Select Name, Id
 
@@ -128,35 +140,66 @@ New-AzStorageAccount -Name "stcoredevweu12345" `
   -ResourceGroupName "rg-core-dev-weu" `
   -Location "westeurope" -SkuName Standard_LRS `
   -Kind StorageV2 -EnableHierarchicalNamespace $true
+```
 
 ---
 
-## 9) Mini practice (5 minutes)
+## 9) Mini Practice
 
-A) Explore:
+```powershell
+# A) Inspect object structure
 Get-Process | Get-Member
 
-B) Filter:
+# B) Filter and select properties
 Get-Service | Where-Object { $_.Status -eq "Running" } | Select Name, Status
 
-C) Hashtable:
+# C) Hashtable field access
 $tags = @{ env="dev"; app="core" }; $tags.env
 
-D) Idempotent RG:
+# D) Idempotent resource group creation
 $rgName="rg-dev-weu"; $loc="westeurope"
 if (-not(Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue)) {
   New-AzResourceGroup -Name $rgName -Location $loc | Out-Null
 }
 Get-AzResourceGroup -Name $rgName
+```
 
 ---
 
-## 10) Next steps in this repo
+## 10) Next Steps
 
-- We will convert repeated logic into **modules** (`.psm1`)
-- We will introduce **environment parameter files** (`.psd1`)
-- We will apply this to VNet, Storage, Key Vault, Identity
+- Convert repeated automation logic into **PowerShell modules** (`.psm1`)
+- Use **parameter files** (`.psd1`) for environment differences
+- Apply this structure to:
+  - VNet
+  - Storage
+  - Key Vault
+  - Identity (RBAC)
 
-Updating...
+---
 
-You now have the base language skills needed to build reusable cloud automation.
+## 11) Quick Cheat-Sheet
+
+```powershell
+# Inspect type structure
+Get-Service | Get-Member
+
+# Pipeline filtering + projection
+Get-Process |
+  Where-Object { $_.CPU -gt 1 } |
+  Select Name, CPU |
+  Sort-Object CPU -Descending
+
+# Arrays
+$names = @("one","two","three")
+$names[1]
+
+# Hashtables
+$tags = @{ env="dev"; app="core" }
+$tags.app
+
+# Ensure resource group idempotently
+Ensure-ResourceGroup -Name "rg-dev-weu" -Location "westeurope" -Tags @{ env="dev"; app="core" }
+```
+
+---
