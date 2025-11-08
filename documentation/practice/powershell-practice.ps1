@@ -1,27 +1,39 @@
 # powershell-practice.ps1
-# Used for muscle-memory practice & experimentation
+# Hands-on practice for muscle memory (safe to run in Cloud Shell or local)
 
-# Inspecting objects
-Get-Service | Get-Member
+# --- Session context (read-only) ---
+Get-AzContext | Select-Object Subscription, Account, Tenant
 
-# Pipeline transformation
-Get-Process |
-  Where-Object { $_.CPU -gt 1 } |
-  Select Name, CPU |
-  Sort-Object CPU -Descending
+# --- Arrays & loop ---
+$apps = @("sql","web","api","worker")
+foreach ($app in $apps) { Write-Host "Component -> $app" }
 
-# Arrays
-$names = @("one","two","three")
-$names[0]
-$names[1]
-
-# Hashtables
+# --- Hashtable (tags) ---
 $tags = @{ env="dev"; app="core"; owner="lucian" }
 $tags.env
 $tags.app
+$tags["owner"]
 
-# Idempotent pattern (RG example logic, no creation here)
-$rgName = "rg-test"
-$location = "westeurope"
+# --- Object inspection ---
+Get-Process | Get-Member
+Get-Service  | Select Name, Status | Sort-Object Status
+
+# --- Idempotent Resource Group example ---
+$rgName = "rg-test-weu"
+$loc    = "westeurope"
+
 $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
-if ($rg) { "RG exists" } else { "RG does not exist" }
+
+if ($rg) {
+    Write-Host "RG exists:" $rg.ResourceGroupName
+} else {
+    Write-Host "Creating RG:" $rgName "in" $loc
+    New-AzResourceGroup -Name $rgName -Location $loc | Out-Null
+    Write-Host "RG created."
+}
+
+# --- Verify ---
+Get-AzResourceGroup -Name $rgName | Select ResourceGroupName, Location, ProvisioningState
+
+# --- Optional cleanup ---
+# Remove-AzResourceGroup -Name $rgName -Force
