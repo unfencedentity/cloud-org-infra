@@ -37,3 +37,40 @@ Get-AzResourceGroup -Name $rgName | Select ResourceGroupName, Location, Provisio
 
 # --- Optional cleanup ---
 # Remove-AzResourceGroup -Name $rgName -Force
+
+
+# PowerShell Practice – Using Modules (Real Azure Execution)
+
+This exercise demonstrates how to run Azure resource automation using a reusable PowerShell module.
+
+## Steps
+
+```powershell
+# Go to repo
+Set-Location ~/cloud-org-infra
+
+# Import module
+Import-Module ./automation/modules/az-core.psm1 -Force
+
+# Prepare tags
+$tags = @{ env="dev"; app="core"; owner="lucian" }
+
+# Create or verify RG (idempotent)
+New-CoreResourceGroup -Name "rg-dev-weu" -Location "westeurope" -Tags $tags |
+Select ResourceGroupName, Location, Tags
+
+# Retrieve RG
+Get-CoreResourceGroup -Name "rg-dev-weu" |
+Select ResourceGroupName, Location, ProvisioningState
+
+# Update tags
+Set-CoreResourceGroupTags -Name "rg-dev-weu" -Tags @{ env="dev"; app="core"; costcenter="1234" } |
+Select ResourceGroupName, Tags
+
+Result
+
+No duplicate resources created (idempotent)
+
+Tags updated correctly
+
+Module functions behave predictably
