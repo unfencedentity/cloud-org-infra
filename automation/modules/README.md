@@ -25,12 +25,8 @@ New-CoreResourceGroup -Name "rg-app-dev-weu" -Location "westeurope" -Tags @{ env
 
 Module design principles
 
-Keep modules small and focused on a single purpose
-
-Avoid hard-coded values (always use parameters)
-
-Ensure idempotency (safe repeatable deployments)
-
-Follow Verb-Noun naming conventions
-
-Functions should return objects, not plain text
+- Keep modules small and focused on a single purpose
+- Avoid hard-coded values (always use parameters)
+- Ensure idempotency (safe repeatable deployments)
+- Follow Verb-Noun naming conventions
+- Functions should return objects, not plain text
