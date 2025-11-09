@@ -148,4 +148,3 @@ New-AzRoleAssignment `
   -ObjectId $userId `
   -RoleDefinitionName "Storage Blob Data Contributor" `
   -Scope "/subscriptions/$(Get-AzContext).Subscription.Id/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$sa"
-
