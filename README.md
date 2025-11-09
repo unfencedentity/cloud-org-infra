@@ -114,14 +114,19 @@ Authentication happens via **OIDC Federation**.
 
 ## Storage Provisioning (ADLS Gen2)
 
-We provision a secure storage account with hierarchical namespace enabled (ADLS Gen2) for data and automation workflows.
+We provision a secure storage account with hierarchical namespace enabled (ADLS Gen2) for data workflows, automation pipelines, and log retention.
 
-### Command steps (PowerShell)
+### Why ADLS Gen2?
+- Supports directory & file-level ACLs for fine-grained access
+- Required for advanced data workloads (Databricks, Synapse, ML jobs)
+- Enables enterprise logging & automation artifact storage
+- No access keys required — **RBAC-based security only**
 
+### Quick Provision (PowerShell)
 ```powershell
 # Variables
-$rg = "rg-dev-weu"
-$sa = "stdweweu2401"
+$rg  = "rg-dev-weu"
+$sa  = "stdweuweu2401"
 $loc = "westeurope"
 $tags = @{ owner="lucian"; env="dev"; app="core" }
 
@@ -137,15 +142,10 @@ New-AzStorageAccount `
   -Kind StorageV2 `
   -EnableHierarchicalNamespace $true
 
-# Assign Storage Blob Contributor to your signed-in user
+# Assign RBAC to signed-in user (no access keys)
 $userId = (Get-AzADUser -SignedIn).Id
 New-AzRoleAssignment `
   -ObjectId $userId `
   -RoleDefinitionName "Storage Blob Data Contributor" `
-  -Scope "/subscriptions/$((Get-AzContext).Subscription.Id)/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$sa"
+  -Scope "/subscriptions/$(Get-AzContext).Subscription.Id/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$sa"
 
-Result
-✅ Storage account created
-✅ ADLS hierarchical namespace enabled
-✅ RBAC correctly assigned (no access key use)
-✅ Secure-by-default & ready for pipelines
