@@ -111,3 +111,41 @@ Authentication happens via **OIDC Federation**.
 ---
 
 **Status:** Active learning & development project.
+
+## Storage Provisioning (ADLS Gen2)
+
+We provision a secure storage account with hierarchical namespace enabled (ADLS Gen2) for data and automation workflows.
+
+### Command steps (PowerShell)
+
+```powershell
+# Variables
+$rg = "rg-dev-weu"
+$sa = "stdweweu2401"
+$loc = "westeurope"
+$tags = @{ owner="lucian"; env="dev"; app="core" }
+
+# Create or update Resource Group
+New-AzResourceGroup -Name $rg -Location $loc -Tag $tags | Out-Null
+
+# Create ADLS Gen2 Storage Account
+New-AzStorageAccount `
+  -Name $sa `
+  -ResourceGroupName $rg `
+  -Location $loc `
+  -SkuName Standard_LRS `
+  -Kind StorageV2 `
+  -EnableHierarchicalNamespace $true
+
+# Assign Storage Blob Contributor to your signed-in user
+$userId = (Get-AzADUser -SignedIn).Id
+New-AzRoleAssignment `
+  -ObjectId $userId `
+  -RoleDefinitionName "Storage Blob Data Contributor" `
+  -Scope "/subscriptions/$((Get-AzContext).Subscription.Id)/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$sa"
+
+Result
+✅ Storage account created
+✅ ADLS hierarchical namespace enabled
+✅ RBAC correctly assigned (no access key use)
+✅ Secure-by-default & ready for pipelines
