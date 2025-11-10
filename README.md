@@ -149,4 +149,134 @@ New-AzRoleAssignment `
   -RoleDefinitionName "Storage Blob Data Contributor" `
   -Scope "/subscriptions/$(Get-AzContext).Subscription.Id/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$sa"
 
-Updating...
+## Secure Storage Access with Private Endpoints (Zero Public Exposure)
+
+We ensure that the ADLS Gen2 storage account is accessible **only internally**, through **Private Endpoints** bound to a controlled virtual network.  
+This prevents public exposure and guarantees that all traffic stays **on the Azure backbone**.
+
+### Why This Matters
+| Component | Purpose |
+|---------|---------|
+| ADLS Gen2 | Data lake storage for automation / workload data |
+| VNet | Network boundary for organization traffic |
+| Subnet `subnet-data` | Placement for private endpoints |
+| Private Endpoints | Secure access to BLOB and DFS endpoints |
+| Private DNS Zones | Internal DNS resolution for blob & dfs |
+| RBAC | Identity-based access (no shared keys needed) |
+
+**Result:**  
+✔ No public internet access  
+✔ No shared keys  
+✔ Identity & role-based access  
+✔ Private traffic inside Azure network only  
+
+---
+
+## Step 1 — Variables
+```pwsh
+$rg     = "rg-dev-weu"
+$loc    = "westeurope"
+$sa     = "stdeweu2401"
+$rgNet  = "rg-dev-weu"
+$vnet   = "vnet-org-dev-weu"
+$subData = "subnet-data"
+```
+
+---
+
+## Step 2 — Get Storage Account Object
+```pwsh
+$saObj = Get-AzStorageAccount -Name $sa -ResourceGroupName $rg | Select-Object -First 1
+```
+
+---
+
+## Step 3 — Create Private Link Service Connections (Blob + DFS)
+```pwsh
+# Blob service private link
+$plsBlob = New-AzPrivateLinkServiceConnection `
+  -Name "pls-$sa-blob" `
+  -PrivateLinkServiceId $saObj.Id `
+  -GroupId "blob"
+
+# DFS (Data Lake) private link
+$plsDfs = New-AzPrivateLinkServiceConnection `
+  -Name "pls-$sa-dfs" `
+  -PrivateLinkServiceId $saObj.Id `
+  -GroupId "dfs"
+```
+
+---
+
+## Step 4 — Create Private Endpoints in the Data Subnet
+```pwsh
+# Extract subnet object from VNet
+$v = Get-AzVirtualNetwork -Name $vnet -ResourceGroupName $rgNet
+$sub = $v.Subnets | Where-Object Name -eq $subData
+
+# Blob endpoint
+New-AzPrivateEndpoint `
+  -Name "pep-$sa-blob" `
+  -ResourceGroupName $rgNet `
+  -Location $loc `
+  -Subnet $sub `
+  -PrivateLinkServiceConnection $plsBlob `
+  -ErrorAction SilentlyContinue | Out-Null
+
+# DFS endpoint
+New-AzPrivateEndpoint `
+  -Name "pep-$sa-dfs" `
+  -ResourceGroupName $rgNet `
+  -Location $loc `
+  -Subnet $sub `
+  -PrivateLinkServiceConnection $plsDfs `
+  -ErrorAction SilentlyContinue | Out-Null
+```
+
+---
+
+## Step 5 — Create Private DNS Zones for blob + dfs
+```pwsh
+$zoneBlob = "privatelink.blob.core.windows.net"
+$zoneDfs  = "privatelink.dfs.core.windows.net"
+
+$zBlobId = (New-AzPrivateDnsZoneGroup -Name "cfg-blob" -PrivateEndpointName "pep-$sa-blob" `
+  -ResourceGroupName $rgNet -PrivateDnsZoneConfig @(New-AzPrivateDnsZoneConfig -Name "cfg-blob" -PrivateDnsZoneId `
+  (New-AzPrivateDnsZone -Name $zoneBlob -ResourceGroupName $rgNet).Id)).PrivateDnsZoneConfigs[0].PrivateDnsZoneId
+
+$zDfsId = (New-AzPrivateDnsZoneGroup -Name "cfg-dfs" -PrivateEndpointName "pep-$sa-dfs" `
+  -ResourceGroupName $rgNet -PrivateDnsZoneConfig @(New-AzPrivateDnsZoneConfig -Name "cfg-dfs" -PrivateDnsZoneId `
+  (New-AzPrivateDnsZone -Name $zoneDfs -ResourceGroupName $rgNet).Id)).PrivateDnsZoneConfigs[0].PrivateDnsZoneId
+```
+
+---
+
+## Step 6 — Disable Public Access to Storage Account
+```pwsh
+Set-AzStorageAccount `
+  -ResourceGroupName $rg `
+  -Name $sa `
+  -PublicNetworkAccess Disabled | Out-Null
+```
+
+---
+
+## ✅ Verification Commands
+```pwsh
+Get-AzPrivateEndpoint -ResourceGroupName $rgNet | Select Name, Subnet.Name, ProvisioningState
+(Get-AzStorageAccount -ResourceGroupName $rg -Name $sa).PublicNetworkAccess
+Get-AzPrivateDnsRecordSet -ZoneName $zoneBlob -ResourceGroupName $rgNet -RecordType A
+Get-AzPrivateDnsRecordSet -ZoneName $zoneDfs  -ResourceGroupName $rgNet -RecordType A
+```
+
+**Expected Output:**
+```
+Private Endpoints: Succeeded
+PublicNetworkAccess: Disabled
+DNS Zones contain private IPs
+```
+
+✔ **Storage is now private**  
+✔ **Traffic stays internal**  
+✔ **RBAC controls access — no keys needed**  
+✔ **Ready for enterprise workloads**
