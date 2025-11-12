@@ -1,3 +1,4 @@
+```mermaid
 %%{init: {"flowchart": { "rankdir":"TB", "nodeSpacing": 40, "rankSpacing": 45 }, "themeVariables": { "fontSize": "14px" }}}%%
 flowchart TB
 
@@ -47,3 +48,4 @@ APP -->|Private Link traffic| VNET
 VNET -->|to PE endpoints| Data
 RBAC -. Identity-based access .- APP
 PUBOFF -. Enforced .- SA
+```
