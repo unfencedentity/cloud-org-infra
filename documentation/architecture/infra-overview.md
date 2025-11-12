@@ -15,7 +15,7 @@ end
 subgraph Network["Network (rg-dev-weu)"]
     VNET[VNet vnet-org-dev-weu\n10.20.0.0/16]
     S1[(subnet-core-services\n10.20.1.0/24)]
-    S2[(subnet-apps\n10.20.2.0/24)\nDelegation: Microsoft.Web/serverFarms]
+    S2[("subnet-apps\n10.20.2.0/24\nDelegation: Microsoft.Web&#47;serverFarms")]
     VNET --> S1
     VNET --> S2
 end
@@ -29,11 +29,10 @@ subgraph Security["Security"]
     PUBOFF[Public network access: Disabled]
 end
 
-%% Connections
 U1 -->|HTTPS (via VNet Integration)| APP
 APP -->|Private name resolution| DNS
 APP -->|Private Link traffic| VNET
 VNET -->|to Private Endpoints| SA
-```
 RBAC -. Identity-based access .- APP
 PUBOFF -. Enforced .- SA
+```
