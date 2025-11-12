@@ -1,3 +1,5 @@
+```mermaid
+
 flowchart LR
     subgraph Users["Consumers / Internal Clients"]
       U1[Developer / Service]
@@ -43,5 +45,8 @@ flowchart LR
     APP -->|Private name resolution| DNS
     APP -->|Private Link traffic| VNET
     VNET -->|to PE endpoints| Data
+
+...
+```
     RBAC -. Identity-based access .- APP
     PUBOFF -. Enforced .- SA
