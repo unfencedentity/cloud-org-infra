@@ -1,5 +1,4 @@
 ```mermaid
-```mermaid
 %%{init: {"flowchart": { "rankdir": "TB", "nodeSpacing": 40, "rankSpacing": 45 }, "themeVariables": { "fontSize": "14px" }}}%%
 flowchart TB
 
@@ -35,5 +34,6 @@ U1 -->|HTTPS (via VNet Integration)| APP
 APP -->|Private name resolution| DNS
 APP -->|Private Link traffic| VNET
 VNET -->|to Private Endpoints| SA
-RBAC -. Identity-based access .- AP
+RBAC -. Identity-based access .- APP
+PUBOFF -. Enforced .- SA
 ```
