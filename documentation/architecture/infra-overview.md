@@ -1,28 +1,27 @@
 ```mermaid
-
 flowchart LR
     subgraph Users["Consumers / Internal Clients"]
       U1[Developer / Service]
     end
 
     subgraph Compute["Compute Layer (rg-dev-weu)"]
-      ASP[App Service Plan<br/>plan-core-weu]
-      APP[Web App<br/>app-core-weu (PYTHON|3.10)<br/>Managed Identity]
+      ASP[App Service Plan\nplan-core-weu]
+      APP[Web App\napp-core-weu (PYTHON|3.10)\nManaged Identity]
       ASP-->APP
     end
 
     subgraph Network["Network Layer (rg-dev-weu)"]
-      VNET[VNet vnet-org-dev-weu<br/>10.20.0.0/16]
-      S1[(subnet-core-services<br/>10.20.1.0/24)]
-      S2[(subnet-apps<br/>10.20.2.0/24<br/>Delegation: Microsoft.Web/serverFarms)]
-      S3[(subnet-data<br/>10.20.3.0/24)]
+      VNET[VNet vnet-org-dev-weu\n10.20.0.0/16]
+      S1[(subnet-core-services\n10.20.1.0/24)]
+      S2[(subnet-apps\n10.20.2.0/24\nDelegation: Microsoft.Web/serverFarms)]
+      S3[(subnet-data\n10.20.3.0/24)]
       VNET---S1
       VNET---S2
       VNET---S3
     end
 
     subgraph Data["Data Layer"]
-      SA[(Storage Account<br/>stdeweu2401<br/>ADLS Gen2, HNS:true)]
+      SA[(Storage Account\nstdeweu2401\nADLS Gen2, HNS:true)]
       PEB[[Private Endpoint: blob]]
       PED[[Private Endpoint: dfs]]
       SA --- PEB
@@ -37,7 +36,7 @@ flowchart LR
     end
 
     subgraph Security["Security & Access"]
-      RBAC[RBAC: Storage Blob Data Contributor<br/>assigned to Web App MI]
+      RBAC[RBAC: Storage Blob Data Contributor\nassigned to Web App MI]
       PUBOFF[PublicNetworkAccess = Disabled]
     end
 
@@ -45,8 +44,6 @@ flowchart LR
     APP -->|Private name resolution| DNS
     APP -->|Private Link traffic| VNET
     VNET -->|to PE endpoints| Data
-
-...
-```
     RBAC -. Identity-based access .- APP
     PUBOFF -. Enforced .- SA
+```
