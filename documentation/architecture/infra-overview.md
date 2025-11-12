@@ -6,7 +6,7 @@ flowchart LR
 
     subgraph Compute["Compute Layer (rg-dev-weu)"]
       ASP[App Service Plan\nplan-core-weu]
-      APP[Web App\napp-core-weu (PYTHON|3.10)\nManaged Identity]
+      APP[Web App\napp-core-weu \(PYTHON|3.10\)\nManaged Identity]
       ASP-->APP
     end
 
