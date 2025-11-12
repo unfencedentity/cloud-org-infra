@@ -32,6 +32,6 @@ end
 U1 -->|HTTPS (via VNet Integration)| APP
 APP -->|Private name resolution| DNS
 APP -->|Private Link traffic| VNET
-VNET -->|to PE endpoints| SA
+VNET -->|to Private Endpoints| SA
 RBAC -. Identity-based access .- APP
 PUBOFF -. Enforced .- SA
