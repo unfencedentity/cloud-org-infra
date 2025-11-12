@@ -42,7 +42,7 @@ subgraph Security["Security & Access"]
   PUBOFF[PublicNetworkAccess = Disabled]
 end
 
-U1 -->|HTTPS (via VNet Integration)| APP
+U1 -->|HTTPS (via VNet Integration)|
 APP -->|Private name resolution| DNS
 APP -->|Private Link traffic| VNET
 VNET -->|to PE endpoints| Data
