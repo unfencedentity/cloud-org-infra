@@ -1,18 +1,19 @@
 # cloud-org-infra
 
 A simulated organizational Azure environment designed for hands-on learning, automation practice, and portfolio demonstration.  
-This project demonstrates building scalable Azure infrastructure using PowerShell and GitHub Actions (CI/CD), authenticated via OpenID Connect (OIDC) — eliminating the need for stored secrets.
+This project demonstrates building scalable Azure infrastructure using PowerShell and GitHub Actions (CI/CD), authenticated via **OpenID Connect (OIDC)** — eliminating the need for stored secrets.
 
 ---
 
 ## 1. Introduction
 
-This repository showcases a clean, modular approach to deploying Azure environments using automation:
+This repository showcases a clean, modular, and enterprise-ready approach to deploying Azure environments using automation:
 
 - Clear separation of responsibility and resource layout
 - Consistent deployments through GitHub Actions pipelines
-- Secure authentication using **OpenID Connect (OIDC)** instead of saved credentials
+- Secure authentication using **OIDC** instead of saved credentials
 - Reusable PowerShell modules for provisioning tasks
+- Idempotent infrastructure provisioning (safe to re-run)
 
 This setup can be extended into real-world enterprise blueprints.
 
@@ -20,26 +21,25 @@ This setup can be extended into real-world enterprise blueprints.
 
 ## 2. Architecture Overview
 
-This project simulates a common organizational Azure structure:
+The project simulates a common organizational Azure environment:
 
-```text
+```
 Tenant (Microsoft Entra ID)
 │
-└── Subscription (core-services / development / sandbox)
+└── Subscription (core-services / development)
     │
     ├── Resource Group: rg-core
     │   └── Storage Accounts (logs, data, state)
-    │   └── Shared Utilities (future: Key Vault, Container Registry, etc.)
+    │   └── Shared utilities (future: ACR, Key Vault)
     │
     ├── Resource Group: rg-network
-    │   └── Virtual Network + Subnets (future expansion)
+    │   └── Virtual network + subnets
     │
     └── Resource Group: rg-security
-        └── RBAC role assignments
-        └── Azure Policy (naming, compliance & governance)
+        └── Azure Policy & RBAC model
 ```
 
-This keeps **core**, **network**, and **security** responsibilities clearly separated — similar to real enterprise environments.
+This structure separates **core**, **network**, and **security** responsibilities — matching typical enterprise environments.
 
 ---
 
@@ -47,93 +47,108 @@ This keeps **core**, **network**, and **security** responsibilities clearly sepa
 
 | Component      | Purpose                                        |
 |----------------|------------------------------------------------|
-| Azure          | Cloud platform where resources are deployed    |
-| PowerShell     | IaC scripting engine for automation modules    |
-| GitHub Actions | CI/CD workflow engine                          |
-| OIDC           | Secure authentication — no stored secrets      |
-| RBAC & Policy  | Org-wide governance and access control         |
+| **Azure**      | Cloud platform for infrastructure & workloads  |
+| **PowerShell** | IaC and automation scripting engine            |
+| **GitHub Actions** | CI/CD workflow orchestration           |
+| **OIDC**       | Credentialless authentication from GitHub      |
+| **RBAC & Policy** | Identity-based access and governance       |
 
 ---
 
-## 4. Deployment Workflow (CI/CD)
+## 4. CI/CD Deployment Workflow
 
-The deployment pipeline runs through GitHub Actions:
+GitHub Actions handles automated deployments:
 
-1. Workflow is triggered (manual / push / schedule)
-2. GitHub authenticates to Azure using **OIDC**
-3. PowerShell modules install required Az tools
-4. `deploy-environment.ps1` creates/updates resources
-5. Output is logged and validated
+1. Workflow is triggered (push / manual / schedule)
+2. GitHub authenticates to Azure via **OIDC federation**
+3. PowerShell installs Az modules
+4. `deploy-environment.ps1` orchestrates resource provisioning
+5. Validation & logging are performed at the end
 
-This ensures **repeatable, consistent deployments**.
+This ensures **repeatable, stable, and secure deployments**.
 
 ---
 
-## 5. Folder Structure
+## 5. Repository Structure
 
-```text
+```
 cloud-org-infra/
 │
-├── .github/workflows/          # CI/CD pipelines (GitHub Actions)
-│   └── deploy.yml              # Deployment workflow
+├── .github/workflows/
+│   └── deploy.yml                  # CI/CD pipeline
 │
-├── automation/                 # PowerShell automation logic
-│   ├── deploy-environment.ps1  # Main environment deployment script
-│   └── modules/                # Reusable helper functions
+├── automation/
+│   ├── deploy-environment.ps1      # Full infra deployment orchestrator
+│   ├── create-coreinfra.ps1        # Local deployment for core services
+│   └── modules/
+│       └── CoreInfrastructure/
+│           ├── CoreInfrastructure.psm1
+│           └── README.md
 │
-├── architecture/               # Diagrams and conceptual layouts (future)
-├── policy/                     # Azure Policy definitions
-├── security/                   # RBAC mappings & governance
-└── documentation/              # Notes & usage guides
+├── architecture/                   # Diagrams and conceptual documentation
+├── documentation/                  # Guides, notes, walkthroughs
+├── policy/                         # Azure Policy definitions (future)
+└── security/                       # RBAC models & governance
 ```
 
-This layout keeps code, docs, and governance **separated and maintainable**.
+This layout keeps code, modules, diagrams, automation logic, and governance separated and maintainable.
 
 ---
 
-## 6. How to Deploy
+## 6. Core Infrastructure Module (New)
 
-From GitHub UI →  
-**Actions → Deploy Azure infra → Run Workflow**
+A reusable infrastructure provisioning module located at:
 
-No local secrets required.  
-Authentication happens via **OIDC Federation**.
+```
+automation/modules/CoreInfrastructure/
+```
+
+### Functions Included
+- **Ensure-ResourceGroup**
+- **Ensure-StorageAccount**
+
+These functions are **idempotent**, meaning they safely create or update resources without breaking existing setups.
+
+### Local Deployment
+
+```pwsh
+cd .\automation\
+Connect-AzAccount
+.\create-coreinfra.ps1
+```
+
+### Creates:
+
+- Resource Group (e.g., `rg-dev-weu`)
+- ADLS Gen2 Storage Account (e.g., `stdevweu2401`)
+- Standard tags:
+  - `owner=lucian`
+  - `env=dev`
+  - `app=core`
 
 ---
 
-## 7. Planned Enhancements
+## 7. ADLS Gen2 Storage Deployment (Core Infrastructure)
 
-- Add VNet subnets + NSGs
-- Add Key Vault + Container Registry
-- Expand tagging & naming governance
-- Add monitoring setup (Log Analytics + Alerts)
-
----
-
-**Status:** Active learning & development project.
-
-## Storage Provisioning (ADLS Gen2)
-
-We provision a secure storage account with hierarchical namespace enabled (ADLS Gen2) for data workflows, automation pipelines, and log retention.
+We provision a secure **ADLS Gen2** storage account with private networking and zero public exposure.
 
 ### Why ADLS Gen2?
-- Supports directory & file-level ACLs for fine-grained access
-- Required for advanced data workloads (Databricks, Synapse, ML jobs)
-- Enables enterprise logging & automation artifact storage
-- No access keys required — **RBAC-based security only**
 
-### Quick Provision (PowerShell)
+- Directory and file-level ACLs  
+- Required for advanced data workloads (Databricks, Synapse, ML pipelines)  
+- RBAC-only access (no shared keys)  
+- Supports enterprise-scale workflows  
+
+### Quick Manual Deployment Example (PowerShell)
+
 ```powershell
-# Variables
 $rg  = "rg-dev-weu"
 $sa  = "stdweuweu2401"
 $loc = "westeurope"
 $tags = @{ owner="lucian"; env="dev"; app="core" }
 
-# Create or update Resource Group
 New-AzResourceGroup -Name $rg -Location $loc -Tag $tags | Out-Null
 
-# Create ADLS Gen2 Storage Account
 New-AzStorageAccount `
   -Name $sa `
   -ResourceGroupName $rg `
@@ -141,142 +156,88 @@ New-AzStorageAccount `
   -SkuName Standard_LRS `
   -Kind StorageV2 `
   -EnableHierarchicalNamespace $true
-
-# Assign RBAC to signed-in user (no access keys)
-$userId = (Get-AzADUser -SignedIn).Id
-New-AzRoleAssignment `
-  -ObjectId $userId `
-  -RoleDefinitionName "Storage Blob Data Contributor" `
-  -Scope "/subscriptions/$(Get-AzContext).Subscription.Id/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$sa"
-
-## Secure Storage Access with Private Endpoints (Zero Public Exposure)
-
-We ensure that the ADLS Gen2 storage account is accessible **only internally**, through **Private Endpoints** bound to a controlled virtual network.  
-This prevents public exposure and guarantees that all traffic stays **on the Azure backbone**.
-
-### Why This Matters
-| Component | Purpose |
-|---------|---------|
-| ADLS Gen2 | Data lake storage for automation / workload data |
-| VNet | Network boundary for organization traffic |
-| Subnet `subnet-data` | Placement for private endpoints |
-| Private Endpoints | Secure access to BLOB and DFS endpoints |
-| Private DNS Zones | Internal DNS resolution for blob & dfs |
-| RBAC | Identity-based access (no shared keys needed) |
-
-**Result:**  
-✔ No public internet access  
-✔ No shared keys  
-✔ Identity & role-based access  
-✔ Private traffic inside Azure network only  
+```
 
 ---
 
-## Step 1 — Variables
+## 8. Private Networking (Zero Public Exposure)
+
+ADLS Gen2 is locked behind **Private Endpoints** inside a secured VNet.
+
+### Components Added
+
+| Component | Purpose |
+|----------|---------|
+| VNet + `subnet-data` | Private endpoint placement |
+| Private Endpoints | Secure blob & dfs access |
+| Private DNS Zones | Internal name resolution |
+| RBAC | Identity-based access |
+
+### Private Endpoint Creation (Blob + DFS)
+
 ```pwsh
-$rg     = "rg-dev-weu"
-$loc    = "westeurope"
-$sa     = "stdeweu2401"
 $rgNet  = "rg-dev-weu"
 $vnet   = "vnet-org-dev-weu"
 $subData = "subnet-data"
-```
+$saObj = Get-AzStorageAccount -Name $sa -ResourceGroupName $rg
 
----
+$plsBlob = New-AzPrivateLinkServiceConnection -Name "pls-$sa-blob" -PrivateLinkServiceId $saObj.Id -GroupId "blob"
+$plsDfs  = New-AzPrivateLinkServiceConnection -Name "pls-$sa-dfs"  -PrivateLinkServiceId $saObj.Id -GroupId "dfs"
 
-## Step 2 — Get Storage Account Object
-```pwsh
-$saObj = Get-AzStorageAccount -Name $sa -ResourceGroupName $rg | Select-Object -First 1
-```
-
----
-
-## Step 3 — Create Private Link Service Connections (Blob + DFS)
-```pwsh
-# Blob service private link
-$plsBlob = New-AzPrivateLinkServiceConnection `
-  -Name "pls-$sa-blob" `
-  -PrivateLinkServiceId $saObj.Id `
-  -GroupId "blob"
-
-# DFS (Data Lake) private link
-$plsDfs = New-AzPrivateLinkServiceConnection `
-  -Name "pls-$sa-dfs" `
-  -PrivateLinkServiceId $saObj.Id `
-  -GroupId "dfs"
-```
-
----
-
-## Step 4 — Create Private Endpoints in the Data Subnet
-```pwsh
-# Extract subnet object from VNet
 $v = Get-AzVirtualNetwork -Name $vnet -ResourceGroupName $rgNet
 $sub = $v.Subnets | Where-Object Name -eq $subData
 
-# Blob endpoint
-New-AzPrivateEndpoint `
-  -Name "pep-$sa-blob" `
-  -ResourceGroupName $rgNet `
-  -Location $loc `
-  -Subnet $sub `
-  -PrivateLinkServiceConnection $plsBlob `
-  -ErrorAction SilentlyContinue | Out-Null
+New-AzPrivateEndpoint -Name "pep-$sa-blob" -ResourceGroupName $rgNet -Location $loc -Subnet $sub -PrivateLinkServiceConnection $plsBlob
+New-AzPrivateEndpoint -Name "pep-$sa-dfs"  -ResourceGroupName $rgNet -Location $loc -Subnet $sub -PrivateLinkServiceConnection $plsDfs
+```
 
-# DFS endpoint
-New-AzPrivateEndpoint `
-  -Name "pep-$sa-dfs" `
-  -ResourceGroupName $rgNet `
-  -Location $loc `
-  -Subnet $sub `
-  -PrivateLinkServiceConnection $plsDfs `
-  -ErrorAction SilentlyContinue | Out-Null
+### Disable Public Access
+
+```pwsh
+Set-AzStorageAccount -ResourceGroupName $rg -Name $sa -PublicNetworkAccess Disabled
 ```
 
 ---
 
-## Step 5 — Create Private DNS Zones for blob + dfs
+## 9. Verification
+
 ```pwsh
-$zoneBlob = "privatelink.blob.core.windows.net"
-$zoneDfs  = "privatelink.dfs.core.windows.net"
-
-$zBlobId = (New-AzPrivateDnsZoneGroup -Name "cfg-blob" -PrivateEndpointName "pep-$sa-blob" `
-  -ResourceGroupName $rgNet -PrivateDnsZoneConfig @(New-AzPrivateDnsZoneConfig -Name "cfg-blob" -PrivateDnsZoneId `
-  (New-AzPrivateDnsZone -Name $zoneBlob -ResourceGroupName $rgNet).Id)).PrivateDnsZoneConfigs[0].PrivateDnsZoneId
-
-$zDfsId = (New-AzPrivateDnsZoneGroup -Name "cfg-dfs" -PrivateEndpointName "pep-$sa-dfs" `
-  -ResourceGroupName $rgNet -PrivateDnsZoneConfig @(New-AzPrivateDnsZoneConfig -Name "cfg-dfs" -PrivateDnsZoneId `
-  (New-AzPrivateDnsZone -Name $zoneDfs -ResourceGroupName $rgNet).Id)).PrivateDnsZoneConfigs[0].PrivateDnsZoneId
+Get-AzPrivateEndpoint -ResourceGroupName $rgNet
+(Get-AzStorageAccount -Name $sa -ResourceGroupName $rg).PublicNetworkAccess
 ```
+
+Expected output:
+
+- Private Endpoints: `Succeeded`
+- Public Access: `Disabled`
+- DNS Zones contain private IPs
+
+✔ Traffic internal-only  
+✔ No shared keys  
+✔ Zero public exposure  
+✔ Enterprise-grade storage
 
 ---
 
-## Step 6 — Disable Public Access to Storage Account
-```pwsh
-Set-AzStorageAccount `
-  -ResourceGroupName $rg `
-  -Name $sa `
-  -PublicNetworkAccess Disabled | Out-Null
-```
+## 10. How to Deploy (CI/CD)
+
+From GitHub UI:
+
+**Actions → Deploy Azure infra → Run workflow**
+
+No secrets stored. Everything uses **OIDC** + RBAC identity.
 
 ---
 
-## ✅ Verification Commands
-```pwsh
-Get-AzPrivateEndpoint -ResourceGroupName $rgNet | Select Name, Subnet.Name, ProvisioningState
-(Get-AzStorageAccount -ResourceGroupName $rg -Name $sa).PublicNetworkAccess
-Get-AzPrivateDnsRecordSet -ZoneName $zoneBlob -ResourceGroupName $rgNet -RecordType A
-Get-AzPrivateDnsRecordSet -ZoneName $zoneDfs  -ResourceGroupName $rgNet -RecordType A
-```
+## 11. Planned Enhancements
 
-**Expected Output:**
-```
-Private Endpoints: Succeeded
-PublicNetworkAccess: Disabled
-DNS Zones contain private IPs
-```
+- Add VNet subnets + NSGs
+- Add Key Vault + Container Registry
+- Add monitoring (Log Analytics + Alerts)
+- Add Azure Policy for naming, tagging, compliance  
+- Expand automation modules for app services, networks, and databases
 
-✔ **Storage is now private**  
-✔ **Traffic stays internal**  
-✔ **RBAC controls access — no keys needed**  
-✔ **Ready for enterprise workloads**
+---
+
+**Status:** Active learning & development project (Azure + IaC + Automation).
+
