@@ -11,6 +11,7 @@ It highlights the main layers and how they interact:
 
 Below is the visual representation of the architecture:
 
+
 ```mermaid
 %%{init: {"flowchart": { "rankdir":"TB", "nodeSpacing": 40, "rankSpacing": 45 }, "themeVariables": { "fontSize": "14px" }}}%%
 flowchart TB
