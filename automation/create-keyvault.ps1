@@ -30,6 +30,7 @@ $tags = @{
     app   = "core"
 }
 
+
 # 1. Ensure Resource Group exists (simple check, assumes rg already created by coreinfra)
 $rg = Get-AzResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue
 if (-not $rg) {
@@ -78,3 +79,4 @@ Write-Host "RBAC    : Enabled (EnableRbacAuthorization = $($kvState.EnableRbacAu
 Write-Host "Tags    : $($kvState.Tags | Out-String)"
 Write-Host ""
 Write-Host "=== Key Vault deployment complete ===" -ForegroundColor Green
+
