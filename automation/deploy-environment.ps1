@@ -10,15 +10,17 @@ $ErrorActionPreference = 'Stop'
 Write-Host "🚀 Starting full deployment for Env=$Environment  App=$App  Region=$Region  Location=$Location"
 
 function Ensure-AzContext {
-    param([string]$SubscriptionId)
+    param(
+        [string]$SubscriptionId
+    )
 
+    # Do we have an active context already? (expected in GitHub Actions after azure/login)
     $ctx = Get-AzContext -ErrorAction SilentlyContinue
-
     if (-not $ctx) {
+        # Fallback for local runs using service principal env vars
         if ($env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET -and $env:AZURE_TENANT_ID) {
             $sec  = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
             $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
-
             Connect-AzAccount `
                 -ServicePrincipal `
                 -Tenant $env:AZURE_TENANT_ID `
@@ -26,7 +28,7 @@ function Ensure-AzContext {
                 -Subscription $SubscriptionId | Out-Null
         }
         else {
-            throw "❌ No Azure context. Run Connect-AzAccount or configure SP env vars."
+            throw "No Azure context available. Run via azure/login or set SP env vars (AZURE_CLIENT_ID/SECRET/TENANT_ID)."
         }
     }
 
@@ -38,45 +40,17 @@ function Ensure-AzContext {
     Write-Host "✔ Using subscription: $($ctx.Subscription.Id) - $($ctx.Subscription.Name)"
 }
 
-# --- Ensure AZ login ---
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
-# --- Run sub-scripts in ORDER ---
-
-# 1. Resource Group
 $rgScript = Join-Path $PSScriptRoot "create-rg.ps1"
-if (-not (Test-Path $rgScript)) { throw "Sub-script not found: $rgScript" }
-& $rgScript -Environment $Environment -App $App -Region $Region -Location $Location
-
-# 2. Network (optional)
-$netScript = Join-Path $PSScriptRoot "create-network.ps1"
-if (Test-Path $netScript) {
-    & $netScript -Environment $Environment -App $App -Region $Region -Location $Location
-    Write-Host "✔ Network created."
-}
-else {
-    Write-Host "⚠ Network script not found, skipping."
+if (-not (Test-Path $rgScript)) {
+    throw "Sub-script not found: $rgScript"
 }
 
-# 3. Storage
-$storageScript = Join-Path $PSScriptRoot "create-storage.ps1"
-if (Test-Path $storageScript) {
-    & $storageScript -Environment $Environment -App $App -Region $Region -Location $Location
-    Write-Host "✔ Storage created."
-}
-else {
-    Write-Host "⚠ Storage script not found, skipping."
-}
+& $rgScript `
+    -Environment $Environment `
+    -App $App `
+    -Region $Region `
+    -Location $Location
 
-# 4. App Service
-$appSvcScript = Join-Path $PSScriptRoot "create-appservice.ps1"
-if (Test-Path $appSvcScript) {
-    & $appSvcScript -Environment $Environment -App $App -Region $Region -Location $Location
-    Write-Host "✔ App Service created."
-}
-else {
-    Write-Host "⚠ App Service script not found, skipping."
-}
-
-Write-Host ""
-Write-Host "🌍 Full environment deployment completed successfully!" -ForegroundColor Green
+Write-Host "✅ deploy-environment.ps1 finished (RG step). Further steps: network, storage, app service..."
