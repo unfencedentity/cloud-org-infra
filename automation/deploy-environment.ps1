@@ -7,7 +7,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "🚀 Starting full deployment for Env=$Environment App=$App Region=$Region Location=$Location"
+Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
+    $Environment, $App, $Region, $Location)
 
 function Ensure-AzContext {
     param(
@@ -21,11 +22,10 @@ function Ensure-AzContext {
             $sec  = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
             $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
 
-            Connect-AzAccount `
-                -ServicePrincipal `
-                -Tenant $env:AZURE_TENANT_ID `
-                -Credential $cred `
-                -Subscription $SubscriptionId | Out-Null
+            Connect-AzAccount -ServicePrincipal `
+                              -Tenant      $env:AZURE_TENANT_ID `
+                              -Credential  $cred `
+                              -Subscription $SubscriptionId | Out-Null
         }
         else {
             throw "No Azure context available. Run Connect-AzAccount or set SP environment variables."
@@ -37,7 +37,7 @@ function Ensure-AzContext {
     }
 
     $ctx = Get-AzContext
-    Write-Host "✔ Using subscription: $($ctx.Subscription.Id) - $($ctx.Subscription.Name)"
+    Write-Host ("Using subscription: {0} - {1}" -f $ctx.Subscription.Id, $ctx.Subscription.Name)
 }
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
@@ -45,13 +45,12 @@ Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 $rgScript = Join-Path $PSScriptRoot "create-rg.ps1"
 
 if (-not (Test-Path $rgScript)) {
-    throw "Sub-script not found: $rgScript"
+    throw ("Sub-script not found: {0}" -f $rgScript)
 }
 
-& $rgScript `
-    -Environment $Environment `
-    -App $App `
-    -Region $Region `
-    -Location $Location
+& $rgScript -Environment $Environment `
+            -App         $App `
+            -Region      $Region `
+            -Location    $Location
 
-Write-Host "✅ Orchestration complete (Resource Group step executed)."
+Write-Host "Orchestration complete (Resource Group step executed)."
