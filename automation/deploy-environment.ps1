@@ -1,4 +1,3 @@
-$%^" Change from local file
 param(
     [string]$Environment = "dev",
     [string]$App         = "core",
