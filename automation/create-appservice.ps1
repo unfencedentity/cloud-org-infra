@@ -1,149 +1,81 @@
-<#
-.SYNOPSIS
-    Idempotent deployment for core App Service (Plan + Web App).
-
-.DESCRIPTION
-    Uses the reusable AppService module (Ensure-AppServicePlan / Ensure-WebApp)
-    to create or update:
-      - App Service Plan
-      - Web App (Python 3.10, Managed Identity)
-    Safe to run multiple times.
-
-.NOTES
-    Requires:
-      - Az.Accounts
-      - Az.Websites
-      - automation/modules/AppService/AppService.psm1
-#>
-
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [string]$SubscriptionId = "",
-    [string]$Environment    = "dev",
-    [string]$Location       = "westeurope"
+    [Parameter(Mandatory = $true)][string]$Environment,
+    [Parameter(Mandatory = $true)][string]$App,
+    [Parameter(Mandatory = $true)][string]$Region,
+    [Parameter(Mandatory = $true)][string]$Location,
+
+    [Parameter(Mandatory = $false)][string]$AppServicePlanSku = "B1",
+
+    # Windows or Linux (for now we assume Windows, but keep this for future extension)
+    [Parameter(Mandatory = $false)][ValidateSet("Windows", "Linux")]
+    [string]$RuntimeStack = "Windows"
 )
 
-Write-Host "=== Core App Service deployment starting ===" -ForegroundColor Cyan
+$ErrorActionPreference = "Stop"
 
-# 1. Connect to Azure / set subscription (optional for local runs)
-try {
-    $ctx = Get-AzContext -ErrorAction SilentlyContinue
-    if (-not $ctx) {
-        Write-Host "No Azure context found. Running Connect-AzAccount..." -ForegroundColor Yellow
-        Connect-AzAccount | Out-Null
-    }
+# Naming conventions
+$rgName        = "rg-$App-$Environment-$Region"
+$appServicePlanName = "asp-$App-$Environment-$Region"
+$webAppName    = "app-$App-$Environment-$Region"
 
-    if ($SubscriptionId -and $SubscriptionId.Trim() -ne "") {
-        Write-Host "Setting subscription to $SubscriptionId" -ForegroundColor Yellow
-        Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
-    }
-}
-catch {
-    Write-Host "ERROR: Failed to authenticate to Azure." -ForegroundColor Red
-    throw
-}
-
-# 2. Global variables (adjust if you want)
-$rgName        = "rg-dev-weu"
-$appServicePlanName = "plan-core-weu"
-$webAppName    = "app-core-weu"
-$runtime       = "PYTHON|3.10"
-
+# Basic tags
 $tags = @{
-    env   = $Environment
-    app   = "core"
-    owner = "lucian"
+    environment = $Environment
+    app         = $App
+    region      = $Region
+    owner       = "cloud-org-infra"
 }
 
-Write-Host "`n--- Configuration ------------------------" -ForegroundColor DarkCyan
-Write-Host "Resource Group : $rgName"
-Write-Host "Location       : $Location"
-Write-Host "Plan Name      : $appServicePlanName"
-Write-Host "Web App        : $webAppName"
-Write-Host "Runtime        : $runtime"
-Write-Host "Tags           : $(($tags.GetEnumerator() | ForEach-Object { ""$($_.Key)=$($_.Value)"" }) -join ', ') )"
-Write-Host "----------------------------------------`n" -ForegroundColor DarkCyan
-
-# 3. Import AppService module
-try {
-    $modulePath = Join-Path $PSScriptRoot "modules/AppService/AppService.psm1"
-    if (-not (Test-Path $modulePath)) {
-        throw "Module not found at $modulePath. Make sure automation/modules/AppService/AppService.psm1 exists."
-    }
-
-    Write-Host "Importing AppService module from $modulePath" -ForegroundColor Cyan
-    Import-Module $modulePath -Force
-}
-catch {
-    Write-Host "ERROR: failed to import AppService module." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    throw
+# Validate Resource Group
+$rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+if (-not $rg) {
+    throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
-# 4. Ensure Resource Group exists (simple inline check)
-try {
-    Write-Host "`n==> Ensuring Resource Group '$rgName' exists..." -ForegroundColor Cyan
-    $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
-    if (-not $rg) {
-        Write-Host "Creating Resource Group '$rgName' in $Location..." -ForegroundColor Green
-        $rg = New-AzResourceGroup -Name $rgName -Location $Location -Tag $tags
-    }
-    else {
-        Write-Host "Resource Group already exists. Updating tags..." -ForegroundColor Yellow
-        Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
-    }
-}
-catch {
-    Write-Host "ERROR while ensuring Resource Group." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    throw
-}
+# --------------------------------------------------------------------
+# App Service Plan
+# --------------------------------------------------------------------
+$plan = Get-AzAppServicePlan -Name $appServicePlanName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 
-# 5. Provision App Service Plan (idempotent)
-try {
-    Write-Host "`n==> Ensuring App Service Plan '$appServicePlanName'..." -ForegroundColor Cyan
-    $plan = Ensure-AppServicePlan `
+if ($plan) {
+    Write-Host "App Service Plan '$appServicePlanName' already exists in resource group '$rgName'."
+}
+else {
+    if (-not $PSCmdlet.ShouldProcess("App Service Plan $appServicePlanName", "Create")) { return }
+
+    Write-Host "Creating App Service Plan '$appServicePlanName' (SKU=$AppServicePlanSku) in '$Location'..."
+
+    $plan = New-AzAppServicePlan `
         -Name $appServicePlanName `
         -ResourceGroupName $rgName `
         -Location $Location `
-        -Sku "S1" `
-        -Tags $tags
+        -Tier $AppServicePlanSku `
+        -NumberOfWorkers 1
 
-    Write-Host "App Service Plan ID: $($plan.Id)" -ForegroundColor DarkGreen
-}
-catch {
-    Write-Host "ERROR while ensuring App Service Plan." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    throw
+    Write-Host "App Service Plan '$appServicePlanName' created."
 }
 
-# 6. Provision Web App (idempotent)
-try {
-    Write-Host "`n==> Ensuring Web App '$webAppName'..." -ForegroundColor Cyan
-    $web = Ensure-WebApp `
-        -Name $webAppName `
-        -ResourceGroupName $rgName `
-        -PlanName $appServicePlanName `
-        -Location $Location `
-        -Runtime $runtime `
-        -Tags $tags
+# --------------------------------------------------------------------
+# Web App
+# --------------------------------------------------------------------
+$webApp = Get-AzWebApp -Name $webAppName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 
-    Write-Host "Web App URL: https://$($web.DefaultHostName)" -ForegroundColor DarkGreen
-}
-catch {
-    Write-Host "ERROR while ensuring Web App." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    throw
+if ($webApp) {
+    Write-Host "Web App '$webAppName' already exists in resource group '$rgName'."
+    return $webApp
 }
 
-# 7. Summary
-Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "   App Service deployment completed" -ForegroundColor Cyan
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host " Resource Group : $rgName"
-Write-Host " Location       : $Location"
-Write-Host " Plan           : $appServicePlanName"
-Write-Host " Web App        : $webAppName"
-Write-Host " Runtime        : $runtime"
-Write-Host " URL            : https://$($web.DefaultHostName)"
-Write-Host " Tags           : $(($tags.GetEnumerator() | ForEach-Object { ""$($_.Key)=$($_.Value)"" }) -join ', ') )"
-Write-Host "========================================`n" -ForegroundColor Cyan
+if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Create")) { return }
+
+Write-Host "Creating Web App '$webAppName' in App Service Plan '$appServicePlanName'..."
+
+$webApp = New-AzWebApp `
+    -Name $webAppName `
+    -ResourceGroupName $rgName `
+    -Location $Location `
+    -AppServicePlan $appServicePlanName
+
+Write-Host "Web App '$webAppName' created."
+
+return $webApp
