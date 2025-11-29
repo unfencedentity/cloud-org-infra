@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
 
-    # Email address used for the main action group receiver
+    # Email address used for the primary action group receiver
     [Parameter(Mandatory = $false)][string]$AlertEmail = "alerts@cloud-org-infra.test"
 )
 
@@ -14,10 +14,14 @@ $ErrorActionPreference = "Stop"
 # --------------------------------------------------------------------
 # Naming
 # --------------------------------------------------------------------
-$rgName       = "rg-$App-$Environment-$Region"
-$actionGroup  = "ag-$App-$Environment-$Region"
+$rgName            = "rg-$App-$Environment-$Region"
+$actionGroupName   = "ag-$App-$Environment-$Region"
 
-Write-Host "Processing Action Group '$actionGroup' in resource group '$rgName'..."
+# Action Groups **cannot** be created in regional locations like westeurope.
+# Microsoft only supports "global" for this resource type.
+$actionGroupLocation = "global"
+
+Write-Host "Processing Action Group '$actionGroupName' in resource group '$rgName'..."
 
 # --------------------------------------------------------------------
 # Validate Resource Group
@@ -30,25 +34,26 @@ if (-not $rg) {
 # --------------------------------------------------------------------
 # Check if Action Group already exists (idempotent)
 # --------------------------------------------------------------------
-$existing = Get-AzActionGroup -Name $actionGroup -ResourceGroup $rgName -ErrorAction SilentlyContinue
+$existing = Get-AzActionGroup -Name $actionGroupName -ResourceGroup $rgName -ErrorAction SilentlyContinue
 
 if ($existing) {
-    Write-Host "Action Group '$actionGroup' already exists. Skipping creation."
+    Write-Host "Action Group '$actionGroupName' already exists. Skipping creation."
     return $existing
 }
 
 # --------------------------------------------------------------------
-# Create Action Group (GitHub Actions–compatible syntax)
+# Create Action Group
 # --------------------------------------------------------------------
-if (-not $PSCmdlet.ShouldProcess("Action Group $actionGroup", "Create")) {
+if (-not $PSCmdlet.ShouldProcess("Action Group $actionGroupName", "Create")) {
     return
 }
 
 $actionGroupParams = @{
-    Name              = $actionGroup
+    Name              = $actionGroupName
     ResourceGroupName = $rgName
-    ShortName         = "ag$App"
-    Location          = $Location
+    Location          = $actionGroupLocation
+    ShortName         = "ag$($App)"
+
     EmailReceiver     = @(
         @{
             Name                 = "primary-email"
@@ -60,5 +65,5 @@ $actionGroupParams = @{
 
 $ag = New-AzActionGroup @actionGroupParams
 
-Write-Host "Action Group created: '$actionGroup'."
+Write-Host "Action Group created: '$actionGroupName' in location '$actionGroupLocation'."
 return $ag
