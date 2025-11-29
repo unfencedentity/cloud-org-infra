@@ -1,4 +1,3 @@
-=== BEGIN create-rg.md ===
 # Resource Group Module (create-rg.ps1)
 
 This module creates or validates an Azure Resource Group based on standardized naming conventions and tagging policies. It is designed for idempotent infrastructure automation and can be safely executed multiple times.
@@ -82,4 +81,3 @@ The module returns the Resource Group object:
 - Newly created RG if not
 
 This allows other deployment modules or orchestration layers to consume the returned object.
-=== END create-rg.md ===
