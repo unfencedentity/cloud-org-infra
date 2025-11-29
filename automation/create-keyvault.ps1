@@ -17,11 +17,21 @@ $ErrorActionPreference = "Stop"
 $resourceGroupName = "rg-$App-$Environment-$Region"
 $keyVaultName      = "kv-$App-$Environment-$Region"
 
-# Azure Key Vault naming rules: 3-24 chars, only alphanumeric and hyphen, must start with a letter
-$keyVaultName = $keyVaultName.ToLower()
-if ($keyVaultName.Length -lt 3 -or $keyVaultName.Length -gt 24) {
-    throw "Key Vault name '$keyVaultName' does not meet length requirements (3-24 characters). Adjust naming convention."
-}
+# Generate deterministic globally-unique Key Vault name
+$subscriptionId = (Get-AzContext).Subscription.Id
+
+$baseString = "$subscriptionId-$App-$Environment-$Region"
+
+# Compute short stable hash
+$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [System.Text.Encoding]::UTF8.GetBytes($baseString)
+)
+$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
+
+# kv + app + env + region + hash (must only contain letters, numbers)
+$keyVaultName = "kv$App$Environment$Region$hash".ToLower()
+$keyVaultName = $keyVaultName.Replace("-", "")
+
 
 # Default tags
 $tags = @{
