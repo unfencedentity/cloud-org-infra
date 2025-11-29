@@ -42,12 +42,13 @@ function Ensure-AzContext {
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
-$rgScript         = Join-Path $PSScriptRoot "create-rg.ps1"
-$networkScript    = Join-Path $PSScriptRoot "create-network.ps1"
-$nsgScript        = Join-Path $PSScriptRoot "create-nsgs.ps1"
-$storageScript    = Join-Path $PSScriptRoot "create-storage.ps1"
-$keyVaultScript   = Join-Path $PSScriptRoot "create-keyvault.ps1"
-$appServiceScript = Join-Path $PSScriptRoot "create-appservice.ps1"
+$rgScript             = Join-Path $PSScriptRoot "create-rg.ps1"
+$networkScript        = Join-Path $PSScriptRoot "create-network.ps1"
+$nsgScript            = Join-Path $PSScriptRoot "create-nsgs.ps1"
+$storageScript        = Join-Path $PSScriptRoot "create-storage.ps1"
+$keyVaultScript       = Join-Path $PSScriptRoot "create-keyvault.ps1"
+$appServiceScript     = Join-Path $PSScriptRoot "create-appservice.ps1"
+$logAnalyticsScript   = Join-Path $PSScriptRoot "create-loganalytics.ps1"
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -71,6 +72,10 @@ if (-not (Test-Path $keyVaultScript)) {
 
 if (-not (Test-Path $appServiceScript)) {
     Write-Warning ("Sub-script not found: {0}. App Service step will be skipped." -f $appServiceScript)
+}
+
+if (-not (Test-Path $logAnalyticsScript)) {
+    Write-Warning ("Sub-script not found: {0}. Log Analytics step will be skipped." -f $logAnalyticsScript)
 }
 
 # Resource Group
@@ -111,6 +116,14 @@ if (Test-Path $keyVaultScript) {
                       -Location    $Location
 }
 
+# Log Analytics Workspace
+if (Test-Path $logAnalyticsScript) {
+    & $logAnalyticsScript -Environment $Environment `
+                          -App         $App `
+                          -Region      $Region `
+                          -Location    $Location
+}
+
 # App Service
 if (Test-Path $appServiceScript) {
     & $appServiceScript -Environment $Environment `
@@ -119,4 +132,4 @@ if (Test-Path $appServiceScript) {
                         -Location    $Location
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, App Service steps executed)."
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, App Service steps executed)."
