@@ -1,3 +1,63 @@
+[CmdletBinding(SupportsShouldProcess = $true)]
+param(
+    [Parameter(Mandatory = $true)][string]$Environment,
+    [Parameter(Mandatory = $true)][string]$App,
+    [Parameter(Mandatory = $true)][string]$Region,
+    [Parameter(Mandatory = $true)][string]$Location,
+
+    # Email for Alert Group
+    [Parameter(Mandatory = $false)][string]$AlertEmail = "alerts@cloud-org-infra.test"
+)
+
+$ErrorActionPreference = "Stop"
+
+# Naming
+$rgName        = "rg-$App-$Environment-$Region"
+$actionGroup   = "ag-$App-$Environment-$Region"
+
+Write-Host "Creating Action Group '$actionGroup' in resource group '$rgName'..."
+
+# Check RG
+$rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+if (-not $rg) {
+    throw "Resource group '$rgName' does not exist — run create-rg.ps1 first."
+}
+
+# Check if action group exists
+$existing = Get-AzActionGroup -Name $actionGroup -ResourceGroup $rgName -ErrorAction SilentlyContinue
+
+if ($existing) {
+    Write-Host "Action Group '$actionGroup' already exists. Skipping creation."
+    return $existing
+}
+
+# ---------------------------------------------------------
+# Create Action Group using ONLY parameters compatible with
+# Az.Monitor version in GitHub Actions runners.
+# ---------------------------------------------------------
+
+if (-not $PSCmdlet.ShouldProcess("Action Group $actionGroup", "Create")) { return }
+
+$actionGroupParams = @{
+    Name                    = $actionGroup
+    ResourceGroupName       = $rgName
+    ShortName               = "ag$App"
+    Location                = $Location
+    EmailReceiver           = @(
+        @{
+            Name          = "primary-email"
+            EmailAddress  = $AlertEmail
+            UseCommonAlertSchema = $true
+        }
+    )
+}
+
+$ag = New-AzActionGroup @actionGroupParams
+
+Write-Host "Action Group created: '$actionGroup'."
+return $ag
+
+
 # File: automation/create-alerts.ps1
 
 [CmdletBinding(SupportsShouldProcess = $true)]
