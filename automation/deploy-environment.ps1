@@ -44,6 +44,7 @@ Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
 $rgScript      = Join-Path $PSScriptRoot "create-rg.ps1"
 $networkScript = Join-Path $PSScriptRoot "create-network.ps1"
+$nsgScript     = Join-Path $PSScriptRoot "create-nsgs.ps1"
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -53,11 +54,17 @@ if (-not (Test-Path $networkScript)) {
     Write-Warning ("Sub-script not found: {0}. Network step will be skipped." -f $networkScript)
 }
 
+if (-not (Test-Path $nsgScript)) {
+    Write-Warning ("Sub-script not found: {0}. NSG step will be skipped." -f $nsgScript)
+}
+
+# Resource Group
 & $rgScript -Environment $Environment `
             -App         $App `
             -Region      $Region `
             -Location    $Location
 
+# Network
 if (Test-Path $networkScript) {
     & $networkScript -Environment $Environment `
                      -App         $App `
@@ -65,4 +72,12 @@ if (Test-Path $networkScript) {
                      -Location    $Location
 }
 
-Write-Host "Orchestration complete (Resource Group + Network steps executed)."
+# NSGs
+if (Test-Path $nsgScript) {
+    & $nsgScript -Environment $Environment `
+                 -App         $App `
+                 -Region      $Region `
+                 -Location    $Location
+}
+
+Write-Host "Orchestration complete (Resource Group, Network, NSG steps executed)."
