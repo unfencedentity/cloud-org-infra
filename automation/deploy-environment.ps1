@@ -81,3 +81,18 @@ if (Test-Path $nsgScript) {
 }
 
 Write-Host "Orchestration complete (Resource Group, Network, NSG steps executed)."
+
+$storageScript = Join-Path $PSScriptRoot "create-storage.ps1"
+
+if (-not (Test-Path $storageScript)) {
+    Write-Warning ("Sub-script not found: {0}. Storage step will be skipped." -f $storageScript)
+}
+
+# Storage
+if (Test-Path $storageScript) {
+    & $storageScript -Environment $Environment `
+                     -App         $App `
+                     -Region      $Region `
+                     -Location    $Location
+}
+
