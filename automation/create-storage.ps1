@@ -19,9 +19,22 @@ $ErrorActionPreference = "Stop"
 # Naming convention
 $rgName = "rg-$App-$Environment-$Region"
 
-# Storage account names: 3-24 chars, lowercase letters and numbers only
-$rawName = "st$App$Environment$Region01"
-$storageAccountName = $rawName.ToLower()
+# Generate deterministic, globally-unique-ish storage account name
+# based on Subscription + App + Environment + Region
+$subscriptionId = (Get-AzContext).Subscription.Id
+
+$baseString = "$subscriptionId-$App-$Environment-$Region"
+
+# Compute a short stable hash suffix
+$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [System.Text.Encoding]::UTF8.GetBytes($baseString)
+)
+$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
+
+# Final name: st + app + env + region + hash (no dashes, all lowercase)
+$storageAccountName = "st$App$Environment$Region$hash"
+$storageAccountName = $storageAccountName.ToLower().Replace("-", "")
+
 
 # Tags
 $tags = @{
