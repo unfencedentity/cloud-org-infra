@@ -1,243 +1,261 @@
 # cloud-org-infra
 
-A simulated organizational Azure environment designed for hands-on learning, automation practice, and portfolio demonstration.  
-This project demonstrates building scalable Azure infrastructure using PowerShell and GitHub Actions (CI/CD), authenticated via **OpenID Connect (OIDC)** — eliminating the need for stored secrets.
+## Introduction
+
+cloud-org-infra is an enterprise-grade Azure Infrastructure Automation Framework built entirely with PowerShell.  
+It provides a fully modular, idempotent, and production-ready approach for provisioning complete application environments across multiple regions and stages.
+
+This repository is engineered for:
+
+- Cloud Automation Engineers  
+- DevOps Practitioners  
+- Azure Infrastructure Architects  
+- Engineers preparing a professional cloud automation portfolio  
+
+The goal is to deliver a repeatable baseline infrastructure that organizations can adopt or extend.
 
 ---
 
-## 1. Introduction
+## Key Capabilities
 
-This repository showcases a clean, modular, and enterprise-ready approach to deploying Azure environments using automation:
-
-- Clear separation of responsibility and resource layout
-- Consistent deployments through GitHub Actions pipelines
-- Secure authentication using **OIDC** instead of saved credentials
-- Reusable PowerShell modules for provisioning tasks
-- Idempotent infrastructure provisioning (safe to re-run)
-
-This setup can be extended into real-world enterprise blueprints.
-
----
-
-## 2. Architecture Overview
-
-The project simulates a common organizational Azure environment:
-
-```
-Tenant (Microsoft Entra ID)
-│
-└── Subscription (core-services / development)
-    │
-    ├── Resource Group: rg-core
-    │   └── Storage Accounts (logs, data, state)
-    │   └── Shared utilities (future: ACR, Key Vault)
-    │
-    ├── Resource Group: rg-network
-    │   └── Virtual network + subnets
-    │
-    └── Resource Group: rg-security
-        └── Azure Policy & RBAC model
-```
-
-This structure separates **core**, **network**, and **security** responsibilities — matching typical enterprise environments.
+- **Modular Infrastructure as Code (IaC)** using PowerShell  
+- **Idempotent execution** — safe to run multiple times  
+- **Strict naming + tagging standards** for enterprise-scale environments  
+- **Security built-in** (Key Vault, RBAC, hardened App Service config)  
+- **Production observability**, including:
+  - Log Analytics Workspace  
+  - Application Insights  
+  - Baseline alerting (CPU, 5xx errors)  
+- **Unified orchestration** with a single deployment command  
+- **CI/CD ready** for GitHub Actions / Azure DevOps  
 
 ---
 
-## 3. Technology Stack
+## High-Level Architecture
 
-| Component      | Purpose                                        |
-|----------------|------------------------------------------------|
-| **Azure**      | Cloud platform for infrastructure & workloads  |
-| **PowerShell** | IaC and automation scripting engine            |
-| **GitHub Actions** | CI/CD workflow orchestration           |
-| **OIDC**       | Credentialless authentication from GitHub      |
-| **RBAC & Policy** | Identity-based access and governance       |
+Each environment consists of:
 
----
+- Resource Group  
+- Virtual Network (VNet) & Subnets  
+- Network Security Groups  
+- Storage Account  
+- Azure Key Vault  
+- App Service Plan & App Service  
+- Log Analytics Workspace  
+- Application Insights  
+- Extended App Service Configuration:
+  - HTTPS enforcement  
+  - TLS minimum version  
+  - Managed Identity  
+  - Diagnostic logs → Log Analytics  
+- Alerts:
+  - CPU High  
+  - HTTP 5xx spike  
+- RBAC (Reader, Contributor, Key Vault Secrets User)
 
-## 4. CI/CD Deployment Workflow
+### Standardized Naming Convention
 
-GitHub Actions handles automated deployments:
+Examples:
 
-1. Workflow is triggered (push / manual / schedule)
-2. GitHub authenticates to Azure via **OIDC federation**
-3. PowerShell installs Az modules
-4. `deploy-environment.ps1` orchestrates resource provisioning
-5. Validation & logging are performed at the end
+- rg-core-dev-weu  
+- vnet-core-dev-weu  
+- kv-core-dev-weu  
+- stcoredevweuNNN  
+- asp-core-dev-weu  
+- app-core-dev-weu  
+- law-core-dev-weu  
+- appi-core-dev-weu  
+- ag-core-dev-weu  
 
-This ensures **repeatable, stable, and secure deployments**.
-
----
-
-## 5. Repository Structure
-
-```
-cloud-org-infra/
-│
-├── .github/workflows/
-│   └── deploy.yml                  # CI/CD pipeline
-│
-├── automation/
-│   ├── deploy-environment.ps1      # Full infra deployment orchestrator
-│   ├── create-coreinfra.ps1        # Local deployment for core services
-│   └── modules/
-│       └── CoreInfrastructure/
-│           ├── CoreInfrastructure.psm1
-│           └── README.md
-│
-├── architecture/                   # Diagrams and conceptual documentation
-├── documentation/                  # Guides, notes, walkthroughs
-├── policy/                         # Azure Policy definitions (future)
-└── security/                       # RBAC models & governance
-```
-
-This layout keeps code, modules, diagrams, automation logic, and governance separated and maintainable.
+This ensures consistency, discoverability, and compliance across environments.
 
 ---
 
-## 6. Core Infrastructure Module (New)
+## Orchestration Flow
 
-A reusable infrastructure provisioning module located at:
+The orchestration is performed by:
 
-```
-automation/modules/CoreInfrastructure/
-```
+automation/deploy-environment.ps1
 
-### Functions Included
-- **Ensure-ResourceGroup**
-- **Ensure-StorageAccount**
+Execution sequence:
 
-These functions are **idempotent**, meaning they safely create or update resources without breaking existing setups.
+1. create-rg.ps1  
+2. create-network.ps1  
+3. create-nsgs.ps1  
+4. create-storage.ps1  
+5. create-keyvault.ps1  
+6. create-loganalytics.ps1  
+7. create-appservice.ps1  
+8. create-appinsights.ps1  
+9. create-appservice-extended.ps1  
+10. create-alerts.ps1  
+11. create-rbac.ps1  
 
-### Local Deployment
-
-```pwsh
-cd .\automation\
-Connect-AzAccount
-.\create-coreinfra.ps1
-```
-
-### Creates:
-
-- Resource Group (e.g., `rg-dev-weu`)
-- ADLS Gen2 Storage Account (e.g., `stdevweu2401`)
-- Standard tags:
-  - `owner=lucian`
-  - `env=dev`
-  - `app=core`
+Each module is fully independent and documented under /documentation.
 
 ---
 
-## 7. ADLS Gen2 Storage Deployment (Core Infrastructure)
+## Requirements
 
-We provision a secure **ADLS Gen2** storage account with private networking and zero public exposure.
+- Azure Subscription  
+- PowerShell 7+  
+- Az PowerShell modules installed  
+- Authentication via:
+  - Connect-AzAccount  
+  or  
+  - Service Principal environment variables:
 
-### Why ADLS Gen2?
-
-- Directory and file-level ACLs  
-- Required for advanced data workloads (Databricks, Synapse, ML pipelines)  
-- RBAC-only access (no shared keys)  
-- Supports enterprise-scale workflows  
-
-### Quick Manual Deployment Example (PowerShell)
-
-```powershell
-$rg  = "rg-dev-weu"
-$sa  = "stdweuweu2401"
-$loc = "westeurope"
-$tags = @{ owner="lucian"; env="dev"; app="core" }
-
-New-AzResourceGroup -Name $rg -Location $loc -Tag $tags | Out-Null
-
-New-AzStorageAccount `
-  -Name $sa `
-  -ResourceGroupName $rg `
-  -Location $loc `
-  -SkuName Standard_LRS `
-  -Kind StorageV2 `
-  -EnableHierarchicalNamespace $true
-```
+AZURE_CLIENT_ID  
+AZURE_CLIENT_SECRET  
+AZURE_TENANT_ID  
+AZURE_SUBSCRIPTION_ID  
 
 ---
 
-## 8. Private Networking (Zero Public Exposure)
+## Deployment Example
 
-ADLS Gen2 is locked behind **Private Endpoints** inside a secured VNet.
+Example: Deploy the core application into dev environment in West Europe:
 
-### Components Added
+cd automation  
+.\deploy-environment.ps1 -Environment dev -App core -Region weu -Location westeurope
 
-| Component | Purpose |
-|----------|---------|
-| VNet + `subnet-data` | Private endpoint placement |
-| Private Endpoints | Secure blob & dfs access |
-| Private DNS Zones | Internal name resolution |
-| RBAC | Identity-based access |
+This will deploy:
 
-### Private Endpoint Creation (Blob + DFS)
+- Networking  
+- Security  
+- Compute  
+- Observability  
+- RBAC  
 
-```pwsh
-$rgNet  = "rg-dev-weu"
-$vnet   = "vnet-org-dev-weu"
-$subData = "subnet-data"
-$saObj = Get-AzStorageAccount -Name $sa -ResourceGroupName $rg
-
-$plsBlob = New-AzPrivateLinkServiceConnection -Name "pls-$sa-blob" -PrivateLinkServiceId $saObj.Id -GroupId "blob"
-$plsDfs  = New-AzPrivateLinkServiceConnection -Name "pls-$sa-dfs"  -PrivateLinkServiceId $saObj.Id -GroupId "dfs"
-
-$v = Get-AzVirtualNetwork -Name $vnet -ResourceGroupName $rgNet
-$sub = $v.Subnets | Where-Object Name -eq $subData
-
-New-AzPrivateEndpoint -Name "pep-$sa-blob" -ResourceGroupName $rgNet -Location $loc -Subnet $sub -PrivateLinkServiceConnection $plsBlob
-New-AzPrivateEndpoint -Name "pep-$sa-dfs"  -ResourceGroupName $rgNet -Location $loc -Subnet $sub -PrivateLinkServiceConnection $plsDfs
-```
-
-### Disable Public Access
-
-```pwsh
-Set-AzStorageAccount -ResourceGroupName $rg -Name $sa -PublicNetworkAccess Disabled
-```
+in a fully automated sequence.
 
 ---
 
-## 9. Verification
+## Configuring Alerts
 
-```pwsh
-Get-AzPrivateEndpoint -ResourceGroupName $rgNet
-(Get-AzStorageAccount -Name $sa -ResourceGroupName $rg).PublicNetworkAccess
-```
+To enable or adjust alert recipients, edit the Alerts step in the orchestrator:
 
-Expected output:
-
-- Private Endpoints: `Succeeded`
-- Public Access: `Disabled`
-- DNS Zones contain private IPs
-
-✔ Traffic internal-only  
-✔ No shared keys  
-✔ Zero public exposure  
-✔ Enterprise-grade storage
+-AlertEmails @("ops@example.com", "oncall@example.com")
 
 ---
 
-## 10. How to Deploy (CI/CD)
+## Configuring RBAC
 
-From GitHub UI:
+To assign role-based access control, supply Azure AD Object IDs:
 
-**Actions → Deploy Azure infra → Run workflow**
+-ReaderObjectIds @("aad-object-id-1")  
+-ContributorObjectIds @("aad-object-id-2")  
+-KeyVaultSecretsUserObjectIds @("aad-object-id-3")
 
-No secrets stored. Everything uses **OIDC** + RBAC identity.
-
----
-
-## 11. Planned Enhancements
-
-- Add VNet subnets + NSGs
-- Add Key Vault + Container Registry
-- Add monitoring (Log Analytics + Alerts)
-- Add Azure Policy for naming, tagging, compliance  
-- Expand automation modules for app services, networks, and databases
+Assignments are idempotent and safe to run repeatedly.
 
 ---
 
-**Status:** Active learning & development project (Azure + IaC + Automation).
+## Module Overview
 
+Core IaC modules:
+
+- create-rg.ps1 — Resource Group  
+- create-network.ps1 — VNet + Subnets  
+- create-nsgs.ps1 — Network Security Groups  
+- create-storage.ps1 — Storage Account provisioning  
+- create-keyvault.ps1 — Secure secret store  
+- create-appservice.ps1 — App Service Plan + Web App  
+- create-loganalytics.ps1 — Log Analytics Workspace  
+- create-appinsights.ps1 — Application Insights integration  
+- create-appservice-extended.ps1 — Hardening + diagnostics  
+- create-alerts.ps1 — Baseline monitoring alerts  
+- create-rbac.ps1 — Role assignments at RG scope  
+
+Documentation lives under `/documentation`.
+
+---
+
+## Operational Model
+
+### Reprovisioning
+
+The system is idempotent:
+
+- Running the same deploy command multiple times will not break the environment  
+- Existing resources are reused  
+- Missing components are provisioned automatically  
+
+### Extending Infrastructure
+
+New modules follow the same pattern:
+
+- strict naming  
+- parameter consistency  
+- idempotent logic  
+- integrated with deploy-environment.ps1  
+
+### Deleting Environments
+
+Optional cleanup script:  
+automation/cleanup.ps1  
+(Deletes the environment’s Resource Group and all dependent resources.)
+
+---
+
+## Troubleshooting Guide
+
+### Authentication Errors
+Ensure the correct environment variables are set or run Connect-AzAccount interactively.
+
+### Resource Already Exists
+All modules are idempotent — this is expected. Deployment will continue safely.
+
+### Missing Role Definitions
+Some tenants may not include:
+- Key Vault Secrets User
+
+If missing, the RBAC module will emit a warning and continue.
+
+### Alerts Not Triggering
+Verify:
+- The Action Group exists  
+- Correct email addresses  
+- Application Insights is receiving data  
+
+---
+
+## CI/CD Integration
+
+This project is ready for CI/CD pipelines.
+
+Typical pipeline (GitHub Actions or Azure DevOps):
+
+1. Checkout repository  
+2. Install PowerShell 7  
+3. Install Az modules  
+4. Authenticate to Azure  
+5. Run deploy-environment.ps1  
+
+Multi-environment pipelines (dev → test → prod) can reuse the same script.
+
+---
+
+## Roadmap
+
+Upcoming enhancements:
+
+- Terraform mirror: cloud-org-infra2  
+- Optional: containerized hosting (Linux App Service)  
+- Optional: Application Gateway + WAF module  
+- Optional: SQL / PostgreSQL automation modules  
+- Optional: end-to-end GitHub Actions pipeline templates  
+
+---
+
+## License
+
+Internal use and portfolio demonstration licensed.  
+Not for commercial redistribution without permission.
+
+---
+
+## Author
+
+Engineered as a senior-level cloud automation portfolio project.  
+Designed for extensibility, clarity, and long-term maintainability.
