@@ -1,71 +1,53 @@
-┌────────────────────────────────────────────────────────────────────────────┐
-│                         CLOUD ORG INFRA — ENTERPRISE STACK                 │
-├────────────────────────────────────────────────────────────────────────────┤
+```md
+┌──────────────────────────────────────────────────────────┐
+│                 INFRA — ENTERPRISE STACK                 │
+└──────────────────────────────────────────────────────────┘
 
-                         ┌──────────────────────────────┐
-                         │  deploy-environment.ps1      │
-                         │  Orchestration & Automation  │
-                         └───────────────┬──────────────┘
-                                         │
-                                         ▼
+                       deploy-environment.ps1
+                   Orchestration & Automation
+                               ↓
 
-        ┌─────────────────────── Infrastructure Layer ───────────────────────┐
-        │                                                                    │
-        │  ┌──────────────────┐   ┌───────────────────┐   ┌────────────────┐ │
-        │  │ Resource Group   │   │ Virtual Network    │   │ Network Security│ │
-        │  │ create-rg.ps1    │   │ create-network.ps1│   │ create-nsgs.ps1 │ │
-        │  └──────────────────┘   └───────────────────┘   └────────────────┘ │
-        │                                                                    │
-        └────────────────────────────────────────────────────────────────────┘
+────────────────────── Infrastructure Layer ──────────────────────
+┌────────────────────┐   ┌─────────────────────┐   ┌──────────────────────┐
+│ Resource Group     │   │ Virtual Network     │   │ Network Security     │
+│ create-rg.ps1      │   │ create-network.ps1  │   │ create-nsgs.ps1      │
+└────────────────────┘   └─────────────────────┘   └──────────────────────┘
 
 
-        ┌──────────────────────── Storage & Secrets Layer ───────────────────┐
-        │                                                                    │
-        │  ┌─────────────────────┐     ┌────────────────────────┐            │
-        │  │ Storage Account     │     │ Key Vault               │            │
-        │  │ create-storage.ps1  │     │ create-keyvault.ps1     │            │
-        │  │ (blob/file/queue)   │     │ Secrets & identity       │            │
-        │  └─────────────────────┘     └────────────────────────┘            │
-        │                                                                    │
-        └────────────────────────────────────────────────────────────────────┘
+────────────────────── Storage & Secrets Layer ─────────────────────
+┌──────────────────────┐   ┌─────────────────────────────┐
+│ Storage Account      │   │ Key Vault                   │
+│ create-storage.ps1   │   │ create-keyvault.ps1         │
+│ blob/file/queue      │   │ Secrets & identity          │
+└──────────────────────┘   └─────────────────────────────┘
 
 
-        ┌──────────────────────── Observability Layer ───────────────────────┐
-        │                                                                    │
-        │   ┌─────────────────────────┐    ┌──────────────────────────────┐  │
-        │   │ Log Analytics WS        │    │ Application Insights          │  │
-        │   │ create-loganalytics.ps1 │    │ create-appinsights.ps1        │  │
-        │   │ Metrics, Logs, Queries  │    │ Telemetry, Perf, Failures     │  │
-        │   └─────────────────────────┘    └──────────────────────────────┘  │
-        │                                                                    │
-        └────────────────────────────────────────────────────────────────────┘
+────────────────────── Observability Layer ────────────────────────
+┌───────────────────────────────┐   ┌──────────────────────────────┐
+│ Log Analytics Workspace       │   │ Application Insights          │
+│ create-loganalytics.ps1       │   │ create-appinsights.ps1        │
+│ Logs + Metrics + Queries      │   │ App telemetry, perf, traces   │
+└───────────────────────────────┘   └──────────────────────────────┘
 
 
-        ┌──────────────────────── Application Hosting Layer ─────────────────┐
-        │                                                                    │
-        │   ┌────────────────────────┐      ┌────────────────────────────┐   │
-        │   │ App Service Base       │      │ App Service Extended        │   │
-        │   │ create-appservice.ps1  │      │ create-appservice-extended │   │
-        │   │ Web App + ASP          │      │ TLS 1.2, MI, HTTPS, Logs   │   │
-        │   └────────────────────────┘      └────────────────────────────┘   │
-        │                                                                    │
-        └────────────────────────────────────────────────────────────────────┘
+────────────────────── Application Layer ───────────────────────────
+┌────────────────────────────┐   ┌───────────────────────────────────┐
+│ Base Web App + ASP         │   │ App Service Extended              │
+│ create-appservice.ps1      │   │ create-appservice-extended.ps1    │
+│ WebApp hosting             │   │ TLS 1.2 / HTTPS / MI / LAW logs   │
+└────────────────────────────┘   └───────────────────────────────────┘
 
 
-        ┌──────────────────────── Security & Governance Layer ───────────────┐
-        │                                                                    │
-        │   ┌────────────────────────┐      ┌────────────────────────────┐   │
-        │   │ RBAC Framework         │      │ Alerts & Action Groups      │   │
-        │   │ create-rbac.ps1        │      │ create-alerts.ps1           │   │
-        │   │ Least privilege model  │      │ CPU / 5xx / Notifications   │   │
-        │   └────────────────────────┘      └────────────────────────────┘   │
-        │                                                                    │
-        └────────────────────────────────────────────────────────────────────┘
+────────────────────── Governance & Security ───────────────────────
+┌────────────────────────────┐   ┌───────────────────────────────────┐
+│ RBAC                       │   │ Alerts & Action Groups            │
+│ create-rbac.ps1            │   │ create-alerts.ps1                 │
+│ Least-privilege model      │   │ CPU / 5xx / Availability alerts   │
+└────────────────────────────┘   └───────────────────────────────────┘
 
 
-                                     ▼
-                      ┌────────────────────────────────────┐
-                      │  Fully Provisioned Cloud Platform  │
-                      │  Secure • Observable • Automated   │
-                      └────────────────────────────────────┘
-  
+                           ┌──────────────────────────────┐
+                           │   FULL ENVIRONMENT READY      │
+                           │ Secure • Observable • Modular │
+                           └──────────────────────────────┘
+```
