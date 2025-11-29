@@ -42,11 +42,12 @@ function Ensure-AzContext {
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
-$rgScript        = Join-Path $PSScriptRoot "create-rg.ps1"
-$networkScript   = Join-Path $PSScriptRoot "create-network.ps1"
-$nsgScript       = Join-Path $PSScriptRoot "create-nsgs.ps1"
-$storageScript   = Join-Path $PSScriptRoot "create-storage.ps1"
-$keyVaultScript  = Join-Path $PSScriptRoot "create-keyvault.ps1"
+$rgScript         = Join-Path $PSScriptRoot "create-rg.ps1"
+$networkScript    = Join-Path $PSScriptRoot "create-network.ps1"
+$nsgScript        = Join-Path $PSScriptRoot "create-nsgs.ps1"
+$storageScript    = Join-Path $PSScriptRoot "create-storage.ps1"
+$keyVaultScript   = Join-Path $PSScriptRoot "create-keyvault.ps1"
+$appServiceScript = Join-Path $PSScriptRoot "create-appservice.ps1"
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -66,6 +67,10 @@ if (-not (Test-Path $storageScript)) {
 
 if (-not (Test-Path $keyVaultScript)) {
     Write-Warning ("Sub-script not found: {0}. Key Vault step will be skipped." -f $keyVaultScript)
+}
+
+if (-not (Test-Path $appServiceScript)) {
+    Write-Warning ("Sub-script not found: {0}. App Service step will be skipped." -f $appServiceScript)
 }
 
 # Resource Group
@@ -106,4 +111,12 @@ if (Test-Path $keyVaultScript) {
                       -Location    $Location
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault steps executed)."
+# App Service
+if (Test-Path $appServiceScript) {
+    & $appServiceScript -Environment $Environment `
+                        -App         $App `
+                        -Region      $Region `
+                        -Location    $Location
+}
+
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, App Service steps executed)."
