@@ -49,6 +49,8 @@ $storageScript        = Join-Path $PSScriptRoot "create-storage.ps1"
 $keyVaultScript       = Join-Path $PSScriptRoot "create-keyvault.ps1"
 $appServiceScript     = Join-Path $PSScriptRoot "create-appservice.ps1"
 $logAnalyticsScript   = Join-Path $PSScriptRoot "create-loganalytics.ps1"
+$appInsightsScript    = Join-Path $PSScriptRoot "create-appinsights.ps1"
+
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -77,6 +79,11 @@ if (-not (Test-Path $appServiceScript)) {
 if (-not (Test-Path $logAnalyticsScript)) {
     Write-Warning ("Sub-script not found: {0}. Log Analytics step will be skipped." -f $logAnalyticsScript)
 }
+
+if (-not (Test-Path $appInsightsScript)) {
+    Write-Warning ("Sub-script not found: {0}. Application Insights step will be skipped." -f $appInsightsScript)
+}
+
 
 # Resource Group
 & $rgScript -Environment $Environment `
@@ -132,4 +139,12 @@ if (Test-Path $appServiceScript) {
                         -Location    $Location
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, App Service steps executed)."
+# Application Insights
+if (Test-Path $appInsightsScript) {
+    & $appInsightsScript -Environment $Environment `
+                         -App         $App `
+                         -Region      $Region `
+                         -Location    $Location
+}
+
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, Application Insights, App Service steps executed)."
