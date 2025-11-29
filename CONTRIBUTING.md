@@ -1,119 +1,269 @@
-# Contributing Guidelines
+# Contributing Guide
 
-Thank you for your interest in contributing to **cloud-org-infra**.  
-This project follows a structured and modular approach for building Azure infrastructure using PowerShell, Terraform (future), and GitHub Actions.
+Thank you for your interest in contributing to **cloud-org-infra** — an enterprise-grade Azure automation framework built using PowerShell, modular IaC patterns, security-first defaults, and clean orchestration flows.
 
-Please follow the standards below when contributing new modules, scripts, or documentation.
-
----
-
-## 1. Folder & File Structure
-
-Keep contributions aligned with the repo structure:
-
-automation/  
-  modules/         # Reusable PowerShell modules (idempotent)  
-  functions/       # Helper functions  
-  *.ps1            # Deployment scripts  
-
-architecture/      # Diagrams and infra maps  
-documentation/     # Guides, notes, internal docs  
-policy/            # Azure Policy definitions  
-security/          # RBAC configuration  
+This document defines the required standards, coding conventions, architectural principles, and operational expectations for contributing to this project. All contributions must align with the structure, quality, and philosophy of the framework.
 
 ---
 
-## 2. Naming Standards
+# 1. Core Principles
 
-### Resource Groups
-- `rg-<area>-<region>`  
-- Example: `rg-core-weu`
+Every contribution must respect the following:
 
-### Storage Accounts
-- `st<area><env><region><unique>`  
-- Example: `stcoredevweu2401`
-
-### Scripts
-- `create-<component>.ps1`  
-- `deploy-<env>.ps1`
+• Predictability — provisioning must be deterministic and repeatable  
+• Idempotency — scripts must safely re-run without breaking anything  
+• Security — no secrets in code, least-privilege RBAC, identity-first design  
+• Consistency — naming, tagging, structure, and documentation must follow standards  
+• Professionalism — enterprise-grade clarity, modularity, and maintainability  
+• Observability — logs and monitoring should be integrated naturally  
 
 ---
 
-## 3. Tags Standard
+# 2. Repository Structure
 
-Every resource must include the following tags:
+All contributions must fit inside the existing repository layout:
 
-owner = lucian  
-env   = dev  
-app   = core  
+automation/
+    create-*.ps1           → provisioning modules
+    deploy-environment.ps1 → main orchestrator
+    functions/             → shared helper functions
+architecture/              → diagrams and high-level descriptions
+documentation/             → module docs, runbooks, fundamentals, architecture
+policy/                    → governance templates and recommended Azure Policies
+security/                  → RBAC models, access matrices, security baselines
+tools/                     → optional helper scripts
 
----
-
-## 4. PowerShell Standards
-
-- All scripts **must be idempotent**  
-- Use `Ensure-*` naming for functions  
-- Avoid hard-coded values  
-- Always support parameters  
-
-Example PowerShell parameter block:
-
-    [CmdletBinding()]
-    param(
-        [string]$ResourceGroup,
-        [string]$Location
-    )
+No new folder should be introduced unless it has architectural justification.
 
 ---
 
-## 5. Git Standards
+# 3. Naming Standards
 
-### Commit messages format:
-- `feat: add new module`  
-- `fix: correct script error`  
-- `docs: update documentation`  
-- `refactor: improve script structure`
+All resources must follow strict, deterministic naming:
 
-### Branch naming:
-- `feature/<name>`  
-- `fix/<name>`  
-- `docs/<name>`
+Resource Groups:
+  rg-<app>-<env>-<region>
 
----
+Virtual Network:
+  vnet-<app>-<env>-<region>
 
-## 6. Testing Before Commit
+Subnets:
+  snet-<app>-<env>-<region>-<purpose>
 
-Before pushing changes:
+Storage Accounts:
+  st<app><env><region><unique>
 
-- Run PowerShell scripts locally using `pwsh`
-- Validate modules with:
+Key Vault:
+  kv-<app>-<env>-<region>
 
-      Import-Module .\automation\modules\CoreInfrastructure\CoreInfrastructure.psm1 -Force
+App Service Plan:
+  asp-<app>-<env>-<region>
 
-- Ensure CI/CD workflow runs successfully in GitHub Actions
+Web App:
+  app-<app>-<env>-<region>
 
----
+Log Analytics Workspace:
+  law-<app>-<env>-<region>
 
-## 7. Pull Requests
+Application Insights:
+  appi-<app>-<env>-<region>
 
-Every change should:
-- Clearly explain what was updated  
-- Include reasoning and context  
-- Update documentation if behavior changed  
+All naming must remain lowercase, dash-separated, globally deterministic, and compliant with Azure naming rules.
 
 ---
 
-## 8. Future Conventions
+# 4. Tagging Standards
 
-This document will expand as the infrastructure grows:  
-- Key Vault  
-- VNet topology  
-- Private endpoints  
-- Terraform modules  
-- AKS  
-- Monitoring  
-- Governance  
+All resources must include, at minimum, the following tags:
+
+environment = <env>
+app         = <app>
+region      = <region>
+owner       = cloud-org-infra
+
+Tags must be applied consistently across all modules.
 
 ---
 
-### 🚀 Thank you for contributing and helping the project grow!
+# 5. PowerShell Standards
+
+All provisioning scripts must follow the same structure:
+
+• CmdletBinding enabled  
+• Typed parameters  
+• ValidateSet / ValidateNotNullOrEmpty where appropriate  
+• Consistent parameter order: Environment, App, Region, Location  
+• Deterministic naming based on conventions  
+• Idempotency checks using Get-Az* commands  
+• ShouldProcess support for safe dry-run  
+• Errors must throw and stop execution  
+• Logs should be clean, informative, and without debug noise  
+
+Every script must begin with:
+
+$ErrorActionPreference = "Stop"
+
+No script may rely on implicit context — authentication must be done in orchestrator only.
+
+---
+
+# 6. Idempotency Requirements
+
+A module must:
+
+1. Check if the resource already exists  
+2. Return the existing resource if found  
+3. Only create missing resources  
+4. Never overwrite or delete resources unless explicitly designed for it  
+5. Remain safe to run 50+ times with identical output  
+
+This is fundamental.
+
+---
+
+# 7. Module Requirements
+
+Each new module must include:
+
+• Parameters: Environment, App, Region, Location  
+• Resource naming using conventions  
+• Tags  
+• Idempotency  
+• Logging  
+• Final return of the provisioned object  
+• Documentation under /documentation  
+
+Modules that configure resources (e.g., *extended*, *rbac*, *alerts*) must be similarly structured.
+
+---
+
+# 8. Documentation Requirements
+
+For each module, create a file under:
+
+documentation/create-<module>.md
+
+Documentation must include:
+
+• Overview  
+• Responsibilities  
+• Parameters  
+• Execution behavior  
+• Idempotency characteristics  
+• Dependencies  
+• Example usage  
+
+High-level docs (architecture, fundamentals, runbooks, operations) must remain up to date.
+
+README.md must reflect all major capabilities after each MINOR or MAJOR release.
+
+---
+
+# 9. Orchestrator Integration
+
+If a module is expected to run during full deployment:
+
+1. Add its script path to deploy-environment.ps1  
+2. Add Test-Path validation  
+3. Add execution block following the established order  
+4. Update the final orchestration summary line  
+5. Ensure ShouldProcess behavior remains consistent  
+
+Orchestration order must remain logical:
+
+RG → Network → NSGs → Storage → KeyVault → LAW → AppService → AppInsights → AppServiceExtended → Alerts → RBAC
+
+---
+
+# 10. Commit Standards
+
+Use a clear commit message format:
+
+feat(module): add <feature>  
+fix(module): correct <issue>  
+docs(module): update documentation  
+refactor(module): rewrite logic without changing behavior  
+security: improve RBAC, identity, or secret handling  
+chore: cleanup, small adjustments  
+
+Commits must be small, focused, and atomic.
+
+---
+
+# 11. Branch Standards
+
+Branches should follow:
+
+feature/<name>  
+fix/<name>  
+docs/<name>  
+refactor/<name>  
+
+Merge only via Pull Request, even for solo development, to preserve reviewability.
+
+---
+
+# 12. Testing Requirements
+
+Before committing:
+
+• Run the module standalone  
+• Run full orchestration for a test environment  
+• Validate resource creation in Azure Portal  
+• Confirm idempotency by re-running deploy-environment.ps1  
+• Ensure no warnings, errors, or unintended changes appear  
+
+Testing matrix:
+
+Local: pwsh / Az modules  
+Pipeline: GitHub Actions workflow  
+Azure: All resources created as expected  
+
+---
+
+# 13. Security Requirements
+
+• No secrets in repository, ever  
+• No hardcoded credentials  
+• Use Managed Identity wherever possible  
+• RBAC must be minimal and explicit  
+• Modules must not weaken security posture  
+• KeyVault access must remain principle-of-least-privilege  
+• No public endpoints unless explicitly required  
+
+Security documentation is maintained in SECURITY.md.
+
+---
+
+# 14. Governance & Policy Requirements
+
+If adding governance elements:
+
+• Place Azure Policy samples in /policy  
+• Place RBAC matrices in /security  
+• Mention changes in CHANGELOG.md  
+• Ensure naming & tagging enforcement remains consistent  
+
+---
+
+# 15. Pull Request Requirements
+
+Each PR must provide:
+
+• Summary of what changed  
+• Reason for the change  
+• Validation evidence (idempotency test, deployment test)  
+• Updated documentation if behavior changed  
+• Updated README if capabilities changed  
+• Updated CHANGELOG.md for new features  
+
+No PR is accepted without documentation.
+
+---
+
+# 16. Contribution Philosophy
+
+cloud-org-infra is designed as a **professional cloud automation framework**, not a quick script repo.  
+Every contribution must increase clarity, maintainability, and enterprise readiness.
+
+Thank you for helping this project grow into a world-class automation toolkit.
