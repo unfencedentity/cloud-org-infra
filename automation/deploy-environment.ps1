@@ -42,15 +42,15 @@ function Ensure-AzContext {
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
-$rgScript             = Join-Path $PSScriptRoot "create-rg.ps1"
-$networkScript        = Join-Path $PSScriptRoot "create-network.ps1"
-$nsgScript            = Join-Path $PSScriptRoot "create-nsgs.ps1"
-$storageScript        = Join-Path $PSScriptRoot "create-storage.ps1"
-$keyVaultScript       = Join-Path $PSScriptRoot "create-keyvault.ps1"
-$appServiceScript     = Join-Path $PSScriptRoot "create-appservice.ps1"
-$logAnalyticsScript   = Join-Path $PSScriptRoot "create-loganalytics.ps1"
-$appInsightsScript    = Join-Path $PSScriptRoot "create-appinsights.ps1"
-
+$rgScript               = Join-Path $PSScriptRoot "create-rg.ps1"
+$networkScript          = Join-Path $PSScriptRoot "create-network.ps1"
+$nsgScript              = Join-Path $PSScriptRoot "create-nsgs.ps1"
+$storageScript          = Join-Path $PSScriptRoot "create-storage.ps1"
+$keyVaultScript         = Join-Path $PSScriptRoot "create-keyvault.ps1"
+$appServiceScript       = Join-Path $PSScriptRoot "create-appservice.ps1"
+$logAnalyticsScript     = Join-Path $PSScriptRoot "create-loganalytics.ps1"
+$appInsightsScript      = Join-Path $PSScriptRoot "create-appinsights.ps1"
+$appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.ps1"
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -84,6 +84,9 @@ if (-not (Test-Path $appInsightsScript)) {
     Write-Warning ("Sub-script not found: {0}. Application Insights step will be skipped." -f $appInsightsScript)
 }
 
+if (-not (Test-Path $appServiceExtendedScript)) {
+    Write-Warning ("Sub-script not found: {0}. App Service Extended step will be skipped." -f $appServiceExtendedScript)
+}
 
 # Resource Group
 & $rgScript -Environment $Environment `
@@ -147,4 +150,12 @@ if (Test-Path $appInsightsScript) {
                          -Location    $Location
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, Application Insights, App Service steps executed)."
+# App Service Extended Configuration
+if (Test-Path $appServiceExtendedScript) {
+    & $appServiceExtendedScript -Environment $Environment `
+                                -App         $App `
+                                -Region      $Region `
+                                -Location    $Location
+}
+
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, App Service, Application Insights, App Service Extended steps executed)."
