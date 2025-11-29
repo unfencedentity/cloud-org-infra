@@ -52,6 +52,8 @@ $logAnalyticsScript       = Join-Path $PSScriptRoot "create-loganalytics.ps1"
 $appInsightsScript        = Join-Path $PSScriptRoot "create-appinsights.ps1"
 $appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.ps1"
 $alertsScript             = Join-Path $PSScriptRoot "create-alerts.ps1"
+$rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
+
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -92,6 +94,11 @@ if (-not (Test-Path $appServiceExtendedScript)) {
 if (-not (Test-Path $alertsScript)) {
     Write-Warning ("Sub-script not found: {0}. Alerts step will be skipped." -f $alertsScript)
 }
+
+if (-not (Test-Path $rbacScript)) {
+    Write-Warning ("Sub-script not found: {0}. RBAC step will be skipped." -f $rbacScript)
+}
+
 
 # Resource Group
 & $rgScript -Environment $Environment `
@@ -172,4 +179,16 @@ if (Test-Path $alertsScript) {
                     -AlertEmails @("ops@example.com")
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, App Service, Application Insights, App Service Extended, Alerts steps executed)."
+# RBAC
+if (Test-Path $rbacScript) {
+    & $rbacScript -Environment $Environment `
+                  -App         $App `
+                  -Region      $Region `
+                  -Location    $Location `
+                  -ReaderObjectIds @() `
+                  -ContributorObjectIds @() `
+                  -KeyVaultSecretsUserObjectIds @()
+}
+
+
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, App Service, Application Insights, App Service Extended, Alerts, RBAC steps executed)."
