@@ -23,8 +23,8 @@ function Ensure-AzContext {
             $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
 
             Connect-AzAccount -ServicePrincipal `
-                              -Tenant      $env:AZURE_TENANT_ID `
-                              -Credential  $cred `
+                              -Tenant       $env:AZURE_TENANT_ID `
+                              -Credential   $cred `
                               -Subscription $SubscriptionId | Out-Null
         }
         else {
@@ -42,9 +42,11 @@ function Ensure-AzContext {
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
 
-$rgScript      = Join-Path $PSScriptRoot "create-rg.ps1"
-$networkScript = Join-Path $PSScriptRoot "create-network.ps1"
-$nsgScript     = Join-Path $PSScriptRoot "create-nsgs.ps1"
+$rgScript        = Join-Path $PSScriptRoot "create-rg.ps1"
+$networkScript   = Join-Path $PSScriptRoot "create-network.ps1"
+$nsgScript       = Join-Path $PSScriptRoot "create-nsgs.ps1"
+$storageScript   = Join-Path $PSScriptRoot "create-storage.ps1"
+$keyVaultScript  = Join-Path $PSScriptRoot "create-keyvault.ps1"
 
 if (-not (Test-Path $rgScript)) {
     throw ("Sub-script not found: {0}" -f $rgScript)
@@ -56,6 +58,14 @@ if (-not (Test-Path $networkScript)) {
 
 if (-not (Test-Path $nsgScript)) {
     Write-Warning ("Sub-script not found: {0}. NSG step will be skipped." -f $nsgScript)
+}
+
+if (-not (Test-Path $storageScript)) {
+    Write-Warning ("Sub-script not found: {0}. Storage step will be skipped." -f $storageScript)
+}
+
+if (-not (Test-Path $keyVaultScript)) {
+    Write-Warning ("Sub-script not found: {0}. Key Vault step will be skipped." -f $keyVaultScript)
 }
 
 # Resource Group
@@ -80,14 +90,6 @@ if (Test-Path $nsgScript) {
                  -Location    $Location
 }
 
-Write-Host "Orchestration complete (Resource Group, Network, NSG steps executed)."
-
-$storageScript = Join-Path $PSScriptRoot "create-storage.ps1"
-
-if (-not (Test-Path $storageScript)) {
-    Write-Warning ("Sub-script not found: {0}. Storage step will be skipped." -f $storageScript)
-}
-
 # Storage
 if (Test-Path $storageScript) {
     & $storageScript -Environment $Environment `
@@ -96,3 +98,12 @@ if (Test-Path $storageScript) {
                      -Location    $Location
 }
 
+# Key Vault
+if (Test-Path $keyVaultScript) {
+    & $keyVaultScript -Environment $Environment `
+                      -App         $App `
+                      -Region      $Region `
+                      -Location    $Location
+}
+
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault steps executed)."
