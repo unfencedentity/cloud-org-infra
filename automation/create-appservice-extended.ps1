@@ -109,26 +109,18 @@ if ($EnableAlwaysOn) {
 }
 
 # --------------------------------------------------------------------
-# Diagnostic Logs → Log Analytics Workspace
+#  Diagnostic Logs -> (optional)
 # --------------------------------------------------------------------
-$workspace = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
-if ($workspace) {
-    if ($PSCmdlet.ShouldProcess("Web App $webAppName", "Enable Diagnostic Logging to LAW")) {
+# NOTE:
+# Diagnostic settings for the Web App (routing logs and metrics to
+# Log Analytics) can be configured separately using Az.Monitor
+# diagnostic settings if required.
+# This module currently focuses on HTTPS, TLS, Managed Identity
+# and Always On configuration for enterprise-grade hardening.
 
-        Set-AzWebAppDiagnosticSetting `
-            -Name $webAppName `
-            -ResourceGroupName $rgName `
-            -WorkspaceId $workspace.ResourceId `
-            -EnableApplicationLogging $true `
-            -EnableWebServerLogging $true `
-            -EnableMetrics $true | Out-Null
+Write-Host "Extended App Service configuration completed for '$webAppName'."
 
-        Write-Host "Enabled diagnostic logs to LAW for '$webAppName'."
-    }
-}
-else {
-    Write-Warning "Diagnostic logs not configured because LAW '$workspaceName' was not found."
-}
+return Get-AzWebApp -Name $webAppName -ResourceGroupName $rgName
 
 Write-Host "Extended App Service configuration completed for '$webAppName'."
 
