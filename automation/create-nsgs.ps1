@@ -1,100 +1,119 @@
-<#
-.SYNOPSIS
-  Creates and attaches Network Security Groups (NSGs) for core subnets.
-
-.DESCRIPTION
-  This script ensures that NSGs exist for the main subnets in vnet-org-dev-weu
-  and associates them to:
-    - subnet-core-services
-    - subnet-apps
-    - subnet-data
-
-  It is idempotent: you can run it multiple times safely.
-
-#>
-
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [string]$Environment = "dev",
-    [string]$Location    = "westeurope",
-    [string]$ResourceGroupName = "rg-dev-weu",
-    [string]$VNetName    = "vnet-org-dev-weu"
+    [Parameter(Mandatory = $true)][string]$Environment,
+    [Parameter(Mandatory = $true)][string]$App,
+    [Parameter(Mandatory = $true)][string]$Region,
+    [Parameter(Mandatory = $true)][string]$Location,
+
+    # Optional: override default VNet name
+    [Parameter(Mandatory = $false)][string]$VirtualNetworkName,
+
+    # Optional: subnets to associate the NSG with (by subnet name)
+    [Parameter(Mandatory = $false)][string[]]$SubnetsToAssociate = @("subnet-core", "subnet-app")
 )
 
-Write-Host "=== NSG deployment for environment: $Environment ===" -ForegroundColor Cyan
+$ErrorActionPreference = "Stop"
 
-# Build NSG names (simple pattern: nsg-<env>-<role>-weu)
-$nsgCoreName = "nsg-$Environment-core-services-weu"
-$nsgAppsName = "nsg-$Environment-apps-weu"
-$nsgDataName = "nsg-$Environment-data-weu"
+# Naming conventions
+$rgName  = "rg-$App-$Environment-$Region"
+$vnetName = if ($VirtualNetworkName) { $VirtualNetworkName } else { "vnet-$App-$Environment-$Region" }
+$nsgName = "nsg-$App-$Environment-$Region"
 
-# Helper function: ensure NSG exists
-function Ensure-NetworkSecurityGroup {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Name,
-        [Parameter(Mandatory)]
-        [string]$ResourceGroupName,
-        [Parameter(Mandatory)]
-        [string]$Location
-    )
+# Tags
+$tags = @{
+    environment = $Environment
+    app         = $App
+    region      = $Region
+    owner       = "cloud-org-infra"
+}
 
-    $existing = Get-AzNetworkSecurityGroup -Name $Name -ResourceGroupName $ResourceGroupName -ErrorAction SilentlyContinue
+# Validate Resource Group
+$rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+if (-not $rg) {
+    throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
+}
 
-    if ($null -ne $existing) {
-        Write-Host "NSG '$Name' already exists in RG '$ResourceGroupName'." -ForegroundColor Yellow
-        return $existing
-    }
+# Try to get existing NSG
+$nsg = Get-AzNetworkSecurityGroup -Name $nsgName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 
-    Write-Host "Creating NSG '$Name' in RG '$ResourceGroupName'..." -ForegroundColor Green
+if ($nsg) {
+    Write-Host "Network Security Group '$nsgName' already exists in resource group '$rgName'."
+}
+else {
+    if (-not $PSCmdlet.ShouldProcess("NSG $nsgName", "Create")) { return }
+
+    Write-Host "Creating Network Security Group '$nsgName' in '$Location'..."
+
+    # Example inbound rules for a web workload (HTTP/HTTPS from Internet)
+    $ruleHttp = New-AzNetworkSecurityRuleConfig `
+        -Name "allow-http-in" `
+        -Description "Allow HTTP inbound from Internet" `
+        -Access Allow `
+        -Protocol Tcp `
+        -Direction Inbound `
+        -Priority 200 `
+        -SourceAddressPrefix "*" `
+        -SourcePortRange "*" `
+        -DestinationAddressPrefix "*" `
+        -DestinationPortRange 80
+
+    $ruleHttps = New-AzNetworkSecurityRuleConfig `
+        -Name "allow-https-in" `
+        -Description "Allow HTTPS inbound from Internet" `
+        -Access Allow `
+        -Protocol Tcp `
+        -Direction Inbound `
+        -Priority 201 `
+        -SourceAddressPrefix "*" `
+        -SourcePortRange "*" `
+        -DestinationAddressPrefix "*" `
+        -DestinationPortRange 443
+
     $nsg = New-AzNetworkSecurityGroup `
-        -Name $Name `
-        -ResourceGroupName $ResourceGroupName `
-        -Location $Location
+        -Name $nsgName `
+        -ResourceGroupName $rgName `
+        -Location $Location `
+        -SecurityRules $ruleHttp, $ruleHttps `
+        -Tag $tags
 
+    Write-Host "Network Security Group '$nsgName' created."
+}
+
+# Associate NSG with selected subnets in the VNet
+$vnet = Get-AzVirtualNetwork -Name $vnetName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
+if (-not $vnet) {
+    Write-Warning "Virtual network '$vnetName' not found in resource group '$rgName'. NSG will not be associated with any subnets."
     return $nsg
 }
 
-# 1. Ensure NSGs
-$nsgCore = Ensure-NetworkSecurityGroup -Name $nsgCoreName -ResourceGroupName $ResourceGroupName -Location $Location
-$nsgApps = Ensure-NetworkSecurityGroup -Name $nsgAppsName -ResourceGroupName $ResourceGroupName -Location $Location
-$nsgData = Ensure-NetworkSecurityGroup -Name $nsgDataName -ResourceGroupName $ResourceGroupName -Location $Location
+$updated = $false
 
-# 2. Get VNet and subnets
-$vnet = Get-AzVirtualNetwork -Name $VNetName -ResourceGroupName $ResourceGroupName -ErrorAction Stop
+foreach ($subnetName in $SubnetsToAssociate) {
+    $subnet = $vnet.Subnets | Where-Object { $_.Name -eq $subnetName }
 
-$subCore = $vnet.Subnets | Where-Object { $_.Name -eq "subnet-core-services" }
-$subApps = $vnet.Subnets | Where-Object { $_.Name -eq "subnet-apps" }
-$subData = $vnet.Subnets | Where-Object { $_.Name -eq "subnet-data" }
+    if (-not $subnet) {
+        Write-Warning "Subnet '$subnetName' not found in VNet '$vnetName'. Skipping."
+        continue
+    }
 
-if (-not $subCore) { throw "Subnet 'subnet-core-services' not found in VNet '$VNetName'." }
-if (-not $subApps) { throw "Subnet 'subnet-apps' not found in VNet '$VNetName'." }
-if (-not $subData) { throw "Subnet 'subnet-data' not found in VNet '$VNetName'." }
+    if ($subnet.NetworkSecurityGroup -and $subnet.NetworkSecurityGroup.Id -eq $nsg.Id) {
+        Write-Host "Subnet '$subnetName' is already associated with NSG '$nsgName'."
+        continue
+    }
 
-# 3. Attach NSGs to subnets (idempotent)
-
-if ($null -eq $subCore.NetworkSecurityGroup -or $subCore.NetworkSecurityGroup.Id -ne $nsgCore.Id) {
-    Write-Host "Associating NSG '$($nsgCore.Name)' to subnet 'subnet-core-services'..." -ForegroundColor Green
-    $subCore.NetworkSecurityGroup = $nsgCore
-} else {
-    Write-Host "Subnet 'subnet-core-services' already associated with NSG '$($nsgCore.Name)'." -ForegroundColor Yellow
+    Write-Host "Associating subnet '$subnetName' with NSG '$nsgName'..."
+    $subnet.NetworkSecurityGroup = $nsg
+    $updated = $true
 }
 
-if ($null -eq $subApps.NetworkSecurityGroup -or $subApps.NetworkSecurityGroup.Id -ne $nsgApps.Id) {
-    Write-Host "Associating NSG '$($nsgApps.Name)' to subnet 'subnet-apps'..." -ForegroundColor Green
-    $subApps.NetworkSecurityGroup = $nsgApps
-} else {
-    Write-Host "Subnet 'subnet-apps' already associated with NSG '$($nsgApps.Name)'." -ForegroundColor Yellow
+if ($updated) {
+    if (-not $PSCmdlet.ShouldProcess("VNet $vnetName", "Update with NSG associations")) { return $nsg }
+
+    $null = Set-AzVirtualNetwork -VirtualNetwork $vnet
+    Write-Host "VNet '$vnetName' updated with NSG associations."
+}
+else {
+    Write-Host "No subnet associations were changed."
 }
 
-if ($null -eq $subData.NetworkSecurityGroup -or $subData.NetworkSecurityGroup.Id -ne $nsgData.Id) {
-    Write-Host "Associating NSG '$($nsgData.Name)' to subnet 'subnet-data'..." -ForegroundColor Green
-    $subData.NetworkSecurityGroup = $nsgData
-} else {
-    Write-Host "Subnet 'subnet-data' already associated with NSG '$($nsgData.Name)'." -ForegroundColor Yellow
-}
-
-# 4. Save VNet changes
-Set-AzVirtualNetwork -VirtualNetwork $vnet | Out-Null
-
-Write-Host "`n=== NSG deployment completed successfully ===" -ForegroundColor Green
+return $nsg
