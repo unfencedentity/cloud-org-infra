@@ -54,19 +54,21 @@ $appInsightsScript        = Join-Path $PSScriptRoot "create-appinsights.ps1"
 $appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.ps1"
 $alertsScript             = Join-Path $PSScriptRoot "create-alerts.ps1"
 $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
+$diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
 
 # Validate sub-scripts exist
-if (-not (Test-Path $rgScript))               { throw ("Sub-script not found: {0}" -f $rgScript) }
-if (-not (Test-Path $networkScript))          { Write-Warning ("Sub-script not found: {0}. Network step skipped." -f $networkScript) }
-if (-not (Test-Path $nsgScript))              { Write-Warning ("Sub-script not found: {0}. NSG step skipped." -f $nsgScript) }
-if (-not (Test-Path $storageScript))          { Write-Warning ("Sub-script not found: {0}. Storage step skipped." -f $storageScript) }
-if (-not (Test-Path $keyVaultScript))         { Write-Warning ("Sub-script not found: {0}. Key Vault step skipped." -f $keyVaultScript) }
-if (-not (Test-Path $appServiceScript))       { Write-Warning ("Sub-script not found: {0}. App Service step skipped." -f $appServiceScript) }
-if (-not (Test-Path $logAnalyticsScript))     { Write-Warning ("Sub-script not found: {0}. Log Analytics step skipped." -f $logAnalyticsScript) }
-if (-not (Test-Path $appInsightsScript))      { Write-Warning ("Sub-script not found: {0}. Application Insights step skipped." -f $appInsightsScript) }
-if (-not (Test-Path $appServiceExtendedScript)) { Write-Warning ("Sub-script not found: {0}. App Service Extended step skipped." -f $appServiceExtendedScript) }
-if (-not (Test-Path $alertsScript))           { Write-Warning ("Sub-script not found: {0}. Alerts step skipped." -f $alertsScript) }
-if (-not (Test-Path $rbacScript))             { Write-Warning ("Sub-script not found: {0}. RBAC step skipped." -f $rbacScript) }
+if (-not (Test-Path $rgScript))                  { throw ("Sub-script not found: {0}" -f $rgScript) }
+if (-not (Test-Path $networkScript))             { Write-Warning ("Sub-script not found: {0}. Network step skipped." -f $networkScript) }
+if (-not (Test-Path $nsgScript))                 { Write-Warning ("Sub-script not found: {0}. NSG step skipped." -f $nsgScript) }
+if (-not (Test-Path $storageScript))             { Write-Warning ("Sub-script not found: {0}. Storage step skipped." -f $storageScript) }
+if (-not (Test-Path $keyVaultScript))            { Write-Warning ("Sub-script not found: {0}. Key Vault step skipped." -f $keyVaultScript) }
+if (-not (Test-Path $appServiceScript))          { Write-Warning ("Sub-script not found: {0}. App Service step skipped." -f $appServiceScript) }
+if (-not (Test-Path $logAnalyticsScript))        { Write-Warning ("Sub-script not found: {0}. Log Analytics step skipped." -f $logAnalyticsScript) }
+if (-not (Test-Path $appInsightsScript))         { Write-Warning ("Sub-script not found: {0}. App Insights step skipped." -f $appInsightsScript) }
+if (-not (Test-Path $appServiceExtendedScript))  { Write-Warning ("Sub-script not found: {0}. App Service Extended step skipped." -f $appServiceExtendedScript) }
+if (-not (Test-Path $alertsScript))              { Write-Warning ("Sub-script not found: {0}. Alerts step skipped." -f $alertsScript) }
+if (-not (Test-Path $rbacScript))                { Write-Warning ("Sub-script not found: {0}. RBAC step skipped." -f $rbacScript) }
+if (-not (Test-Path $diagnosticsScript))         { Write-Warning ("Sub-script not found: {0}. Diagnostics step skipped." -f $diagnosticsScript) }
 
 # Resource Group
 & $rgScript -Environment $Environment `
@@ -114,6 +116,14 @@ if (Test-Path $logAnalyticsScript) {
                           -Location    $Location
 }
 
+# Central Diagnostics (Key Vault + Storage → LAW)
+if (Test-Path $diagnosticsScript) {
+    & $diagnosticsScript -Environment $Environment `
+                         -App         $App `
+                         -Region      $Region `
+                         -Location    $Location
+}
+
 # App Service
 if (Test-Path $appServiceScript) {
     & $appServiceScript -Environment $Environment `
@@ -138,7 +148,7 @@ if (Test-Path $appServiceExtendedScript) {
                                 -Location    $Location
 }
 
-# Alerts (FIX: parameter is -AlertEmail, not -AlertEmails)
+# Alerts
 if (Test-Path $alertsScript) {
     & $alertsScript -Environment $Environment `
                     -App         $App `
@@ -158,4 +168,4 @@ if (Test-Path $rbacScript) {
                   -KeyVaultSecretsUserObjectIds @()
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, App Service, App Insights, App Service Extended, Alerts, RBAC steps executed)."
+Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, Diagnostics, App Service, App Insights, App Service Extended, Alerts, RBAC steps executed)."
