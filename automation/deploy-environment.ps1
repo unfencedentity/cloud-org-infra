@@ -55,6 +55,7 @@ $appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.
 $alertsScript             = Join-Path $PSScriptRoot "create-alerts.ps1"
 $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
 $diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
+$healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
 
 # Validate sub-scripts exist
 if (-not (Test-Path $rgScript))                  { throw ("Sub-script not found: {0}" -f $rgScript) }
@@ -69,6 +70,7 @@ if (-not (Test-Path $appServiceExtendedScript))  { Write-Warning ("Sub-script no
 if (-not (Test-Path $alertsScript))              { Write-Warning ("Sub-script not found: {0}. Alerts step skipped." -f $alertsScript) }
 if (-not (Test-Path $rbacScript))                { Write-Warning ("Sub-script not found: {0}. RBAC step skipped." -f $rbacScript) }
 if (-not (Test-Path $diagnosticsScript))         { Write-Warning ("Sub-script not found: {0}. Diagnostics step skipped." -f $diagnosticsScript) }
+if (-not (Test-Path $healthChecksScript))        { Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript) }
 
 # Resource Group
 & $rgScript -Environment $Environment `
@@ -168,4 +170,21 @@ if (Test-Path $rbacScript) {
                   -KeyVaultSecretsUserObjectIds @()
 }
 
-Write-Host "Orchestration complete (RG, Network, NSG, Storage, Key Vault, Log Analytics, Diagnostics, App Service, App Insights, App Service Extended, Alerts, RBAC steps executed)."
+# HEALTH CHECKS — FINAL QA STEP
+if (Test-Path $healthChecksScript) {
+    Write-Host "Running environment health checks..."
+    $healthResult = & $healthChecksScript `
+        -Environment $Environment `
+        -App         $App `
+        -Region      $Region `
+        -Location    $Location
+
+    Write-Host "Health checks completed."
+
+    if ($healthResult.Status -eq "Error") {
+        Write-Error "Critical errors detected during health checks. Aborting deployment."
+        exit 2
+    }
+}
+
+Write-Host "Orchestration complete (all modules executed: RG, Network, NSG, Storage, Key Vault, Log Analytics, Diagnostics, App Service, App Insights, App Service Extended, Alerts, RBAC, Health Checks)."
