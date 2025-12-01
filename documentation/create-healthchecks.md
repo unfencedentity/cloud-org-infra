@@ -147,28 +147,20 @@ PowerShell (local)
   run: pwsh ./automation/create-healthchecks.ps1 -Environment dev -App core -Region weu -Location westeurope
 
 
+
 Why clients care
 
 This module gives organizations:
-
-Immediate visibility into infrastructure health
-
-Security baseline validation
-
-Cost control by catching misconfigurations early
-
-Compliance-friendly evidence (ISO, SOC2, CIS)
-
-A predictable way to validate every environment
+- Immediate visibility into infrastructure health
+- Security baseline validation
+- Cost control by catching misconfigurations early
+- Compliance-friendly evidence (ISO, SOC2, CIS)
+- A predictable way to validate every environment
 
 Why it matters for you (consultant)
 
 You deliver:
-
-A repeatable audit tool
-
-A real, tangible asset in your Landing Zone offering
-
-Automated governance
-
-Professional, enterprise-level validation for client environments
+- A repeatable audit tool
+- A real, tangible asset in your Landing Zone offering
+- Automated governance
+- Professional, enterprise-level validation for client environments
