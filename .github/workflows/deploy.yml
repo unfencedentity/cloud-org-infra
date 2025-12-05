@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write     # necesar pentru OIDC token
-      contents: read      # necesar pentru checkout
+      id-token: write     # required for OIDC token
+      contents: read      # required for checkout
 
     steps:
       - name: Pre Azure Login (OIDC)
@@ -26,11 +26,22 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
 
+      # Ensure required Az modules are available in the runner
       - name: Install Az modules
         uses: azure/powershell@v1
         with:
           inlineScript: |
-            Get-Module Az.Accounts -ListAvailable | Select-Object Name, Version
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+
+            Install-Module Az.Accounts            -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Resources           -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.OperationalInsights -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Monitor             -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.KeyVault            -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Storage             -Force -AllowClobber -Scope CurrentUser
+
+            Write-Host "Az modules installed:"
+            Get-Module Az.* -ListAvailable | Select-Object Name, Version
           azPSVersion: latest
 
       - name: Deploy environment
