@@ -8,13 +8,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# --------------------------------------------------------------------
-# Ensure required Az modules are available (especially on GitHub runners)
-# --------------------------------------------------------------------
-Import-Module Az.Accounts -ErrorAction SilentlyContinue
-Import-Module Az.Resources -ErrorAction SilentlyContinue
-Import-Module Az.Monitor -ErrorAction SilentlyContinue
-Import-Module Az.OperationalInsights -ErrorAction SilentlyContinue
+Write-Host "Loading Az modules in create-diagnostics.ps1..."
+
+# Import required Az modules (they are installed by the GitHub Actions workflow)
+Import-Module Az.Accounts            -ErrorAction Stop
+Import-Module Az.Resources           -ErrorAction Stop
+Import-Module Az.OperationalInsights -ErrorAction Stop
+Import-Module Az.Monitor             -ErrorAction Stop
+Import-Module Az.KeyVault            -ErrorAction Stop
+Import-Module Az.Storage             -ErrorAction Stop
 
 # --------------------------------------------------------------------
 # Naming & lookups
@@ -54,8 +56,7 @@ function Ensure-DiagnosticSetting {
     param(
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
-        # IMPORTANT: scoatem tipul care dădea eroare pe GitHub
-        [Parameter(Mandatory = $true)]$Workspace,
+        [Parameter(Mandatory = $true)][object]$Workspace,
         [string]$ResourceFriendlyName
     )
 
@@ -77,7 +78,6 @@ function Ensure-DiagnosticSetting {
 
     Write-Host "Creating diagnostic setting '$SettingName' on $ResourceFriendlyName..."
 
-    # Use CategoryGroup = AllLogs/AllMetrics ca să nu ne batem capul pe categorii per-resursă
     Set-AzDiagnosticSetting `
         -Name        $SettingName `
         -ResourceId  $ResourceId `
@@ -90,7 +90,7 @@ function Ensure-DiagnosticSetting {
 }
 
 # --------------------------------------------------------------------
-# Key Vault → LAW
+# Key Vault → Log Analytics
 # --------------------------------------------------------------------
 $keyVault = Get-AzKeyVault -VaultName $keyVaultName -ErrorAction SilentlyContinue
 
@@ -106,7 +106,7 @@ else {
 }
 
 # --------------------------------------------------------------------
-# Storage Account (tag-based discovery) → LAW
+# Storage Account (tag-based discovery) → Log Analytics
 # --------------------------------------------------------------------
 $storageAccounts = Get-AzStorageAccount -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 
