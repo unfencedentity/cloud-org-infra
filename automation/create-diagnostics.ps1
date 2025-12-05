@@ -9,11 +9,19 @@ param(
 $ErrorActionPreference = "Stop"
 
 # --------------------------------------------------------------------
+# Ensure required Az modules are available (especially on GitHub runners)
+# --------------------------------------------------------------------
+Import-Module Az.Accounts -ErrorAction SilentlyContinue
+Import-Module Az.Resources -ErrorAction SilentlyContinue
+Import-Module Az.Monitor -ErrorAction SilentlyContinue
+Import-Module Az.OperationalInsights -ErrorAction SilentlyContinue
+
+# --------------------------------------------------------------------
 # Naming & lookups
 # --------------------------------------------------------------------
-$rgName          = "rg-$App-$Environment-$Region"
-$workspaceName   = "law-$App-$Environment-$Region"
-$keyVaultName    = "kv-$App-$Environment-$Region"
+$rgName        = "rg-$App-$Environment-$Region"
+$workspaceName = "law-$App-$Environment-$Region"
+$keyVaultName  = "kv-$App-$Environment-$Region"
 
 Write-Host "Configuring central diagnostics for '$App' ($Environment/$Region)..."
 
@@ -46,7 +54,8 @@ function Ensure-DiagnosticSetting {
     param(
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
-        [Parameter(Mandatory = $true)][Microsoft.OperationalInsights.Models.Workspace]$Workspace,
+        # IMPORTANT: scoatem tipul care dădea eroare pe GitHub
+        [Parameter(Mandatory = $true)]$Workspace,
         [string]$ResourceFriendlyName
     )
 
@@ -87,9 +96,9 @@ $keyVault = Get-AzKeyVault -VaultName $keyVaultName -ErrorAction SilentlyContinu
 
 if ($keyVault) {
     Ensure-DiagnosticSetting `
-        -ResourceId          $keyVault.ResourceId `
-        -SettingName         "diag-$($keyVaultName)" `
-        -Workspace           $workspace `
+        -ResourceId           $keyVault.ResourceId `
+        -SettingName          "diag-$($keyVaultName)" `
+        -Workspace            $workspace `
         -ResourceFriendlyName "Key Vault '$keyVaultName'"
 }
 else {
@@ -110,9 +119,9 @@ $storage = $storageAccounts |
 
 if ($storage) {
     Ensure-DiagnosticSetting `
-        -ResourceId          $storage.Id `
-        -SettingName         "diag-$($storage.StorageAccountName)" `
-        -Workspace           $workspace `
+        -ResourceId           $storage.Id `
+        -SettingName          "diag-$($storage.StorageAccountName)" `
+        -Workspace            $workspace `
         -ResourceFriendlyName "Storage account '$($storage.StorageAccountName)'"
 }
 else {
@@ -122,7 +131,7 @@ else {
 Write-Host "Diagnostics configuration complete for app='$App', env='$Environment', region='$Region'."
 
 return @{
-    Workspace       = $workspace
-    KeyVaultName    = $keyVaultName
-    ResourceGroup   = $rgName
+    Workspace     = $workspace
+    KeyVaultName  = $keyVaultName
+    ResourceGroup = $rgName
 }
