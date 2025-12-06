@@ -8,142 +8,109 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Loading Az modules in create-diagnostics.ps1..."
+Write-Host "Loading modules..."
 
-$requiredModules = @(
-    "Az.Accounts",
-    "Az.Monitor",
-    "Az.OperationalInsights",
-    "Az.Resources",
-    "Az.Storage",
-    "Az.KeyVault"
-)
+Import-Module Az.Accounts
+Import-Module Az.OperationalInsights
+Import-Module Az.Resources
 
-foreach ($mod in $requiredModules) {
-    if (-not (Get-Module -ListAvailable -Name $mod)) {
-        Install-Module -Name $mod -Scope CurrentUser -Force -AllowClobber
-    }
-    Import-Module $mod -ErrorAction Stop
-}
-
-# --------------------------------------------------------------------
 # Naming
-# --------------------------------------------------------------------
 $rgName        = "rg-$App-$Environment-$Region"
 $workspaceName = "law-$App-$Environment-$Region"
 $keyVaultName  = "kv-$App-$Environment-$Region"
 
-Write-Host "Configuring diagnostics for '$App' ($Environment/$Region)..."
-
-# --------------------------------------------------------------------
-# Resource Group
-# --------------------------------------------------------------------
+# Validate RG
 $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
 if (-not $rg) { throw "Resource group '$rgName' does not exist." }
 
-# --------------------------------------------------------------------
-# Log Analytics Workspace
-# --------------------------------------------------------------------
+# Workspace
 $workspace = Get-AzOperationalInsightsWorkspace `
     -ResourceGroupName $rgName `
     -Name $workspaceName `
     -ErrorAction SilentlyContinue
 
-if (-not $workspace) {
-    throw "Workspace '$workspaceName' not found in '$rgName'."
-}
+if (-not $workspace) { throw "Workspace '$workspaceName' not found." }
 
-Write-Host "Using workspace '$($workspace.Name)' ($($workspace.ResourceId))"
+$workspaceId = $workspace.ResourceId
+
+Write-Host "Using workspace: $workspaceId"
 
 # --------------------------------------------------------------------
-# Helper: Create Diagnostic Setting
+# Helper: Create Diagnostic Setting Using REST API
 # --------------------------------------------------------------------
-function Ensure-DiagnosticSetting {
+function Set-DiagnosticSettingREST {
     param(
-        [Parameter(Mandatory = $true)][string]$ResourceId,
-        [Parameter(Mandatory = $true)][string]$SettingName,
-        [Parameter(Mandatory = $true)]
-        [Microsoft.Azure.Commands.OperationalInsights.Models.PSWorkspace]$Workspace,
-        [string]$ResourceFriendlyName
+        [string]$ResourceId,
+        [string]$SettingName,
+        [string]$WorkspaceId
     )
 
-    if (-not $ResourceFriendlyName) { $ResourceFriendlyName = $ResourceId }
+    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=2021-05-01-preview"
 
-    $existing = Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -eq $SettingName }
-
-    if ($existing) {
-        Write-Host "Diagnostic setting '$SettingName' already exists on $ResourceFriendlyName."
-        return
-    }
-
-    Write-Host "Creating diagnostic setting '$SettingName' on $ResourceFriendlyName..."
-
-    # Category fallback (runner does not support CategoryGroup)
-    $categories = @("AuditEvent", "Administrative", "Security", "ServiceHealth", "Alert", "Recommendation", "Policy", "Autoscale", "ResourceHealth")
-
-    $params = @{
-        Name        = $SettingName
-        ResourceId  = $ResourceId
-        WorkspaceId = $Workspace.ResourceId
-        Enabled     = $true
-    }
-
-    # Check available command
-    if (Get-Command -Name Set-AzDiagnosticSetting -ErrorAction SilentlyContinue) {
-
-        # Set individually
-        foreach ($cat in $categories) {
-            try {
-                Set-AzDiagnosticSetting @params -Category $cat -ErrorAction SilentlyContinue | Out-Null
-            } catch { }
+    $body = @{
+        properties = @{
+            workspaceId = $WorkspaceId
+            logs = @(
+                @{
+                    category = "AuditEvent"
+                    enabled  = $true
+                }
+            )
+            metrics = @(
+                @{
+                    category = "AllMetrics"
+                    enabled  = $true
+                }
+            )
         }
-    }
-    elseif (Get-Command -Name New-AzDiagnosticSetting -ErrorAction SilentlyContinue) {
+    } | ConvertTo-Json -Depth 10
 
-        # Create with categories list
-        New-AzDiagnosticSetting @params -Category $categories | Out-Null
-    }
-    else {
-        throw "No diagnostic cmdlets available (Set-AzDiagnosticSetting / New-AzDiagnosticSetting missing)."
-    }
+    $token = (Get-AzAccessToken).Token
 
-    Write-Host "Diagnostics applied for $ResourceFriendlyName."
+    Write-Host "Sending REST diagnostic config for $ResourceId ..."
+
+    $result = Invoke-RestMethod `
+        -Method Put `
+        -Uri $url `
+        -Headers @{ Authorization = "Bearer $token" } `
+        -Body $body `
+        -ContentType "application/json"
+
+    Write-Host "REST diagnostic setting applied: $SettingName"
 }
 
 # --------------------------------------------------------------------
-# Key Vault Diagnostics
+# KV diagnostics
 # --------------------------------------------------------------------
 $keyVault = Get-AzKeyVault -VaultName $keyVaultName -ErrorAction SilentlyContinue
+
 if ($keyVault) {
-    Ensure-DiagnosticSetting `
+    Set-DiagnosticSettingREST `
         -ResourceId $keyVault.ResourceId `
         -SettingName "diag-$keyVaultName" `
-        -Workspace $workspace `
-        -ResourceFriendlyName "Key Vault '$keyVaultName'"
+        -WorkspaceId $workspaceId
 }
 else {
     Write-Warning "Key Vault '$keyVaultName' not found. Skipping."
 }
 
 # --------------------------------------------------------------------
-# Storage Account (tag-based discovery)
+# Storage diagnostics
 # --------------------------------------------------------------------
-$storage = Get-AzStorageAccount -ResourceGroupName $rgName -ErrorAction SilentlyContinue |
-           Where-Object {
+$storage = Get-AzResource -ResourceGroupName $rgName `
+           | Where-Object { $_.ResourceType -eq "Microsoft.Storage/storageAccounts" } `
+           | Where-Object {
                $_.Tags["app"] -eq $App -and $_.Tags["environment"] -eq $Environment
-           } |
-           Select-Object -First 1
+           } | Select-Object -First 1
 
 if ($storage) {
-    Ensure-DiagnosticSetting `
-        -ResourceId $storage.Id `
-        -SettingName "diag-$($storage.StorageAccountName)" `
-        -Workspace $workspace `
-        -ResourceFriendlyName "Storage Account '$($storage.StorageAccountName)'"
+    Set-DiagnosticSettingREST `
+        -ResourceId $storage.ResourceId `
+        -SettingName "diag-$($storage.Name)" `
+        -WorkspaceId $workspaceId
 }
 else {
-    Write-Warning "No matching storage account found. Skipping storage diagnostics."
+    Write-Warning "No storage account found for app '$App'. Skipping."
 }
 
 Write-Host "Diagnostics configuration complete."
