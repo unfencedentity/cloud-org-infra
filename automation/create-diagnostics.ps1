@@ -8,23 +8,28 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Ensure required Az modules are loaded (for GitHub Actions pwsh)
-Import-Module Az.Monitor             -ErrorAction Stop
-Import-Module Az.OperationalInsights -ErrorAction Stop
-Import-Module Az.Resources           -ErrorAction Stop
-Import-Module Az.Storage             -ErrorAction Stop
-Import-Module Az.KeyVault            -ErrorAction Stop
-
-
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
 
-# Import required Az modules (they are installed by the GitHub Actions workflow)
-Import-Module Az.Accounts            -ErrorAction Stop
-Import-Module Az.Resources           -ErrorAction Stop
-Import-Module Az.OperationalInsights -ErrorAction Stop
-Import-Module Az.Monitor             -ErrorAction Stop
-Import-Module Az.KeyVault            -ErrorAction Stop
-Import-Module Az.Storage             -ErrorAction Stop
+# Ensure Az.Monitor and related modules are available
+$requiredModules = @(
+    "Az.Accounts",
+    "Az.Monitor",
+    "Az.OperationalInsights",
+    "Az.Resources",
+    "Az.Storage",
+    "Az.KeyVault"
+)
+
+foreach ($mod in $requiredModules) {
+    $installed = Get-Module -ListAvailable -Name $mod
+    if (-not $installed) {
+        Write-Host "Module '$mod' not found. Installing from PSGallery..."
+        Install-Module -Name $mod -Scope CurrentUser -Force -AllowClobber
+    }
+
+    Write-Host "Importing module '$mod'..."
+    Import-Module $mod -ErrorAction Stop
+}
 
 # --------------------------------------------------------------------
 # Naming & lookups
@@ -64,7 +69,7 @@ function Ensure-DiagnosticSetting {
     param(
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
-        [Parameter(Mandatory = $true)][object]$Workspace,
+        [Parameter(Mandatory = $true)][Microsoft.Azure.Management.OperationalInsights.Models.Workspace]$Workspace,
         [string]$ResourceFriendlyName
     )
 
@@ -87,18 +92,18 @@ function Ensure-DiagnosticSetting {
     Write-Host "Creating diagnostic setting '$SettingName' on $ResourceFriendlyName..."
 
     Set-AzDiagnosticSetting `
-        -Name        $SettingName `
-        -ResourceId  $ResourceId `
-        -WorkspaceId $Workspace.ResourceId `
-        -Enabled     $true `
-        -CategoryGroup "AllLogs","AllMetrics" `
+        -Name         $SettingName `
+        -ResourceId   $ResourceId `
+        -WorkspaceId  $Workspace.ResourceId `
+        -Enabled      $true `
+        -CategoryGroup @("AllLogs","AllMetrics") `
         | Out-Null
 
     Write-Host "Diagnostic setting '$SettingName' created on $ResourceFriendlyName."
 }
 
 # --------------------------------------------------------------------
-# Key Vault → Log Analytics
+# Key Vault → LAW
 # --------------------------------------------------------------------
 $keyVault = Get-AzKeyVault -VaultName $keyVaultName -ErrorAction SilentlyContinue
 
@@ -114,7 +119,7 @@ else {
 }
 
 # --------------------------------------------------------------------
-# Storage Account (tag-based discovery) → Log Analytics
+# Storage Account (tag-based discovery) → LAW
 # --------------------------------------------------------------------
 $storageAccounts = Get-AzStorageAccount -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 
