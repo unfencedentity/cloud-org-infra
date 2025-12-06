@@ -70,7 +70,7 @@ function Ensure-DiagnosticSetting {
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
 
-        # NOTE: this must match what Get-AzOperationalInsightsWorkspace returns
+        # Must match what Get-AzOperationalInsightsWorkspace returns
         [Parameter(Mandatory = $true)]
         [Microsoft.Azure.Commands.OperationalInsights.Models.PSWorkspace]$Workspace,
 
@@ -95,13 +95,31 @@ function Ensure-DiagnosticSetting {
 
     Write-Host "Creating diagnostic setting '$SettingName' on $ResourceFriendlyName..."
 
-    Set-AzDiagnosticSetting `
-        -Name        $SettingName `
-        -ResourceId  $ResourceId `
-        -WorkspaceId $Workspace.ResourceId `
-        -Enabled     $true `
-        -CategoryGroup @("AllLogs","AllMetrics") `
-        | Out-Null
+    # Prefer Set-AzDiagnosticSetting; fall back to New-AzDiagnosticSetting if needed
+    $setCmd = Get-Command -Name Set-AzDiagnosticSetting -ErrorAction SilentlyContinue
+    $newCmd = Get-Command -Name New-AzDiagnosticSetting -ErrorAction SilentlyContinue
+
+    if ($setCmd) {
+        Set-AzDiagnosticSetting `
+            -Name        $SettingName `
+            -ResourceId  $ResourceId `
+            -WorkspaceId $Workspace.ResourceId `
+            -Enabled     $true `
+            -CategoryGroup @("AllLogs","AllMetrics") `
+            | Out-Null
+    }
+    elseif ($newCmd) {
+        New-AzDiagnosticSetting `
+            -Name        $SettingName `
+            -ResourceId  $ResourceId `
+            -WorkspaceId $Workspace.ResourceId `
+            -Enabled     $true `
+            -CategoryGroup @("AllLogs","AllMetrics") `
+            | Out-Null
+    }
+    else {
+        throw "Neither Set-AzDiagnosticSetting nor New-AzDiagnosticSetting is available. Check Az.Monitor version on the runner."
+    }
 
     Write-Host "Diagnostic setting '$SettingName' created on $ResourceFriendlyName."
 }
