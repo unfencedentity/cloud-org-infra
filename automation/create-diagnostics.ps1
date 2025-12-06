@@ -8,6 +8,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Ensure required Az modules are loaded (for GitHub Actions pwsh)
+Import-Module Az.Monitor             -ErrorAction Stop
+Import-Module Az.OperationalInsights -ErrorAction Stop
+Import-Module Az.Resources           -ErrorAction Stop
+Import-Module Az.Storage             -ErrorAction Stop
+Import-Module Az.KeyVault            -ErrorAction Stop
+
+
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
 
 # Import required Az modules (they are installed by the GitHub Actions workflow)
