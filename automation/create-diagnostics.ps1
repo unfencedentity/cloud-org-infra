@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
 
-# Ensure Az.Monitor and related modules are available
+# Ensure Az modules are available
 $requiredModules = @(
     "Az.Accounts",
     "Az.Monitor",
@@ -69,7 +69,11 @@ function Ensure-DiagnosticSetting {
     param(
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
-        [Parameter(Mandatory = $true)][Microsoft.Azure.Management.OperationalInsights.Models.Workspace]$Workspace,
+
+        # NOTE: this must match what Get-AzOperationalInsightsWorkspace returns
+        [Parameter(Mandatory = $true)]
+        [Microsoft.Azure.Commands.OperationalInsights.Models.PSWorkspace]$Workspace,
+
         [string]$ResourceFriendlyName
     )
 
@@ -92,10 +96,10 @@ function Ensure-DiagnosticSetting {
     Write-Host "Creating diagnostic setting '$SettingName' on $ResourceFriendlyName..."
 
     Set-AzDiagnosticSetting `
-        -Name         $SettingName `
-        -ResourceId   $ResourceId `
-        -WorkspaceId  $Workspace.ResourceId `
-        -Enabled      $true `
+        -Name        $SettingName `
+        -ResourceId  $ResourceId `
+        -WorkspaceId $Workspace.ResourceId `
+        -Enabled     $true `
         -CategoryGroup @("AllLogs","AllMetrics") `
         | Out-Null
 
