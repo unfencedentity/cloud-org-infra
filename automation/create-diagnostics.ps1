@@ -65,7 +65,7 @@ Write-Host "Using LAW: $workspaceId"
 $apiVersion = "2021-05-01-preview"
 
 # --------------------------------------------------------------------
-# Helper: Create/Update Diagnostic Setting via Invoke-AzRestMethod
+# Helper: Create/Update Diagnostic Setting via raw REST call
 # --------------------------------------------------------------------
 function Set-DiagnosticSettingREST {
     param(
@@ -79,8 +79,8 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
-    # ARM path (no domain, must start with /subscriptions/...)
-    $path = "$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName"
+    # Full ARM URL (must start with /subscriptions/...)
+    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
 
     # Generic "all logs + all metrics" config
     $bodyObject = @{
@@ -103,16 +103,18 @@ function Set-DiagnosticSettingREST {
 
     $body = $bodyObject | ConvertTo-Json -Depth 10
 
-    $debugUrl = "https://management.azure.com$path?api-version=$ApiVersion"
-    Write-Host "PUT $debugUrl"
+    # Reuse Az auth context to get a valid ARM token
+    $token = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
+
+    Write-Host "PUT $url"
     Write-Host "SettingName: $SettingName"
 
-    # Use Invoke-AzRestMethod so we reuse the Az PowerShell authenticated context (no manual tokens)
-    $result = Invoke-AzRestMethod `
+    $result = Invoke-RestMethod `
         -Method Put `
-        -Path $path `
-        -ApiVersion $ApiVersion `
-        -Payload $body
+        -Uri $url `
+        -Headers @{ Authorization = "Bearer $token" } `
+        -Body $body `
+        -ContentType "application/json"
 
     Write-Host "REST diagnostic setting applied: $SettingName"
     return $result
@@ -166,3 +168,4 @@ return @{
     KeyVaultName  = $keyVaultName
     ResourceGroup = $rgName
 }
+```0
