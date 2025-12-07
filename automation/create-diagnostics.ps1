@@ -79,7 +79,7 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
-    # ARM path (fără domeniu, doar /subscriptions/...)
+    # ARM path (no domain, must start with /subscriptions/...)
     $path = "$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName"
 
     # Generic "all logs + all metrics" config
@@ -107,7 +107,7 @@ function Set-DiagnosticSettingREST {
     Write-Host "PUT $debugUrl"
     Write-Host "SettingName: $SettingName"
 
-    # Foarte important: folosim Invoke-AzRestMethod ca să NU ne mai batem capul cu token-uri
+    # Use Invoke-AzRestMethod so we reuse the Az PowerShell authenticated context (no manual tokens)
     $result = Invoke-AzRestMethod `
         -Method Put `
         -Path $path `
