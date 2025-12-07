@@ -2,15 +2,15 @@
 
 ## Introduction
 
-cloud-org-infra is an enterprise-grade Azure Infrastructure Automation Framework built entirely with PowerShell.  
+cloud-org-infra is an enterprise-grade Azure Infrastructure Automation Framework built entirely with PowerShell.
 It provides a fully modular, idempotent, and production-ready approach for provisioning complete application environments across multiple regions and stages.
 
 This repository is engineered for:
 
-- Cloud Automation Engineers  
-- DevOps Practitioners  
-- Azure Infrastructure Architects  
-- Engineers preparing a professional cloud automation portfolio  
+- Cloud Automation Engineers
+- DevOps Practitioners
+- Azure Infrastructure Architects
+- Engineers preparing a professional cloud automation portfolio
 
 The goal is to deliver a repeatable baseline infrastructure that organizations can adopt or extend.
 
@@ -18,16 +18,16 @@ The goal is to deliver a repeatable baseline infrastructure that organizations c
 
 ## Key Capabilities
 
-- **Modular Infrastructure as Code (IaC)** using PowerShell  
-- **Idempotent execution** — safe to run multiple times  
-- **Strict naming + tagging standards** for enterprise-scale environments  
-- **Security built-in** (Key Vault, RBAC, hardened App Service config)  
-- **Production observability**, including:
-  - Log Analytics Workspace  
-  - Application Insights  
-  - Baseline alerting (CPU, 5xx errors)  
-- **Unified orchestration** with a single deployment command  
-- **CI/CD ready** for GitHub Actions / Azure DevOps  
+- Modular Infrastructure as Code (IaC) using PowerShell
+- Idempotent execution - safe to run multiple times
+- Strict naming and tagging standards for enterprise-scale environments
+- Security built-in (Key Vault, RBAC, hardened App Service config)
+- Production observability, including:
+  - Log Analytics Workspace
+  - Application Insights
+  - Baseline alerting (CPU, 5xx errors)
+- Unified orchestration with a single deployment command
+- CI/CD ready for GitHub Actions and Azure DevOps
 
 ---
 
@@ -35,37 +35,39 @@ The goal is to deliver a repeatable baseline infrastructure that organizations c
 
 Each environment consists of:
 
-- Resource Group  
-- Virtual Network (VNet) & Subnets  
-- Network Security Groups  
-- Storage Account  
-- Azure Key Vault  
-- App Service Plan & App Service  
-- Log Analytics Workspace  
-- Application Insights  
+- Resource Group
+- Virtual Network (VNet) and Subnets
+- Network Security Groups
+- Storage Account
+- Azure Key Vault
+- App Service Plan and App Service
+- Log Analytics Workspace
+- Application Insights
 - Extended App Service Configuration:
-  - HTTPS enforcement  
-  - TLS minimum version  
-  - Managed Identity  
-  - Diagnostic logs → Log Analytics  
+  - HTTPS enforcement
+  - TLS minimum version
+  - Managed Identity
+  - Diagnostic logs sent to Log Analytics
 - Alerts:
-  - CPU High  
-  - HTTP 5xx spike  
+  - CPU High
+  - HTTP 5xx spike
 - RBAC (Reader, Contributor, Key Vault Secrets User)
 
-### Standardized Naming Convention
+---
+
+## Standardized Naming Convention
 
 Examples:
 
-- rg-core-dev-weu  
-- vnet-core-dev-weu  
-- kv-core-dev-weu  
-- stcoredevweuNNN  
-- asp-core-dev-weu  
-- app-core-dev-weu  
-- law-core-dev-weu  
-- appi-core-dev-weu  
-- ag-core-dev-weu  
+- rg-core-dev-weu
+- vnet-core-dev-weu
+- kv-core-dev-weu
+- stcoredevweuNNN
+- asp-core-dev-weu
+- app-core-dev-weu
+- law-core-dev-weu
+- appi-core-dev-weu
+- ag-core-dev-weu
 
 This ensures consistency, discoverability, and compliance across environments.
 
@@ -79,17 +81,17 @@ automation/deploy-environment.ps1
 
 Execution sequence:
 
-1. create-rg.ps1  
-2. create-network.ps1  
-3. create-nsgs.ps1  
-4. create-storage.ps1  
-5. create-keyvault.ps1  
-6. create-loganalytics.ps1  
-7. create-appservice.ps1  
-8. create-appinsights.ps1  
-9. create-appservice-extended.ps1  
-10. create-alerts.ps1  
-11. create-rbac.ps1  
+1. create-rg.ps1
+2. create-network.ps1
+3. create-nsgs.ps1
+4. create-storage.ps1
+5. create-keyvault.ps1
+6. create-loganalytics.ps1
+7. create-appservice.ps1
+8. create-appinsights.ps1
+9. create-appservice-extended.ps1
+10. create-alerts.ps1
+11. create-rbac.ps1
 
 Each module is fully independent and documented under /documentation.
 
@@ -97,18 +99,18 @@ Each module is fully independent and documented under /documentation.
 
 ## Requirements
 
-- Azure Subscription  
-- PowerShell 7+  
-- Az PowerShell modules installed  
+- Azure Subscription
+- PowerShell 7 or later
+- Az PowerShell modules installed
 - Authentication via:
-  - Connect-AzAccount  
-  or  
+  - Connect-AzAccount
+  OR
   - Service Principal environment variables:
 
-AZURE_CLIENT_ID  
-AZURE_CLIENT_SECRET  
-AZURE_TENANT_ID  
-AZURE_SUBSCRIPTION_ID  
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+AZURE_TENANT_ID
+AZURE_SUBSCRIPTION_ID
 
 ---
 
@@ -116,16 +118,16 @@ AZURE_SUBSCRIPTION_ID
 
 Example: Deploy the core application into dev environment in West Europe:
 
-cd automation  
+cd automation
 .\deploy-environment.ps1 -Environment dev -App core -Region weu -Location westeurope
 
 This will deploy:
 
-- Networking  
-- Security  
-- Compute  
-- Observability  
-- RBAC  
+- Networking
+- Security
+- Compute
+- Observability
+- RBAC
 
 in a fully automated sequence.
 
@@ -143,8 +145,8 @@ To enable or adjust alert recipients, edit the Alerts step in the orchestrator:
 
 To assign role-based access control, supply Azure AD Object IDs:
 
--ReaderObjectIds @("aad-object-id-1")  
--ContributorObjectIds @("aad-object-id-2")  
+-ReaderObjectIds @("aad-object-id-1")
+-ContributorObjectIds @("aad-object-id-2")
 -KeyVaultSecretsUserObjectIds @("aad-object-id-3")
 
 Assignments are idempotent and safe to run repeatedly.
@@ -155,19 +157,19 @@ Assignments are idempotent and safe to run repeatedly.
 
 Core IaC modules:
 
-- create-rg.ps1 — Resource Group  
-- create-network.ps1 — VNet + Subnets  
-- create-nsgs.ps1 — Network Security Groups  
-- create-storage.ps1 — Storage Account provisioning  
-- create-keyvault.ps1 — Secure secret store  
-- create-appservice.ps1 — App Service Plan + Web App  
-- create-loganalytics.ps1 — Log Analytics Workspace  
-- create-appinsights.ps1 — Application Insights integration  
-- create-appservice-extended.ps1 — Hardening + diagnostics  
-- create-alerts.ps1 — Baseline monitoring alerts  
-- create-rbac.ps1 — Role assignments at RG scope  
+- create-rg.ps1
+- create-network.ps1
+- create-nsgs.ps1
+- create-storage.ps1
+- create-keyvault.ps1
+- create-appservice.ps1
+- create-loganalytics.ps1
+- create-appinsights.ps1
+- create-appservice-extended.ps1
+- create-alerts.ps1
+- create-rbac.ps1
 
-Documentation lives under `/documentation`.
+Documentation lives under /documentation.
 
 ---
 
@@ -177,46 +179,54 @@ Documentation lives under `/documentation`.
 
 The system is idempotent:
 
-- Running the same deploy command multiple times will not break the environment  
-- Existing resources are reused  
-- Missing components are provisioned automatically  
+- Running the same deploy command multiple times will not break the environment
+- Existing resources are reused
+- Missing components are provisioned automatically
 
 ### Extending Infrastructure
 
 New modules follow the same pattern:
 
-- strict naming  
-- parameter consistency  
-- idempotent logic  
-- integrated with deploy-environment.ps1  
+- strict naming
+- parameter consistency
+- idempotent logic
+- integrated with deploy-environment.ps1
 
 ### Deleting Environments
 
-Optional cleanup script:  
-automation/cleanup.ps1  
-(Deletes the environment’s Resource Group and all dependent resources.)
+Optional cleanup script:
+
+automation/cleanup.ps1
+
+Deletes the environment resource group and all dependent resources.
 
 ---
 
 ## Troubleshooting Guide
 
 ### Authentication Errors
+
 Ensure the correct environment variables are set or run Connect-AzAccount interactively.
 
 ### Resource Already Exists
-All modules are idempotent — this is expected. Deployment will continue safely.
+
+All modules are idempotent. This is expected. Deployment will continue safely.
 
 ### Missing Role Definitions
+
 Some tenants may not include:
+
 - Key Vault Secrets User
 
 If missing, the RBAC module will emit a warning and continue.
 
 ### Alerts Not Triggering
+
 Verify:
-- The Action Group exists  
-- Correct email addresses  
-- Application Insights is receiving data  
+
+- The Action Group exists
+- Correct email addresses
+- Application Insights is receiving data
 
 ---
 
@@ -224,15 +234,15 @@ Verify:
 
 This project is ready for CI/CD pipelines.
 
-Typical pipeline (GitHub Actions or Azure DevOps):
+Typical pipeline:
 
-1. Checkout repository  
-2. Install PowerShell 7  
-3. Install Az modules  
-4. Authenticate to Azure  
-5. Run deploy-environment.ps1  
+1. Checkout repository
+2. Install PowerShell 7
+3. Install Az modules
+4. Authenticate to Azure
+5. Run deploy-environment.ps1
 
-Multi-environment pipelines (dev → test → prod) can reuse the same script.
+Multi-environment pipelines (dev to test to prod) can reuse the same script.
 
 ---
 
@@ -240,36 +250,38 @@ Multi-environment pipelines (dev → test → prod) can reuse the same script.
 
 Upcoming enhancements:
 
-- Terraform mirror: cloud-org-infra2  
-- Optional: containerized hosting (Linux App Service)  
-- Optional: Application Gateway + WAF module  
-- Optional: SQL / PostgreSQL automation modules  
-- Optional: end-to-end GitHub Actions pipeline templates  
+- Terraform mirror
+- Optional Linux App Service hosting
+- Optional Application Gateway and WAF module
+- Optional SQL and PostgreSQL automation modules
+- Optional end-to-end GitHub Actions pipeline templates
 
 ---
 
 ## License
 
-Internal use and portfolio demonstration licensed.  
+Internal use and portfolio demonstration only.
 Not for commercial redistribution without permission.
 
 ---
 
 ## Author
 
-Engineered as a senior-level cloud automation portfolio project.  
+Engineered as a senior-level cloud automation portfolio project.
 Designed for extensibility, clarity, and long-term maintainability.
 
+---
 
-# Diagnostics Automation – Azure Infrastructure
+# Diagnostics Automation - Azure Infrastructure
 
 This project automatically configures Azure Monitor Diagnostic Settings for core infrastructure resources using PowerShell and Azure REST API.
 
-The script `create-diagnostics.ps1` links:
+The script create-diagnostics.ps1 links:
+
 - Storage Accounts
 - Key Vaults
 
-to a Log Analytics Workspace (LAW), ensuring that all logs and metrics are collected centrally.
+to a Log Analytics Workspace, ensuring that all logs and metrics are collected centrally.
 
 ---
 
@@ -292,22 +304,24 @@ to a Log Analytics Workspace (LAW), ensuring that all logs and metrics are colle
    - The Log Analytics Workspace exists
 
 4. Uses Azure REST API via Invoke-AzRestMethod to configure diagnostics:
-   - Sends all logs (categoryGroup: allLogs)
-   - Sends all metrics (category: AllMetrics)
+   - Sends all logs using categoryGroup allLogs
+   - Sends all metrics using category AllMetrics
    - Connects them to the Log Analytics Workspace
 
 5. Applies diagnostics to:
-   - Key Vault (if found)
-   - Storage Account (discovered automatically by tags: app + environment)
+   - Key Vault if found
+   - Storage Account discovered automatically by tags app and environment
 
 If a resource is missing, the script safely skips it and continues deployment.
 
 ---
 
-## Why REST API instead of Set-AzDiagnosticSetting?
+## Why REST API instead of Set-AzDiagnosticSetting
 
-The native PowerShell cmdlet `Set-AzDiagnosticSetting` is unreliable across environments and Az module versions.  
+The native PowerShell cmdlet Set-AzDiagnosticSetting is unreliable across environments and Az module versions.
+
 Using the REST API guarantees:
+
 - Full Azure API compatibility
 - Correct api-version handling
 - No dependency on unstable PowerShell cmdlets
@@ -319,16 +333,17 @@ Using the REST API guarantees:
 
 The script requires the following parameters:
 
-- Environment (e.g. dev, test, prod)
+- Environment (dev, test, prod)
 - App (application name)
-- Region (short Azure region, e.g. weu)
-- Location (full Azure region, e.g. westeurope)
+- Region (short Azure region, for example weu)
+- Location (full Azure region, for example westeurope)
 
 ---
 
 ## Output
 
 At the end of execution, the script returns:
+
 - Log Analytics Workspace object
 - Key Vault name
 - Resource Group name
@@ -338,6 +353,7 @@ At the end of execution, the script returns:
 ## Result
 
 After successful deployment:
+
 - Storage logs and metrics are sent to Log Analytics
-- Key Vault logs and metrics are sent to Log Analytics (if the Key Vault exists)
+- Key Vault logs and metrics are sent to Log Analytics if the Key Vault exists
 - All diagnostics configuration is applied automatically during infrastructure deployment
