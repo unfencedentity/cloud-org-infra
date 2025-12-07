@@ -79,7 +79,7 @@ function Set-DiagnosticSettingREST {
     }
 
     # IMPORTANT: api-version is passed as a proper query parameter
-    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$apiVersion"
+    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=2021-05-01-preview"
 
     # Generic "all logs + all metrics" config
     $bodyObject = @{
