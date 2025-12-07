@@ -80,7 +80,7 @@ function Set-DiagnosticSettingREST {
         }
     } | ConvertTo-Json -Depth 10
 
-    $token = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
+    $token = (Get-AzAccessToken).Token
 
     # Guard + trace
     if ($url -notmatch '\?api-version=') { throw "Built URL missing api-version: $url" }
