@@ -96,12 +96,13 @@ function Set-DiagnosticSettingREST {
         }
     }
 
-    $body = $bodyObject | ConvertTo-Json -Depth 10
+    $body  = $bodyObject | ConvertTo-Json -Depth 10
     $token = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
 
     Write-Host "Sending REST diagnostic config for resource:"
     Write-Host "  ResourceId  : $ResourceId"
     Write-Host "  SettingName : $SettingName"
+    Write-Host "  Uri         : $url"
 
     $result = Invoke-RestMethod `
         -Method Put `
@@ -160,4 +161,3 @@ return @{
     KeyVaultName  = $keyVaultName
     ResourceGroup = $rgName
 }
-```0
