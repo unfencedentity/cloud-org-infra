@@ -61,6 +61,9 @@ if (-not $workspace) {
 $workspaceId = $workspace.ResourceId
 Write-Host "Using workspace '$($workspace.Name)' (ResourceId: $workspaceId)."
 
+# Single place for the diagnostics API version
+$apiVersion = "2021-05-01-preview"
+
 # --------------------------------------------------------------------
 # Helper: Create/Update Diagnostic Setting via REST
 # --------------------------------------------------------------------
@@ -75,13 +78,7 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
-    # Ensure leading slash so the URL is always well-formed
-    if (-not $ResourceId.StartsWith("/")) {
-        $ResourceId = "/" + $ResourceId
-    }
-
-    $apiVersion = "2021-05-01-preview"
-
+    # IMPORTANT: api-version is passed as a proper query parameter
     $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$apiVersion"
 
     # Generic "all logs + all metrics" config
@@ -103,7 +100,7 @@ function Set-DiagnosticSettingREST {
         }
     }
 
-    $body = $bodyObject | ConvertTo-Json -Depth 10
+    $body  = $bodyObject | ConvertTo-Json -Depth 10
     $token = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
 
     Write-Host "Sending REST diagnostic config for resource:"
@@ -114,11 +111,9 @@ function Set-DiagnosticSettingREST {
     $result = Invoke-RestMethod `
         -Method Put `
         -Uri $url `
-        -Headers @{
-            Authorization = "Bearer $token"
-            "Content-Type" = "application/json"
-        } `
-        -Body $body
+        -Headers @{ Authorization = "Bearer $token" } `
+        -Body $body `
+        -ContentType "application/json"
 
     Write-Host "REST diagnostic setting applied: $SettingName"
     return $result
