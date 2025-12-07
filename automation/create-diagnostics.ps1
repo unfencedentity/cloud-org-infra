@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
 
-# Make sure required modules are available
+# Ensure required modules are available
 $requiredModules = @(
     "Az.Accounts",
     "Az.OperationalInsights",
@@ -79,8 +79,9 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
+    $baseUrl = "https://management.azure.com"
     # api-version is passed as a proper query parameter
-    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
+    $url = "$baseUrl$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
 
     # Generic "all logs + all metrics" config
     $bodyObject = @{
