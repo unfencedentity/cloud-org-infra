@@ -71,15 +71,16 @@ function Set-DiagnosticSettingREST {
     param(
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
-        [Parameter(Mandatory = $true)][string]$WorkspaceId
+        [Parameter(Mandatory = $true)][string]$WorkspaceId,
+        [Parameter(Mandatory = $true)][string]$ApiVersion
     )
 
     if (-not $ResourceId) {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
-    # IMPORTANT: api-version is passed as a proper query parameter
-    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=2021-05-01-preview"
+    # api-version is passed as a proper query parameter
+    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
 
     # Generic "all logs + all metrics" config
     $bodyObject = @{
@@ -129,7 +130,8 @@ if ($keyVault) {
     Set-DiagnosticSettingREST `
         -ResourceId  $keyVault.ResourceId `
         -SettingName "diag-$keyVaultName" `
-        -WorkspaceId $workspaceId | Out-Null
+        -WorkspaceId $workspaceId `
+        -ApiVersion  $apiVersion | Out-Null
 }
 else {
     Write-Warning "Key Vault '$keyVaultName' not found in resource group '$rgName'. Skipping KV diagnostics."
@@ -152,7 +154,8 @@ if ($storage) {
     Set-DiagnosticSettingREST `
         -ResourceId  $storage.Id `
         -SettingName "diag-$($storage.StorageAccountName)" `
-        -WorkspaceId $workspaceId | Out-Null
+        -WorkspaceId $workspaceId `
+        -ApiVersion  $apiVersion | Out-Null
 }
 else {
     Write-Warning "No tagged storage account for app='$App', env='$Environment' found in '$rgName'. Skipping storage diagnostics."
