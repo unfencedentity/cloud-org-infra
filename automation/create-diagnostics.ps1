@@ -75,7 +75,14 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
-    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=2021-05-01-preview"
+    # Ensure leading slash so the URL is always well-formed
+    if (-not $ResourceId.StartsWith("/")) {
+        $ResourceId = "/" + $ResourceId
+    }
+
+    $apiVersion = "2021-05-01-preview"
+
+    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$apiVersion"
 
     # Generic "all logs + all metrics" config
     $bodyObject = @{
@@ -96,20 +103,22 @@ function Set-DiagnosticSettingREST {
         }
     }
 
-    $body  = $bodyObject | ConvertTo-Json -Depth 10
+    $body = $bodyObject | ConvertTo-Json -Depth 10
     $token = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
 
     Write-Host "Sending REST diagnostic config for resource:"
     Write-Host "  ResourceId  : $ResourceId"
     Write-Host "  SettingName : $SettingName"
-    Write-Host "  Uri         : $url"
+    Write-Host "  URL         : $url"
 
     $result = Invoke-RestMethod `
         -Method Put `
         -Uri $url `
-        -Headers @{ Authorization = "Bearer $token" } `
-        -Body $body `
-        -ContentType "application/json"
+        -Headers @{
+            Authorization = "Bearer $token"
+            "Content-Type" = "application/json"
+        } `
+        -Body $body
 
     Write-Host "REST diagnostic setting applied: $SettingName"
     return $result
