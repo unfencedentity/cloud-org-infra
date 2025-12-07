@@ -259,3 +259,85 @@ Not for commercial redistribution without permission.
 
 Engineered as a senior-level cloud automation portfolio project.  
 Designed for extensibility, clarity, and long-term maintainability.
+
+
+# Diagnostics Automation – Azure Infrastructure
+
+This project automatically configures Azure Monitor Diagnostic Settings for core infrastructure resources using PowerShell and Azure REST API.
+
+The script `create-diagnostics.ps1` links:
+- Storage Accounts
+- Key Vaults
+
+to a Log Analytics Workspace (LAW), ensuring that all logs and metrics are collected centrally.
+
+---
+
+## What this script does
+
+1. Loads and installs required Az PowerShell modules:
+   - Az.Accounts
+   - Az.OperationalInsights
+   - Az.Resources
+   - Az.KeyVault
+   - Az.Storage
+
+2. Resolves infrastructure naming automatically:
+   - Resource Group: rg-{app}-{environment}-{region}
+   - Log Analytics Workspace: law-{app}-{environment}-{region}
+   - Key Vault: kv-{app}-{environment}-{region}
+
+3. Validates that:
+   - The Resource Group exists
+   - The Log Analytics Workspace exists
+
+4. Uses Azure REST API via Invoke-AzRestMethod to configure diagnostics:
+   - Sends all logs (categoryGroup: allLogs)
+   - Sends all metrics (category: AllMetrics)
+   - Connects them to the Log Analytics Workspace
+
+5. Applies diagnostics to:
+   - Key Vault (if found)
+   - Storage Account (discovered automatically by tags: app + environment)
+
+If a resource is missing, the script safely skips it and continues deployment.
+
+---
+
+## Why REST API instead of Set-AzDiagnosticSetting?
+
+The native PowerShell cmdlet `Set-AzDiagnosticSetting` is unreliable across environments and Az module versions.  
+Using the REST API guarantees:
+- Full Azure API compatibility
+- Correct api-version handling
+- No dependency on unstable PowerShell cmdlets
+- Same authentication context as the GitHub Actions runner
+
+---
+
+## Parameters
+
+The script requires the following parameters:
+
+- Environment (e.g. dev, test, prod)
+- App (application name)
+- Region (short Azure region, e.g. weu)
+- Location (full Azure region, e.g. westeurope)
+
+---
+
+## Output
+
+At the end of execution, the script returns:
+- Log Analytics Workspace object
+- Key Vault name
+- Resource Group name
+
+---
+
+## Result
+
+After successful deployment:
+- Storage logs and metrics are sent to Log Analytics
+- Key Vault logs and metrics are sent to Log Analytics (if the Key Vault exists)
+- All diagnostics configuration is applied automatically during infrastructure deployment
