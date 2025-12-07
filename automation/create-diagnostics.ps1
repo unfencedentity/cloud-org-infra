@@ -59,15 +59,16 @@ if (-not $workspace) {
 }
 
 $workspaceId = $workspace.ResourceId
-Write-Host "Using LAW: $workspaceId"
+Write-Host "Using LAW workspace '$($workspace.Name)' ($workspaceId)."
 
 # Single place for the diagnostics API version
 $apiVersion = "2021-05-01-preview"
 
 # --------------------------------------------------------------------
-# Helper: Create/Update Diagnostic Setting via raw REST call
+# Helper: Create/Update Diagnostic Setting via Invoke-AzRestMethod
 # --------------------------------------------------------------------
 function Set-DiagnosticSettingREST {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$ResourceId,
         [Parameter(Mandatory = $true)][string]$SettingName,
@@ -79,8 +80,12 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId is empty."
     }
 
-    # Full ARM URL (must start with /subscriptions/...)
-    $url = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
+    if (-not $ResourceId.StartsWith("/")) {
+        throw "Set-DiagnosticSettingREST: ResourceId must be a full ARM id starting with '/subscriptions/...'. Got: '$ResourceId'"
+    }
+
+    # Path includes the api-version query explicitly
+    $path = "$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
 
     # Generic "all logs + all metrics" config
     $bodyObject = @{
@@ -103,18 +108,15 @@ function Set-DiagnosticSettingREST {
 
     $body = $bodyObject | ConvertTo-Json -Depth 10
 
-    # Reuse Az auth context to get a valid ARM token
-    $token = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
-
-    Write-Host "PUT $url"
+    $debugUrl = "https://management.azure.com$path"
+    Write-Host "PUT $debugUrl"
     Write-Host "SettingName: $SettingName"
 
-    $result = Invoke-RestMethod `
+    # Use Invoke-AzRestMethod so we reuse the Az authenticated context
+    $result = Invoke-AzRestMethod `
         -Method Put `
-        -Uri $url `
-        -Headers @{ Authorization = "Bearer $token" } `
-        -Body $body `
-        -ContentType "application/json"
+        -Path $path `
+        -Payload $body
 
     Write-Host "REST diagnostic setting applied: $SettingName"
     return $result
@@ -168,4 +170,3 @@ return @{
     KeyVaultName  = $keyVaultName
     ResourceGroup = $rgName
 }
-```0
