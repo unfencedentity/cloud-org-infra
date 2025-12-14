@@ -2,6 +2,8 @@
 
 This document defines non-negotiable safety checks applied before and after infrastructure deployment.
 
+These guardrails apply to all automated deployments managed by cloud-org-infra.
+
 ## Purpose
 Prevent high-impact misconfigurations by enforcing minimal operational standards before any automation runs.
 
