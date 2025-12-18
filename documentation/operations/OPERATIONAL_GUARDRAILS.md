@@ -15,6 +15,8 @@ Prevent high-impact misconfigurations by enforcing minimal operational standards
 - Target region is approved
 - Naming collisions are prevented
 
+- Required Azure Resource Providers must be registered (e.g. Microsoft.Storage, Microsoft.Compute, Microsoft.KeyVault, Microsoft.Network). Unregistered providers result in deployment failure and must be remediated before automation runs.
+
 ## Post-Deployment Guardrails
 
 - All resources reach `Succeeded` provisioning state
