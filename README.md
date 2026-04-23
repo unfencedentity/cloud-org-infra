@@ -1,3 +1,68 @@
+# Cloud Org Infra
+
+## Overview
+
+Automated Azure infrastructure deployment framework built using PowerShell and Azure REST APIs.
+
+This project provisions and configures core enterprise infrastructure components in a repeatable, scalable, and structured way, following best practices for cloud environments.
+
+The goal is to reduce manual work, ensure consistency, and enable infrastructure to be deployed reliably across environments.
+
+---
+
+## Key Features
+
+* Infrastructure automation using PowerShell
+* Azure resource provisioning (VNets, Subnets, NSGs, Storage, Identity)
+* Modular and reusable deployment structure
+* Integration with Azure REST APIs
+* Logging and validation for each deployment step
+* Idempotent approach (safe to re-run without breaking existing resources)
+
+---
+
+## Architecture Overview
+
+The infrastructure follows a layered and organized design:
+
+Tenant → Subscription → Resource Groups → Networking → Core Services
+
+Each component is deployed in sequence to ensure proper dependency handling and consistency.
+
+---
+
+## Automation Focus
+
+This project focuses on automating infrastructure deployment and minimizing manual configuration using scripting and API-based workflows.
+
+---
+
+## Technologies Used
+
+* PowerShell
+* Azure REST APIs
+* Microsoft Azure
+* JSON
+
+---
+
+## Quick Context
+
+This repository represents hands-on work around infrastructure automation, focusing on real-world scenarios such as provisioning, configuration, and repeatable deployments.
+
+---
+
+## Detailed Documentation
+
+Scroll down for full technical breakdown, architecture details, and implementation logic.
+
+
+
+
+---------------------------------------------------------------------------------------------
+
+
+
 # cloud-org-infra
 
 ## Introduction
