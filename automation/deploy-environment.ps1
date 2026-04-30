@@ -7,6 +7,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\Test-DeploymentPrerequisites.ps1"
+
 Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
     $Environment, $App, $Region, $Location)
 
@@ -41,6 +43,12 @@ function Ensure-AzContext {
 }
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
+
+Test-DeploymentPrerequisites `
+    -EnvironmentName $Environment `
+    -Location $Location `
+    -SubscriptionId $env:AZURE_SUBSCRIPTION_ID `
+    -ModulesPath "$PSScriptRoot"
 
 # Load scripts
 $rgScript                 = Join-Path $PSScriptRoot "create-rg.ps1"
