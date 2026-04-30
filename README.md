@@ -92,6 +92,7 @@ The goal is to deliver a repeatable baseline infrastructure that organizations c
   - Application Insights
   - Baseline alerting (CPU, 5xx errors)
 - Unified orchestration with a single deployment command
+- Centralized pre-deployment validation gate for Azure context verification, parameter integrity, and execution safety
 - CI/CD ready for GitHub Actions and Azure DevOps
 
 ---
