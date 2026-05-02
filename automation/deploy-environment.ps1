@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 . "$PSScriptRoot\shared\Test-DeploymentPrerequisites.ps1"
+. "$PSScriptRoot\shared\New-DeploymentSummary.ps1"
 
 Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
     $Environment, $App, $Region, $Location)
@@ -50,6 +51,9 @@ Test-DeploymentPrerequisites `
     -SubscriptionId $env:AZURE_SUBSCRIPTION_ID `
     -ModulesPath "$PSScriptRoot"
 
+$executedModules = @()
+$skippedModules = @()
+
 # Load scripts
 $rgScript                 = Join-Path $PSScriptRoot "create-rg.ps1"
 $networkScript            = Join-Path $PSScriptRoot "create-network.ps1"
@@ -67,24 +71,25 @@ $healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
 
 # Validate sub-scripts exist
 if (-not (Test-Path $rgScript))                  { throw ("Sub-script not found: {0}" -f $rgScript) }
-if (-not (Test-Path $networkScript))             { Write-Warning ("Sub-script not found: {0}. Network step skipped." -f $networkScript) }
-if (-not (Test-Path $nsgScript))                 { Write-Warning ("Sub-script not found: {0}. NSG step skipped." -f $nsgScript) }
-if (-not (Test-Path $storageScript))             { Write-Warning ("Sub-script not found: {0}. Storage step skipped." -f $storageScript) }
-if (-not (Test-Path $keyVaultScript))            { Write-Warning ("Sub-script not found: {0}. Key Vault step skipped." -f $keyVaultScript) }
-if (-not (Test-Path $appServiceScript))          { Write-Warning ("Sub-script not found: {0}. App Service step skipped." -f $appServiceScript) }
-if (-not (Test-Path $logAnalyticsScript))        { Write-Warning ("Sub-script not found: {0}. Log Analytics step skipped." -f $logAnalyticsScript) }
-if (-not (Test-Path $appInsightsScript))         { Write-Warning ("Sub-script not found: {0}. App Insights step skipped." -f $appInsightsScript) }
-if (-not (Test-Path $appServiceExtendedScript))  { Write-Warning ("Sub-script not found: {0}. App Service Extended step skipped." -f $appServiceExtendedScript) }
-if (-not (Test-Path $alertsScript))              { Write-Warning ("Sub-script not found: {0}. Alerts step skipped." -f $alertsScript) }
-if (-not (Test-Path $rbacScript))                { Write-Warning ("Sub-script not found: {0}. RBAC step skipped." -f $rbacScript) }
-if (-not (Test-Path $diagnosticsScript))         { Write-Warning ("Sub-script not found: {0}. Diagnostics step skipped." -f $diagnosticsScript) }
-if (-not (Test-Path $healthChecksScript))        { Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript) }
+if (-not (Test-Path $networkScript))             { Write-Warning ("Sub-script not found: {0}. Network step skipped." -f $networkScript); $skippedModules += "Network" }
+if (-not (Test-Path $nsgScript))                 { Write-Warning ("Sub-script not found: {0}. NSG step skipped." -f $nsgScript); $skippedModules += "NSG" }
+if (-not (Test-Path $storageScript))             { Write-Warning ("Sub-script not found: {0}. Storage step skipped." -f $storageScript); $skippedModules += "Storage" }
+if (-not (Test-Path $keyVaultScript))            { Write-Warning ("Sub-script not found: {0}. Key Vault step skipped." -f $keyVaultScript); $skippedModules += "Key Vault" }
+if (-not (Test-Path $appServiceScript))          { Write-Warning ("Sub-script not found: {0}. App Service step skipped." -f $appServiceScript); $skippedModules += "App Service" }
+if (-not (Test-Path $logAnalyticsScript))        { Write-Warning ("Sub-script not found: {0}. Log Analytics step skipped." -f $logAnalyticsScript); $skippedModules += "Log Analytics" }
+if (-not (Test-Path $appInsightsScript))         { Write-Warning ("Sub-script not found: {0}. App Insights step skipped." -f $appInsightsScript); $skippedModules += "App Insights" }
+if (-not (Test-Path $appServiceExtendedScript))  { Write-Warning ("Sub-script not found: {0}. App Service Extended step skipped." -f $appServiceExtendedScript); $skippedModules += "App Service Extended" }
+if (-not (Test-Path $alertsScript))              { Write-Warning ("Sub-script not found: {0}. Alerts step skipped." -f $alertsScript); $skippedModules += "Alerts" }
+if (-not (Test-Path $rbacScript))                { Write-Warning ("Sub-script not found: {0}. RBAC step skipped." -f $rbacScript); $skippedModules += "RBAC" }
+if (-not (Test-Path $diagnosticsScript))         { Write-Warning ("Sub-script not found: {0}. Diagnostics step skipped." -f $diagnosticsScript); $skippedModules += "Diagnostics" }
+if (-not (Test-Path $healthChecksScript))        { Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript); $skippedModules += "Health Checks" }
 
 # Resource Group
 & $rgScript -Environment $Environment `
             -App         $App `
             -Region      $Region `
             -Location    $Location
+$executedModules += "Resource Group"
 
 # Network
 if (Test-Path $networkScript) {
@@ -92,6 +97,7 @@ if (Test-Path $networkScript) {
                      -App         $App `
                      -Region      $Region `
                      -Location    $Location
+    $executedModules += "Network"
 }
 
 # NSGs
@@ -100,6 +106,7 @@ if (Test-Path $nsgScript) {
                  -App         $App `
                  -Region      $Region `
                  -Location    $Location
+    $executedModules += "NSG"
 }
 
 # Storage
@@ -108,6 +115,7 @@ if (Test-Path $storageScript) {
                      -App         $App `
                      -Region      $Region `
                      -Location    $Location
+    $executedModules += "Storage"
 }
 
 # Key Vault
@@ -116,6 +124,7 @@ if (Test-Path $keyVaultScript) {
                       -App         $App `
                       -Region      $Region `
                       -Location    $Location
+    $executedModules += "Key Vault"
 }
 
 # Log Analytics Workspace
@@ -124,14 +133,16 @@ if (Test-Path $logAnalyticsScript) {
                           -App         $App `
                           -Region      $Region `
                           -Location    $Location
+    $executedModules += "Log Analytics"
 }
 
-# Central Diagnostics (Key Vault + Storage → LAW)
+# Central Diagnostics (Key Vault + Storage -> LAW)
 if (Test-Path $diagnosticsScript) {
     & $diagnosticsScript -Environment $Environment `
                          -App         $App `
                          -Region      $Region `
                          -Location    $Location
+    $executedModules += "Diagnostics"
 }
 
 # App Service
@@ -140,6 +151,7 @@ if (Test-Path $appServiceScript) {
                         -App         $App `
                         -Region      $Region `
                         -Location    $Location
+    $executedModules += "App Service"
 }
 
 # Application Insights
@@ -148,6 +160,7 @@ if (Test-Path $appInsightsScript) {
                          -App         $App `
                          -Region      $Region `
                          -Location    $Location
+    $executedModules += "App Insights"
 }
 
 # Extended App Service Configuration
@@ -156,6 +169,7 @@ if (Test-Path $appServiceExtendedScript) {
                                 -App         $App `
                                 -Region      $Region `
                                 -Location    $Location
+    $executedModules += "App Service Extended"
 }
 
 # Alerts
@@ -165,6 +179,7 @@ if (Test-Path $alertsScript) {
                     -Region      $Region `
                     -Location    $Location `
                     -AlertEmail  "ops@example.com"
+    $executedModules += "Alerts"
 }
 
 # RBAC
@@ -176,9 +191,10 @@ if (Test-Path $rbacScript) {
                   -ReaderObjectIds @() `
                   -ContributorObjectIds @() `
                   -KeyVaultSecretsUserObjectIds @()
+    $executedModules += "RBAC"
 }
 
-# HEALTH CHECKS — FINAL QA STEP
+# HEALTH CHECKS - FINAL QA STEP
 if (Test-Path $healthChecksScript) {
     Write-Host "Running environment health checks..."
     $healthResult = & $healthChecksScript `
@@ -188,6 +204,7 @@ if (Test-Path $healthChecksScript) {
         -Location    $Location
 
     Write-Host "Health checks completed."
+    $executedModules += "Health Checks"
 
     if ($healthResult.Status -eq "Error") {
         Write-Error "Critical errors detected during health checks. Aborting deployment."
@@ -195,4 +212,13 @@ if (Test-Path $healthChecksScript) {
     }
 }
 
-Write-Host "Orchestration complete (all modules executed: RG, Network, NSG, Storage, Key Vault, Log Analytics, Diagnostics, App Service, App Insights, App Service Extended, Alerts, RBAC, Health Checks)."
+New-DeploymentSummary `
+    -EnvironmentName $Environment `
+    -App $App `
+    -Region $Region `
+    -Location $Location `
+    -ExecutedModules $executedModules `
+    -SkippedModules $skippedModules `
+    -Status "Success"
+
+Write-Host "Orchestration complete."
