@@ -18,6 +18,24 @@ Write-Host ("Application : {0}" -f $App)
 Write-Host ("Region      : {0}" -f $Region)
 Write-Host ("Location    : {0}" -f $Location)
 Write-Host ""
+
+$validationResults = @()
+
+function Add-ValidationResult {
+    param (
+        [string]$Name,
+        [string]$Result,
+        [string]$Message
+    )
+
+    $script:validationResults += [PSCustomObject]@{
+        Name      = $Name
+        Result    = $Result
+        Message   = $Message
+        Timestamp = (Get-Date).ToString("s")
+    }
+}
+
 $resourceGroupName = "rg-{0}-{1}-{2}" -f $App, $Environment, $Region
 
 Write-Host "Checking Resource Group..."
