@@ -44,10 +44,13 @@ $rg = Get-AzResourceGroup -Name $resourceGroupName -ErrorAction SilentlyContinue
 
 if ($rg) {
     Write-Host ("[PASS] Resource Group found: {0}" -f $resourceGroupName) -ForegroundColor Green
+    Add-ValidationResult -Name "Resource Group" -Result "PASS" -Message ("Resource Group found: {0}" -f $resourceGroupName)
 }
 else {
     Write-Host ("[FAIL] Resource Group missing: {0}" -f $resourceGroupName) -ForegroundColor Red
+    Add-ValidationResult -Name "Resource Group" -Result "FAIL" -Message ("Resource Group missing: {0}" -f $resourceGroupName)
 }
+
 $vnetName = "vnet-{0}-{1}-{2}" -f $App, $Environment, $Region
 
 Write-Host "Checking Virtual Network..."
