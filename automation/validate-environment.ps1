@@ -2,8 +2,13 @@ param(
     [string]$Environment = "dev",
     [string]$App         = "core",
     [string]$Region      = "weu",
-    [string]$Location    = "westeurope"
-)
+    [string]$Location    = "westeurope",
+
+    [string]$ResourceGroupName,
+    [string]$VNetName,
+    [string[]]$RequiredSubnetNames = @("subnet-core-services", "subnet-apps"),
+    [string[]]$RequiredNsgNames = @("nsg-core-services", "nsg-apps")
+}    
 
 $ErrorActionPreference = "Stop"
 
