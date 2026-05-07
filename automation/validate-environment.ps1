@@ -55,14 +55,17 @@ $vnetName = "vnet-{0}-{1}-{2}" -f $App, $Environment, $Region
 
 Write-Host "Checking Virtual Network..."
 
-$vnet = Get-AzVirtualNetwork -Name $vnetName -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue
+$vnet = Get-AzVirtualNetwork -Name $vnetName -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue 
 
 if ($vnet) {
     Write-Host ("[PASS] Virtual Network found: {0}" -f $vnetName) -ForegroundColor Green
+    Add-ValidationResult -Name "Virtual Network" -Result "PASS" -Message ("Virtual Network found: {0}" -f $vnetName)
 }
 else {
     Write-Host ("[FAIL] Virtual Network missing: {0}" -f $vnetName) -ForegroundColor Red
+    Add-ValidationResult -Name "Virtual Network" -Result "FAIL" -Message ("Virtual Network missing: {0}" -f $vnetName)
 }
+ 
 Write-Host "Checking required subnets..."
 
 $requiredSubnets = @(
