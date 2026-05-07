@@ -1,0 +1,91 @@
+name: Validate Azure Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment name"
+        required: true
+        default: "dev"
+      app:
+        description: "Application name"
+        required: true
+        default: "core"
+      region:
+        description: "Short region code"
+        required: true
+        default: "weu"
+      location:
+        description: "Azure location"
+        required: true
+        default: "westeurope"
+      resource_group_name:
+        description: "Existing Resource Group name"
+        required: true
+        default: "rg-dev-weu-01"
+      vnet_name:
+        description: "Existing VNet name"
+        required: true
+        default: "vnet-dev-weu-01"
+      required_subnet_names:
+        description: "Comma-separated subnet names"
+        required: true
+        default: "subnet-core-services,subnet-apps"
+      required_nsg_names:
+        description: "Comma-separated NSG names"
+        required: true
+        default: "nsg-core-weu-01"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: Validate existing Azure environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install required Az modules
+        shell: pwsh
+        run: |
+          Install-Module Az.Accounts -Scope CurrentUser -Force
+          Install-Module Az.Resources -Scope CurrentUser -Force
+          Install-Module Az.Network -Scope CurrentUser -Force
+          Install-Module Az.Storage -Scope CurrentUser -Force
+          Install-Module Az.KeyVault -Scope CurrentUser -Force
+          Install-Module Az.OperationalInsights -Scope CurrentUser -Force
+          Install-Module Az.ApplicationInsights -Scope CurrentUser -Force
+          Install-Module Az.Websites -Scope CurrentUser -Force
+
+      - name: Run Azure environment validation audit
+        shell: pwsh
+        run: |
+          $subnets = "${{ github.event.inputs.required_subnet_names }}" -split ","
+          $nsgs = "${{ github.event.inputs.required_nsg_names }}" -split ","
+
+          ./automation/validate-environment.ps1 `
+            -Environment "${{ github.event.inputs.environment }}" `
+            -App "${{ github.event.inputs.app }}" `
+            -Region "${{ github.event.inputs.region }}" `
+            -Location "${{ github.event.inputs.location }}" `
+            -ResourceGroupName "${{ github.event.inputs.resource_group_name }}" `
+            -VNetName "${{ github.event.inputs.vnet_name }}" `
+            -RequiredSubnetNames $subnets `
+            -RequiredNsgNames $nsgs
+
+      - name: Upload validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: automation/validation-report.json
