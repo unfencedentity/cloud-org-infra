@@ -94,6 +94,7 @@ The goal is to deliver a repeatable baseline infrastructure that organizations c
 - Unified orchestration with a single deployment command
 - Centralized pre-deployment validation gate for Azure context verification, parameter integrity, and execution safety
 - CI/CD ready for GitHub Actions and Azure DevOps
+- GitHub Actions validation workflow using Azure OIDC authentication for non-destructive environment audits
 
 ---
 
