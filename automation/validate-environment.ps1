@@ -223,6 +223,10 @@ $reportPath = Join-Path $PSScriptRoot "validation-report.json"
 $report | ConvertTo-Json -Depth 5 | Out-File -FilePath $reportPath -Encoding utf8
 
 Write-Host ""
+Write-Host "Validation summary:"
+$validationResults | Format-Table -AutoSize
+
+Write-Host ""
 Write-Host "============================================="
 Write-Host "VALIDATION AUDIT COMPLETED"
 Write-Host "============================================="
