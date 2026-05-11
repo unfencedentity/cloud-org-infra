@@ -2,425 +2,332 @@
 
 ## Overview
 
-Automated Azure infrastructure deployment framework built using PowerShell and Azure REST APIs.
+Cloud Org Infra is a modular Azure infrastructure automation framework built with PowerShell and Azure REST APIs.
 
-This project provisions and configures core enterprise infrastructure components in a repeatable, scalable, and structured way, following best practices for cloud environments.
+The project focuses on repeatable, idempotent, and enterprise-oriented infrastructure provisioning across Azure environments.
+It automates the deployment of core cloud infrastructure components while enforcing operational consistency, standardized naming, centralized observability, and security-focused configuration.
 
-The goal is to reduce manual work, ensure consistency, and enable infrastructure to be deployed reliably across environments.
+This repository was designed to simulate real-world cloud engineering and infrastructure operations patterns commonly found in enterprise Azure environments.
 
 ---
 
 ## Key Features
 
-* Infrastructure automation using PowerShell
-* Azure resource provisioning (VNets, Subnets, NSGs, Storage, Identity)
-* Modular and reusable deployment structure
-* Integration with Azure REST APIs
-* Logging and validation for each deployment step
-* Idempotent approach (safe to re-run without breaking existing resources)
+* Modular Infrastructure as Code (IaC) using PowerShell
+* Idempotent deployments safe for repeated execution
+* Enterprise-style naming and tagging standards
+* Centralized infrastructure orchestration
+* Azure REST API integration for advanced scenarios
+* GitHub Actions and Azure DevOps CI/CD ready
+* Security-focused infrastructure configuration
+* Centralized diagnostics and observability
+* RBAC automation and access standardization
+* Environment health validation and reporting
+* Private Endpoint and Private DNS integration
+* Deployment validation and execution summaries
 
 ---
 
 ## Architecture Overview
 
-The infrastructure follows a layered and organized design:
+```mermaid
+flowchart TD
 
-Tenant → Subscription → Resource Groups → Networking → Core Services
+A[GitHub Actions / Local Execution]
+--> B[deploy-environment.ps1]
 
-Each component is deployed in sequence to ensure proper dependency handling and consistency.
+B --> C[Resource Group]
+C --> D[Networking]
+D --> E[Network Security Groups]
+C --> F[Storage Account]
+C --> G[Key Vault]
+C --> H[Log Analytics Workspace]
+C --> I[Application Insights]
+C --> J[App Service]
+C --> K[RBAC]
+C --> L[Diagnostics]
+C --> M[Health Checks]
+```
 
----
+The deployment flow follows a dependency-aware orchestration model to ensure consistent and predictable infrastructure provisioning.
 
-## Automation Focus
+Additional architecture documentation and detailed diagrams are available under:
 
-This project focuses on automating infrastructure deployment and minimizing manual configuration using scripting and API-based workflows.
-
----
-
-## Technologies Used
-
-* PowerShell
-* Azure REST APIs
-* Microsoft Azure
-* JSON
-
----
-
-## Quick Context
-
-This repository represents hands-on work around infrastructure automation, focusing on real-world scenarios such as provisioning, configuration, and repeatable deployments.
-
----
-
-## Detailed Documentation
-
-Scroll down for full technical breakdown, architecture details, and implementation logic.
-
-
-
-
----------------------------------------------------------------------------------------------
-
-
-
-# cloud-org-infra
-
-## Introduction
-
-cloud-org-infra is an enterprise-grade Azure Infrastructure Automation Framework built entirely with PowerShell.
-It provides a fully modular, idempotent, and production-ready approach for provisioning complete application environments across multiple regions and stages.
-
-This repository is engineered for:
-
-- Cloud Automation Engineers
-- DevOps Practitioners
-- Azure Infrastructure Architects
-- Engineers preparing a professional cloud automation portfolio
-
-The goal is to deliver a repeatable baseline infrastructure that organizations can adopt or extend.
+* `/architecture`
+* `/documentation`
+* `/security`
+* `/operations`
 
 ---
 
-## Key Capabilities
+## Core Infrastructure Components
 
-- Modular Infrastructure as Code (IaC) using PowerShell
-- Idempotent execution - safe to run multiple times
-- Strict naming and tagging standards for enterprise-scale environments
-- Security built-in (Key Vault, RBAC, hardened App Service config)
-- Production observability, including:
-  - Log Analytics Workspace
-  - Application Insights
-  - Baseline alerting (CPU, 5xx errors)
-- Unified orchestration with a single deployment command
-- Centralized pre-deployment validation gate for Azure context verification, parameter integrity, and execution safety
-- CI/CD ready for GitHub Actions and Azure DevOps
-- GitHub Actions validation workflow using Azure OIDC authentication for non-destructive environment audits
+Each environment can provision:
+
+* Resource Groups
+* Virtual Networks and Subnets
+* Network Security Groups
+* Storage Accounts
+* Azure Key Vault
+* App Service Plans and App Services
+* Log Analytics Workspace
+* Application Insights
+* Azure Monitor Diagnostics
+* Action Groups and Alerting
+* RBAC Assignments
+* Environment Health Validation
 
 ---
 
-## High-Level Architecture
+## Security Model
 
-Each environment consists of:
+Cloud Org Infra applies security-oriented defaults and infrastructure hardening patterns.
 
-- Resource Group
-- Virtual Network (VNet) and Subnets
-- Network Security Groups
-- Storage Account
-- Azure Key Vault
-- App Service Plan and App Service
-- Log Analytics Workspace
-- Application Insights
-- Extended App Service Configuration:
-  - HTTPS enforcement
-  - TLS minimum version
-  - Managed Identity
-  - Diagnostic logs sent to Log Analytics
-- Alerts:
-  - CPU High
-  - HTTP 5xx spike
-- RBAC (Reader, Contributor, Key Vault Secrets User)
+Security-related capabilities include:
+
+* HTTPS-only App Services
+* Minimum TLS version enforcement
+* Managed Identity enablement
+* Azure Key Vault integration
+* Private Endpoint support
+* Private DNS integration
+* Role-Based Access Control (RBAC)
+* Purge protection validation
+* Secure container permissions
+* Centralized diagnostics and monitoring
+
+Detailed security documentation is available under:
+
+* `/security`
+* `/documentation`
+
+---
+
+## Observability and Monitoring
+
+The platform includes centralized observability components designed for operational visibility and troubleshooting.
+
+Configured services include:
+
+* Log Analytics Workspace
+* Application Insights
+* Azure Diagnostic Settings
+* Azure Monitor Action Groups
+* Infrastructure Health Checks
+* Deployment Validation Reporting
+
+Diagnostics are configured automatically during deployment and routed centrally into Log Analytics.
+
+---
+
+## Idempotent Deployment Model
+
+All deployment modules are designed to be idempotent.
+
+This means:
+
+* Existing resources are safely reused
+* Missing components are automatically provisioned
+* Re-running the same deployment does not create duplicate infrastructure
+* Infrastructure state remains consistent across repeated executions
+
+This operational model aligns with modern Infrastructure as Code and DevOps deployment practices.
 
 ---
 
 ## Standardized Naming Convention
 
-Examples:
+Example naming patterns:
 
-- rg-core-dev-weu
-- vnet-core-dev-weu
-- kv-core-dev-weu
-- stcoredevweuNNN
-- asp-core-dev-weu
-- app-core-dev-weu
-- law-core-dev-weu
-- appi-core-dev-weu
-- ag-core-dev-weu
+* `rg-core-dev-weu`
+* `vnet-core-dev-weu`
+* `nsg-core-dev-weu`
+* `stcoredevweuXXXXXX`
+* `kvcoredevweuXXXXXX`
+* `asp-core-dev-weu`
+* `app-core-dev-weu`
+* `law-core-dev-weu`
+* `appi-core-dev-weu`
+* `ag-core-dev-weu`
 
-This ensures consistency, discoverability, and compliance across environments.
+This structure improves:
+
+* Resource discoverability
+* Environment consistency
+* Operational clarity
+* Governance alignment
+* Enterprise scalability
 
 ---
 
-## Orchestration Flow
+## Deployment Flow
 
-The orchestration is performed by:
+Primary orchestration entrypoint:
 
+```powershell
 automation/deploy-environment.ps1
+```
 
 Execution sequence:
 
-1. create-rg.ps1
-2. create-network.ps1
-3. create-nsgs.ps1
-4. create-storage.ps1
-5. create-keyvault.ps1
-6. create-loganalytics.ps1
-7. create-appservice.ps1
-8. create-appinsights.ps1
-9. create-appservice-extended.ps1
-10. create-alerts.ps1
-11. create-rbac.ps1
+1. `create-rg.ps1`
+2. `create-network.ps1`
+3. `create-nsgs.ps1`
+4. `create-storage.ps1`
+5. `create-keyvault.ps1`
+6. `create-loganalytics.ps1`
+7. `create-diagnostics.ps1`
+8. `create-appservice.ps1`
+9. `create-appinsights.ps1`
+10. `create-appservice-extended.ps1`
+11. `create-alerts.ps1`
+12. `create-rbac.ps1`
+13. `create-healthchecks.ps1`
+14. `New-DeploymentSummary.ps1`
 
-Each module is fully independent and documented under /documentation.
-
----
-
-## Requirements
-
-- Azure Subscription
-- PowerShell 7 or later
-- Az PowerShell modules installed
-- Authentication via:
-  - Connect-AzAccount
-  OR
-  - Service Principal environment variables:
-
-AZURE_CLIENT_ID
-AZURE_CLIENT_SECRET
-AZURE_TENANT_ID
-AZURE_SUBSCRIPTION_ID
+Each deployment module is designed to be modular, reusable, and independently maintainable.
 
 ---
 
 ## Deployment Example
 
-Example: Deploy the core application into dev environment in West Europe:
+Example deployment:
 
+```powershell
 cd automation
-.\deploy-environment.ps1 -Environment dev -App core -Region weu -Location westeurope
 
-This will deploy:
+.\deploy-environment.ps1 `
+  -Environment dev `
+  -App core `
+  -Region weu `
+  -Location westeurope
+```
 
-- Networking
-- Security
-- Compute
-- Observability
-- RBAC
+This deployment provisions:
+
+* Networking
+* Security
+* Storage
+* Monitoring
+* Diagnostics
+* Application Hosting
+* RBAC
+* Validation
 
 in a fully automated sequence.
 
 ---
 
-## Configuring Alerts
+## Requirements
 
-To enable or adjust alert recipients, edit the Alerts step in the orchestrator:
+* Microsoft Azure Subscription
+* PowerShell 7+
+* Az PowerShell Modules
+* Azure authentication via:
 
--AlertEmails @("ops@example.com", "oncall@example.com")
+  * `Connect-AzAccount`
+    OR
+  * Service Principal credentials
 
----
+Required environment variables for Service Principal authentication:
 
-## Configuring RBAC
-
-To assign role-based access control, supply Azure AD Object IDs:
-
--ReaderObjectIds @("aad-object-id-1")
--ContributorObjectIds @("aad-object-id-2")
--KeyVaultSecretsUserObjectIds @("aad-object-id-3")
-
-Assignments are idempotent and safe to run repeatedly.
-
----
-
-## Module Overview
-
-Core IaC modules:
-
-- create-rg.ps1
-- create-network.ps1
-- create-nsgs.ps1
-- create-storage.ps1
-- create-keyvault.ps1
-- create-appservice.ps1
-- create-loganalytics.ps1
-- create-appinsights.ps1
-- create-appservice-extended.ps1
-- create-alerts.ps1
-- create-rbac.ps1
-
-Documentation lives under /documentation.
-
----
-
-## Operational Model
-
-### Reprovisioning
-
-The system is idempotent:
-
-- Running the same deploy command multiple times will not break the environment
-- Existing resources are reused
-- Missing components are provisioned automatically
-
-### Extending Infrastructure
-
-New modules follow the same pattern:
-
-- strict naming
-- parameter consistency
-- idempotent logic
-- integrated with deploy-environment.ps1
-
-### Deleting Environments
-
-Optional cleanup script:
-
-automation/cleanup.ps1
-
-Deletes the environment resource group and all dependent resources.
-
----
-
-## Troubleshooting Guide
-
-### Authentication Errors
-
-Ensure the correct environment variables are set or run Connect-AzAccount interactively.
-
-### Resource Already Exists
-
-All modules are idempotent. This is expected. Deployment will continue safely.
-
-### Missing Role Definitions
-
-Some tenants may not include:
-
-- Key Vault Secrets User
-
-If missing, the RBAC module will emit a warning and continue.
-
-### Alerts Not Triggering
-
-Verify:
-
-- The Action Group exists
-- Correct email addresses
-- Application Insights is receiving data
+```text
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+AZURE_TENANT_ID
+AZURE_SUBSCRIPTION_ID
+```
 
 ---
 
 ## CI/CD Integration
 
-This project is ready for CI/CD pipelines.
+The project is designed for CI/CD execution using:
 
-Typical pipeline:
+* GitHub Actions
+* Azure OIDC authentication
+* Service Principal authentication
+* Validation workflows
+* Environment deployment orchestration
+
+Typical pipeline flow:
 
 1. Checkout repository
 2. Install PowerShell 7
 3. Install Az modules
 4. Authenticate to Azure
-5. Run deploy-environment.ps1
+5. Execute deployment orchestration
+6. Run health validation
+7. Generate deployment summary
 
-Multi-environment pipelines (dev to test to prod) can reuse the same script.
+The same orchestration flow can be reused across:
+
+* Development
+* Testing
+* Production
+
+---
+
+## Documentation Structure
+
+| Directory        | Purpose                                                    |
+| ---------------- | ---------------------------------------------------------- |
+| `/architecture`  | High-level architecture diagrams and infrastructure design |
+| `/documentation` | Detailed module and deployment documentation               |
+| `/operations`    | Operational workflows, runbooks, and procedures            |
+| `/security`      | Security baselines, RBAC, and identity documentation       |
+| `/policy`        | Governance and Azure Policy examples                       |
+| `/automation`    | Infrastructure deployment orchestration and modules        |
+
+---
+
+## Real-World Operational Focus
+
+The project intentionally focuses on operational infrastructure concerns commonly encountered in enterprise environments, including:
+
+* Infrastructure consistency
+* Centralized monitoring
+* Secure defaults
+* Environment validation
+* Deployment repeatability
+* RBAC governance
+* Diagnostics automation
+* Infrastructure hardening
+* Dependency-aware orchestration
 
 ---
 
 ## Roadmap
 
-Upcoming enhancements:
+Planned future enhancements include:
 
-- Terraform mirror
-- Optional Linux App Service hosting
-- Optional Application Gateway and WAF module
-- Optional SQL and PostgreSQL automation modules
-- Optional end-to-end GitHub Actions pipeline templates
+* Terraform-based Cloud Org Infra v2
+* Multi-environment expansion
+* Extended CI/CD templates
+* Application Gateway and WAF support
+* AKS integration
+* Optional SQL and PostgreSQL modules
+* Policy-as-Code integration
+* Advanced observability dashboards
+* Remote state management
 
 ---
 
 ## License
 
-Internal use and portfolio demonstration only.
-Not for commercial redistribution without permission.
+Internal use and portfolio demonstration purposes only.
+
+Not intended for commercial redistribution without permission.
 
 ---
 
 ## Author
 
-Engineered as a senior-level cloud automation portfolio project.
-Designed for extensibility, clarity, and long-term maintainability.
+Designed with a focus on:
 
----
-
-# Diagnostics Automation - Azure Infrastructure
-
-This project automatically configures Azure Monitor Diagnostic Settings for core infrastructure resources using PowerShell and Azure REST API.
-
-The script create-diagnostics.ps1 links:
-
-- Storage Accounts
-- Key Vaults
-
-to a Log Analytics Workspace, ensuring that all logs and metrics are collected centrally.
-
----
-
-## What this script does
-
-1. Loads and installs required Az PowerShell modules:
-   - Az.Accounts
-   - Az.OperationalInsights
-   - Az.Resources
-   - Az.KeyVault
-   - Az.Storage
-
-2. Resolves infrastructure naming automatically:
-   - Resource Group: rg-{app}-{environment}-{region}
-   - Log Analytics Workspace: law-{app}-{environment}-{region}
-   - Key Vault: kv-{app}-{environment}-{region}
-
-3. Validates that:
-   - The Resource Group exists
-   - The Log Analytics Workspace exists
-
-4. Uses Azure REST API via Invoke-AzRestMethod to configure diagnostics:
-   - Sends all logs using categoryGroup allLogs
-   - Sends all metrics using category AllMetrics
-   - Connects them to the Log Analytics Workspace
-
-5. Applies diagnostics to:
-   - Key Vault if found
-   - Storage Account discovered automatically by tags app and environment
-
-If a resource is missing, the script safely skips it and continues deployment.
-
----
-
-## Why REST API instead of Set-AzDiagnosticSetting
-
-The native PowerShell cmdlet Set-AzDiagnosticSetting is unreliable across environments and Az module versions.
-
-Using the REST API guarantees:
-
-- Full Azure API compatibility
-- Correct api-version handling
-- No dependency on unstable PowerShell cmdlets
-- Same authentication context as the GitHub Actions runner
-
----
-
-## Parameters
-
-The script requires the following parameters:
-
-- Environment (dev, test, prod)
-- App (application name)
-- Region (short Azure region, for example weu)
-- Location (full Azure region, for example westeurope)
-
----
-
-## Output
-
-At the end of execution, the script returns:
-
-- Log Analytics Workspace object
-- Key Vault name
-- Resource Group name
-
----
-
-## Result
-
-After successful deployment:
-
-- Storage logs and metrics are sent to Log Analytics
-- Key Vault logs and metrics are sent to Log Analytics if the Key Vault exists
-- All diagnostics configuration is applied automatically during infrastructure deployment
+* Infrastructure automation
+* Cloud operations
+* Observability
+* Security-oriented architecture
+* Long-term maintainability
+* Modular engineering practices
