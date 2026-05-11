@@ -222,6 +222,13 @@ $report = [PSCustomObject]@{
 $reportPath = Join-Path $PSScriptRoot "validation-report.json"
 $report | ConvertTo-Json -Depth 5 | Out-File -FilePath $reportPath -Encoding utf8
 
+if (Test-Path $reportPath) {
+    Write-Host ("[PASS] Validation report generated: {0}" -f $reportPath) -ForegroundColor Green
+}
+else {
+    Write-Host "[FAIL] Validation report was not generated." -ForegroundColor Red
+}
+
 Write-Host ""
 Write-Host "Validation summary:"
 $validationResults | Format-Table -AutoSize
