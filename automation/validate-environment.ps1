@@ -118,7 +118,7 @@ foreach ($nsgName in $RequiredNsgNames) {
     }
 }
 
-Write-Host "Checking Storage Account..."
+Write-Host "Checking Storage Account configuration..."
 
 $storagePattern = "st{0}{1}{2}" -f $App, $Environment, $Region
 $storage = Get-AzStorageAccount -ResourceGroupName $ResourceGroupName -ErrorAction SilentlyContinue |
