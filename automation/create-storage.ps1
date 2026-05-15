@@ -20,19 +20,16 @@ if (-not $env:AZURE_SUBSCRIPTION_ID) {
     throw "AZURE_SUBSCRIPTION_ID environment variable is missing."
 }
 
-Set-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID | Out-Null
+$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
 
-$subscriptionId = (Get-AzContext).Subscription.Id
-
-if (-not $subscriptionId) {
-    throw "Azure subscription context could not be resolved."
-}
+Set-AzContext -SubscriptionId $subscriptionId | Out-Null
 
 $baseString = "$subscriptionId-$App-$Environment-$Region"
 
 $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
     [System.Text.Encoding]::UTF8.GetBytes($baseString)
 )
+
 $hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
 
 $storageAccountName = "st$App$Environment$Region$hash"
@@ -50,15 +47,21 @@ if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
-$existing = Get-AzStorageAccount -ResourceGroupName $rgName -Name $storageAccountName -ErrorAction SilentlyContinue
+$existing = Get-AzStorageAccount `
+    -ResourceGroupName $rgName `
+    -Name $storageAccountName `
+    -ErrorAction SilentlyContinue
 
 if ($existing) {
     Write-Host ("Storage account '{0}' already exists in resource group '{1}'. Skipping create." -f `
         $storageAccountName, $rgName)
+
     $sa = $existing
 }
 else {
-    if (-not $PSCmdlet.ShouldProcess("Storage account $storageAccountName", "Create")) { return }
+    if (-not $PSCmdlet.ShouldProcess("Storage account $storageAccountName", "Create")) {
+        return
+    }
 
     Write-Host ("Creating storage account '{0}' in '{1}'..." -f $storageAccountName, $Location)
 
@@ -79,20 +82,29 @@ if ($Containers -and $Containers.Count -gt 0) {
     $ctx = $sa.Context
 
     foreach ($containerName in $Containers) {
-        $existingContainer = Get-AzStorageContainer -Context $ctx -Name $containerName -ErrorAction SilentlyContinue
+        $existingContainer = Get-AzStorageContainer `
+            -Context $ctx `
+            -Name $containerName `
+            -ErrorAction SilentlyContinue
 
         if ($existingContainer) {
             Write-Host ("Container '{0}' already exists in storage account '{1}'. Skipping." -f `
                 $containerName, $storageAccountName)
+
             continue
         }
 
-        if (-not $PSCmdlet.ShouldProcess("Container $containerName", "Create")) { continue }
+        if (-not $PSCmdlet.ShouldProcess("Container $containerName", "Create")) {
+            continue
+        }
 
         Write-Host ("Creating blob container '{0}' in storage account '{1}'..." -f `
             $containerName, $storageAccountName)
 
-        New-AzStorageContainer -Context $ctx -Name $containerName -Permission Off | Out-Null
+        New-AzStorageContainer `
+            -Context $ctx `
+            -Name $containerName `
+            -Permission Off | Out-Null
     }
 }
 
