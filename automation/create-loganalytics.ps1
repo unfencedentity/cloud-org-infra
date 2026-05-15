@@ -12,7 +12,7 @@ param(
     [Parameter(Mandatory = $false)][string]$WorkspaceSku = "PerGB2018",
 
     # Data retention in days (enterprise default: 30)
-    [Parameter(Mandatory = $false)][int]$RetentionInDays = 30
+    [Parameter(Mandatory = $false)][int]$RetentionInDays = 7
 )
 
 $ErrorActionPreference = "Stop"
