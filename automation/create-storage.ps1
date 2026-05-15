@@ -22,6 +22,8 @@ if ([string]::IsNullOrWhiteSpace($env:AZURE_SUBSCRIPTION_ID)) {
 
 $subscriptionId = $env:AZURE_SUBSCRIPTION_ID.Trim()
 
+Disable-AzContextAutosave -Scope Process | Out-Null
+
 Write-Host "Setting Az context for storage deployment..."
 Set-AzContext -SubscriptionId $subscriptionId | Out-Null
 
@@ -98,10 +100,9 @@ else {
         $storageAccountName, $Location)
 
     $response = Invoke-AzRestMethod `
-    -Method PUT `
-    -Path $storageAccountResourceId `
-    -ApiVersion "2023-01-01" `
-    -Payload $storageAccountBody
+        -Method PUT `
+        -Path "$storageAccountResourceId?api-version=2023-01-01" `
+        -Payload $storageAccountBody
 
     if ($response.StatusCode -notin @(200, 201, 202)) {
         throw "Storage account deployment failed. StatusCode: $($response.StatusCode). Content: $($response.Content)"
