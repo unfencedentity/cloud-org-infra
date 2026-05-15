@@ -45,8 +45,7 @@ if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Configure extended sett
     return
 }
 
-Write-Host ("Configuring extended settings for Web App '{0}'..." -f `
-    $webAppName)
+Write-Host ("Configuring extended settings for Web App '{0}'..." -f $webAppName)
 
 $appSettings = @{
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = $appInsights.ConnectionString
@@ -55,13 +54,12 @@ $appSettings = @{
     "WEBSITE_RUN_FROM_PACKAGE"              = "1"
 }
 
-Update-AzWebAppSetting `
+Set-AzWebApp `
     -ResourceGroupName $rgName `
     -Name $webAppName `
     -AppSettings $appSettings | Out-Null
 
-Write-Host ("Extended configuration applied to Web App '{0}'." -f `
-    $webAppName)
+Write-Host ("Extended configuration applied to Web App '{0}'." -f $webAppName)
 
 return Get-AzWebApp `
     -ResourceGroupName $rgName `
