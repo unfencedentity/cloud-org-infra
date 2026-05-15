@@ -101,8 +101,9 @@ else {
 
     $response = Invoke-AzRestMethod `
         -Method PUT `
-        -Path "$storageAccountResourceId?api-version=2023-01-01" `
-        -Payload $storageAccountBody
+        -Path $storageAccountResourceId `
+        -ApiVersion "2023-01-01" `
+        -PayloadJson $storageAccountBody
 
     if ($response.StatusCode -notin @(200, 201, 202)) {
         throw "Storage account deployment failed. StatusCode: $($response.StatusCode). Content: $($response.Content)"
