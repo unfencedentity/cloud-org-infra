@@ -77,19 +77,57 @@ else {
         return
     }
 
-    Write-Host ("Creating storage account '{0}' in '{1}'..." -f $storageAccountName, $Location)
+    $storageAccountResourceId = "/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Storage/storageAccounts/$storageAccountName"
 
-    $sa = New-AzStorageAccount `
-        -ResourceGroupName $rgName `
-        -Name $storageAccountName `
-        -Location $Location `
-        -SkuName $SkuName `
-        -Kind $Kind `
-        -AccessTier $AccessTier `
-        -EnableHttpsTrafficOnly $true `
-        -Tag $tags
+    $storageAccountBody = @{
+        location   = $Location
+        sku        = @{
+            name = $SkuName
+        }
+        kind       = $Kind
+        properties = @{
+            accessTier               = $AccessTier
+            supportsHttpsTrafficOnly = $true
+            minimumTlsVersion        = "TLS1_2"
+            allowBlobPublicAccess    = $false
+        }
+        tags       = $tags
+    } | ConvertTo-Json -Depth 10
 
-    Write-Host ("Storage account '{0}' created." -f $storageAccountName)
+    Write-Host ("Creating storage account '{0}' in '{1}' using Azure REST API..." -f `
+        $storageAccountName, $Location)
+
+    $response = Invoke-AzRestMethod `
+        -Method PUT `
+        -Path "$storageAccountResourceId?api-version=2023-01-01" `
+        -Payload $storageAccountBody
+
+    if ($response.StatusCode -notin @(200, 201, 202)) {
+        throw "Storage account deployment failed. StatusCode: $($response.StatusCode). Content: $($response.Content)"
+    }
+
+    Write-Host ("Storage account '{0}' deployment submitted." -f $storageAccountName)
+
+    do {
+        Start-Sleep -Seconds 10
+
+        $sa = Get-AzStorageAccount `
+            -ResourceGroupName $rgName `
+            -Name $storageAccountName `
+            -ErrorAction SilentlyContinue
+
+        if ($sa) {
+            Write-Host ("Storage account '{0}' is now available." -f $storageAccountName)
+            break
+        }
+
+        Write-Host ("Waiting for storage account '{0}' to become available..." -f $storageAccountName)
+    }
+    while (-not $sa)
+
+    if (-not $sa) {
+        throw "Storage account '$storageAccountName' was submitted but could not be retrieved."
+    }
 }
 
 if ($Containers -and $Containers.Count -gt 0) {
