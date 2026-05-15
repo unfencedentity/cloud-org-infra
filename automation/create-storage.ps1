@@ -84,17 +84,19 @@ else {
 
     $tokenResponse = Get-AzAccessToken -ResourceUrl "https://management.azure.com/"
 
-    $accessToken = if ($tokenResponse.Token -is [securestring]) {
-        [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($tokenResponse.Token)
-        )
+    if ($tokenResponse.Token -is [System.Security.SecureString]) {
+        $accessToken = [System.Net.NetworkCredential]::new("", $tokenResponse.Token).Password
     }
     else {
-        $tokenResponse.Token
+        $accessToken = [string]$tokenResponse.Token
+    }
+
+    if ([string]::IsNullOrWhiteSpace($accessToken)) {
+        throw "Failed to retrieve Azure access token."
     }
 
     $headers = @{
-        Authorization = "Bearer $accessToken"
+        Authorization  = "Bearer $accessToken"
         "Content-Type" = "application/json"
     }
 
