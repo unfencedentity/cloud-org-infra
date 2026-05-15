@@ -24,6 +24,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           auth-type: SERVICE_PRINCIPAL
+          enable-AzPSSession: true
 
       - name: Deploy infrastructure
         shell: pwsh
