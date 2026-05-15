@@ -44,6 +44,7 @@ function Ensure-AzContext {
 }
 
 Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
+Set-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID | Out-Null
 
 Test-DeploymentPrerequisites `
     -EnvironmentName $Environment `

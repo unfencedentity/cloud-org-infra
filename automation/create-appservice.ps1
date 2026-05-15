@@ -5,21 +5,26 @@ param(
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
 
-    [Parameter(Mandatory = $false)][string]$AppServicePlanSku = "B1",
-
-    # Windows or Linux (for now we assume Windows, but keep this for future extension)
-    [Parameter(Mandatory = $false)][ValidateSet("Windows", "Linux")]
-    [string]$RuntimeStack = "Windows"
+    [Parameter(Mandatory = $false)][string]$Runtime = "DOTNETCORE|8.0",
+    [Parameter(Mandatory = $false)][string]$Sku = "B1"
 )
 
 $ErrorActionPreference = "Stop"
 
-# Naming conventions
-$rgName        = "rg-$App-$Environment-$Region"
+$rgName = "rg-$App-$Environment-$Region"
 $appServicePlanName = "asp-$App-$Environment-$Region"
-$webAppName    = "app-$App-$Environment-$Region"
 
-# Basic tags
+$baseString = "$App-$Environment-$Region"
+
+$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [System.Text.Encoding]::UTF8.GetBytes($baseString)
+)
+
+$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
+
+$webAppName = "app-$App-$Environment-$Region-$hash"
+$webAppName = $webAppName.ToLower().Replace("-", "")
+
 $tags = @{
     environment = $Environment
     app         = $App
@@ -27,55 +32,66 @@ $tags = @{
     owner       = "cloud-org-infra"
 }
 
-# Validate Resource Group
 $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+
 if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
-# --------------------------------------------------------------------
-# App Service Plan
-# --------------------------------------------------------------------
-$plan = Get-AzAppServicePlan -Name $appServicePlanName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
+$existingPlan = Get-AzAppServicePlan `
+    -ResourceGroupName $rgName `
+    -Name $appServicePlanName `
+    -ErrorAction SilentlyContinue
 
-if ($plan) {
-    Write-Host "App Service Plan '$appServicePlanName' already exists in resource group '$rgName'."
+if (-not $existingPlan) {
+    if (-not $PSCmdlet.ShouldProcess("App Service Plan $appServicePlanName", "Create")) {
+        return
+    }
+
+    Write-Host ("Creating App Service Plan '{0}' (SKU={1}) in '{2}'..." -f `
+        $appServicePlanName, $Sku, $Location)
+
+    $existingPlan = New-AzAppServicePlan `
+        -ResourceGroupName $rgName `
+        -Name $appServicePlanName `
+        -Location $Location `
+        -Tier "Basic" `
+        -WorkerSize "Small" `
+        -NumberofWorkers 1 `
+        -Tag $tags
+
+    Write-Host ("App Service Plan '{0}' created." -f $appServicePlanName)
 }
 else {
-    if (-not $PSCmdlet.ShouldProcess("App Service Plan $appServicePlanName", "Create")) { return }
-
-    Write-Host "Creating App Service Plan '$appServicePlanName' (SKU=$AppServicePlanSku) in '$Location'..."
-
-    $plan = New-AzAppServicePlan `
-        -Name $appServicePlanName `
-        -ResourceGroupName $rgName `
-        -Location $Location `
-        -Tier $AppServicePlanSku `
-        -NumberOfWorkers 1
-
-    Write-Host "App Service Plan '$appServicePlanName' created."
+    Write-Host ("App Service Plan '{0}' already exists. Skipping create." -f `
+        $appServicePlanName)
 }
 
-# --------------------------------------------------------------------
-# Web App
-# --------------------------------------------------------------------
-$webApp = Get-AzWebApp -Name $webAppName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
+$existingWebApp = Get-AzWebApp `
+    -ResourceGroupName $rgName `
+    -Name $webAppName `
+    -ErrorAction SilentlyContinue
 
-if ($webApp) {
-    Write-Host "Web App '$webAppName' already exists in resource group '$rgName'."
-    return $webApp
+if ($existingWebApp) {
+    Write-Host ("Web App '{0}' already exists. Skipping create." -f `
+        $webAppName)
+
+    return $existingWebApp
 }
 
-if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Create")) { return }
+if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Create")) {
+    return
+}
 
-Write-Host "Creating Web App '$webAppName' in App Service Plan '$appServicePlanName'..."
+Write-Host ("Creating Web App '{0}' in App Service Plan '{1}'..." -f `
+    $webAppName, $appServicePlanName)
 
 $webApp = New-AzWebApp `
-    -Name $webAppName `
     -ResourceGroupName $rgName `
+    -Name $webAppName `
     -Location $Location `
     -AppServicePlan $appServicePlanName
 
-Write-Host "Web App '$webAppName' created."
+Write-Host ("Web App '{0}' created." -f $webAppName)
 
 return $webApp
