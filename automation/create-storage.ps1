@@ -5,38 +5,39 @@ param(
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
 
-    # Storage account SKU and replication
-    [Parameter(Mandatory = $false)][string]$SkuName   = "Standard_LRS",
-    [Parameter(Mandatory = $false)][string]$Kind      = "StorageV2",
+    [Parameter(Mandatory = $false)][string]$SkuName = "Standard_LRS",
+    [Parameter(Mandatory = $false)][string]$Kind = "StorageV2",
     [Parameter(Mandatory = $false)][string]$AccessTier = "Hot",
 
-    # Optional default containers to ensure
     [Parameter(Mandatory = $false)][string[]]$Containers = @("logs", "apps", "data")
 )
 
 $ErrorActionPreference = "Stop"
 
-# Naming convention
 $rgName = "rg-$App-$Environment-$Region"
 
-# Generate deterministic, globally-unique-ish storage account name
-# based on Subscription + App + Environment + Region
+if (-not $env:AZURE_SUBSCRIPTION_ID) {
+    throw "AZURE_SUBSCRIPTION_ID environment variable is missing."
+}
+
+Set-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID | Out-Null
+
 $subscriptionId = (Get-AzContext).Subscription.Id
+
+if (-not $subscriptionId) {
+    throw "Azure subscription context could not be resolved."
+}
 
 $baseString = "$subscriptionId-$App-$Environment-$Region"
 
-# Compute a short stable hash suffix
 $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
     [System.Text.Encoding]::UTF8.GetBytes($baseString)
 )
 $hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
 
-# Final name: st + app + env + region + hash (no dashes, all lowercase)
 $storageAccountName = "st$App$Environment$Region$hash"
 $storageAccountName = $storageAccountName.ToLower().Replace("-", "")
 
-
-# Tags
 $tags = @{
     environment = $Environment
     app         = $App
@@ -44,13 +45,11 @@ $tags = @{
     owner       = "cloud-org-infra"
 }
 
-# Validate Resource Group
 $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
 if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
-# Check if storage account exists
 $existing = Get-AzStorageAccount -ResourceGroupName $rgName -Name $storageAccountName -ErrorAction SilentlyContinue
 
 if ($existing) {
@@ -76,12 +75,12 @@ else {
     Write-Host ("Storage account '{0}' created." -f $storageAccountName)
 }
 
-# Ensure default containers
 if ($Containers -and $Containers.Count -gt 0) {
-
     $ctx = $sa.Context
+
     foreach ($containerName in $Containers) {
         $existingContainer = Get-AzStorageContainer -Context $ctx -Name $containerName -ErrorAction SilentlyContinue
+
         if ($existingContainer) {
             Write-Host ("Container '{0}' already exists in storage account '{1}'. Skipping." -f `
                 $containerName, $storageAccountName)
