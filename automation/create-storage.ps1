@@ -16,13 +16,26 @@ $ErrorActionPreference = "Stop"
 
 $rgName = "rg-$App-$Environment-$Region"
 
-if (-not $env:AZURE_SUBSCRIPTION_ID) {
-    throw "AZURE_SUBSCRIPTION_ID environment variable is missing."
+if ([string]::IsNullOrWhiteSpace($env:AZURE_SUBSCRIPTION_ID)) {
+    throw "AZURE_SUBSCRIPTION_ID environment variable is missing or empty."
 }
 
-$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+$subscriptionId = $env:AZURE_SUBSCRIPTION_ID.Trim()
 
+Write-Host "Setting Az context for storage deployment..."
 Set-AzContext -SubscriptionId $subscriptionId | Out-Null
+
+$currentContext = Get-AzContext
+
+if (-not $currentContext) {
+    throw "No active Az PowerShell context found after Set-AzContext."
+}
+
+if ($currentContext.Subscription.Id -ne $subscriptionId) {
+    throw "Az context subscription mismatch. Expected '$subscriptionId' but got '$($currentContext.Subscription.Id)'."
+}
+
+Write-Host ("Using subscription: {0}" -f $currentContext.Subscription.Id)
 
 $baseString = "$subscriptionId-$App-$Environment-$Region"
 
@@ -43,6 +56,7 @@ $tags = @{
 }
 
 $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+
 if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
@@ -66,8 +80,8 @@ else {
     Write-Host ("Creating storage account '{0}' in '{1}'..." -f $storageAccountName, $Location)
 
     $sa = New-AzStorageAccount `
-        -Name $storageAccountName `
         -ResourceGroupName $rgName `
+        -Name $storageAccountName `
         -Location $Location `
         -SkuName $SkuName `
         -Kind $Kind `
