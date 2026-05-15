@@ -79,34 +79,36 @@ else {
         return
     }
 
-    $storageAccountResourceId = "/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Storage/storageAccounts/$storageAccountName"
-
-    $storageAccountBody = @{
-        location   = $Location
-        sku        = @{
-            name = $SkuName
-        }
-        kind       = $Kind
-        properties = @{
-            accessTier               = $AccessTier
-            supportsHttpsTrafficOnly = $true
-            minimumTlsVersion        = "TLS1_2"
-            allowBlobPublicAccess    = $false
-        }
-        tags       = $tags
-    } | ConvertTo-Json -Depth 10
-
-    Write-Host ("Creating storage account '{0}' in '{1}' using Azure REST API..." -f `
+    Write-Host ("Creating storage account '{0}' in '{1}' using Azure CLI..." -f `
         $storageAccountName, $Location)
 
-    $response = Invoke-AzRestMethod `
-        -Method PUT `
-        -Path $storageAccountResourceId `
-        -ApiVersion "2023-01-01" `
-        -PayloadJson $storageAccountBody
+    $tagsArguments = @()
 
-    if ($response.StatusCode -notin @(200, 201, 202)) {
-        throw "Storage account deployment failed. StatusCode: $($response.StatusCode). Content: $($response.Content)"
+    foreach ($tag in $tags.GetEnumerator()) {
+        $tagsArguments += "$($tag.Key)=$($tag.Value)"
+    }
+
+    az account set --subscription $subscriptionId
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to set Azure CLI subscription context."
+    }
+
+    az storage account create `
+        --name $storageAccountName `
+        --resource-group $rgName `
+        --location $Location `
+        --sku $SkuName `
+        --kind $Kind `
+        --access-tier $AccessTier `
+        --https-only true `
+        --min-tls-version TLS1_2 `
+        --allow-blob-public-access false `
+        --tags $tagsArguments `
+        --output none
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Azure CLI storage account deployment failed."
     }
 
     Write-Host ("Storage account '{0}' deployment submitted." -f $storageAccountName)
