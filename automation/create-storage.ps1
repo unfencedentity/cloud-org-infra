@@ -79,37 +79,47 @@ else {
         return
     }
 
-    Write-Host ("Creating storage account '{0}' in '{1}' using Azure CLI..." -f `
+    Write-Host ("Creating storage account '{0}' in '{1}' using Azure Resource Manager REST API..." -f `
         $storageAccountName, $Location)
 
-    $tagsArguments = @()
+    $tokenResponse = Get-AzAccessToken -ResourceUrl "https://management.azure.com/"
 
-    foreach ($tag in $tags.GetEnumerator()) {
-        $tagsArguments += "$($tag.Key)=$($tag.Value)"
+    $accessToken = if ($tokenResponse.Token -is [securestring]) {
+        [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($tokenResponse.Token)
+        )
+    }
+    else {
+        $tokenResponse.Token
     }
 
-    az account set --subscription $subscriptionId
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to set Azure CLI subscription context."
+    $headers = @{
+        Authorization = "Bearer $accessToken"
+        "Content-Type" = "application/json"
     }
 
-    az storage account create `
-        --name $storageAccountName `
-        --resource-group $rgName `
-        --location $Location `
-        --sku $SkuName `
-        --kind $Kind `
-        --access-tier $AccessTier `
-        --https-only true `
-        --min-tls-version TLS1_2 `
-        --allow-blob-public-access false `
-        --tags $tagsArguments `
-        --output none
+    $storageAccountUri = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Storage/storageAccounts/$storageAccountName" + "?api-version=2023-01-01"
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "Azure CLI storage account deployment failed."
-    }
+    $storageAccountBody = @{
+        location   = $Location
+        sku        = @{
+            name = $SkuName
+        }
+        kind       = $Kind
+        properties = @{
+            accessTier               = $AccessTier
+            supportsHttpsTrafficOnly = $true
+            minimumTlsVersion        = "TLS1_2"
+            allowBlobPublicAccess    = $false
+        }
+        tags       = $tags
+    } | ConvertTo-Json -Depth 10
+
+    Invoke-RestMethod `
+        -Method Put `
+        -Uri $storageAccountUri `
+        -Headers $headers `
+        -Body $storageAccountBody | Out-Null
 
     Write-Host ("Storage account '{0}' deployment submitted." -f $storageAccountName)
 
