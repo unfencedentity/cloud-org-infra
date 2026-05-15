@@ -80,6 +80,26 @@ if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
+$tokenResponse = Get-AzAccessToken -ResourceUrl "https://management.azure.com/"
+
+if ($tokenResponse.Token -is [System.Security.SecureString]) {
+    $accessToken = [System.Net.NetworkCredential]::new("", $tokenResponse.Token).Password
+}
+else {
+    $accessToken = [string]$tokenResponse.Token
+}
+
+if ([string]::IsNullOrWhiteSpace($accessToken)) {
+    throw "Failed to retrieve Azure access token."
+}
+
+$headers = @{
+    Authorization  = "Bearer $accessToken"
+    "Content-Type" = "application/json"
+}
+
+$storageAccountUri = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Storage/storageAccounts/$storageAccountName" + "?api-version=2023-01-01"
+
 $existing = Get-AzStorageAccount `
     -ResourceGroupName $rgName `
     -Name $storageAccountName `
@@ -98,26 +118,6 @@ else {
 
     Write-Host ("Creating storage account '{0}' in '{1}' using Azure Resource Manager REST API..." -f `
         $storageAccountName, $Location)
-
-    $tokenResponse = Get-AzAccessToken -ResourceUrl "https://management.azure.com/"
-
-    if ($tokenResponse.Token -is [System.Security.SecureString]) {
-        $accessToken = [System.Net.NetworkCredential]::new("", $tokenResponse.Token).Password
-    }
-    else {
-        $accessToken = [string]$tokenResponse.Token
-    }
-
-    if ([string]::IsNullOrWhiteSpace($accessToken)) {
-        throw "Failed to retrieve Azure access token."
-    }
-
-    $headers = @{
-        Authorization  = "Bearer $accessToken"
-        "Content-Type" = "application/json"
-    }
-
-    $storageAccountUri = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Storage/storageAccounts/$storageAccountName" + "?api-version=2023-01-01"
 
     $storageAccountBody = @{
         location   = $Location
@@ -141,56 +141,54 @@ else {
         -Body $storageAccountBody | Out-Null
 
     Write-Host ("Storage account '{0}' deployment submitted." -f $storageAccountName)
-
-    do {
-        Start-Sleep -Seconds 10
-
-        $sa = Get-AzStorageAccount `
-            -ResourceGroupName $rgName `
-            -Name $storageAccountName `
-            -ErrorAction SilentlyContinue
-
-        if ($sa) {
-            Write-Host ("Storage account '{0}' is now available." -f $storageAccountName)
-            break
-        }
-
-        Write-Host ("Waiting for storage account '{0}' to become available..." -f $storageAccountName)
-    }
-    while (-not $sa)
-
-    if (-not $sa) {
-        throw "Storage account '$storageAccountName' was submitted but could not be retrieved."
-    }
 }
 
+do {
+    Start-Sleep -Seconds 10
+
+    $storageState = Invoke-RestMethod `
+        -Method Get `
+        -Uri $storageAccountUri `
+        -Headers $headers
+
+    $provisioningState = $storageState.properties.provisioningState
+
+    Write-Host ("Storage account '{0}' provisioning state: {1}" -f `
+        $storageAccountName, $provisioningState)
+}
+while ($provisioningState -ne "Succeeded")
+
+$sa = Get-AzStorageAccount `
+    -ResourceGroupName $rgName `
+    -Name $storageAccountName `
+    -ErrorAction Stop
+
+Write-Host ("Storage account '{0}' is fully provisioned." -f $storageAccountName)
+
 if ($Containers -and $Containers.Count -gt 0) {
-    $ctx = $sa.Context
-
     foreach ($containerName in $Containers) {
-        $existingContainer = Get-AzStorageContainer `
-            -Context $ctx `
-            -Name $containerName `
-            -ErrorAction SilentlyContinue
+        $containerUri = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Storage/storageAccounts/$storageAccountName/blobServices/default/containers/$containerName" + "?api-version=2023-01-01"
 
-        if ($existingContainer) {
-            Write-Host ("Container '{0}' already exists in storage account '{1}'. Skipping." -f `
-                $containerName, $storageAccountName)
-
+        if (-not $PSCmdlet.ShouldProcess("Container $containerName", "Create or update")) {
             continue
         }
 
-        if (-not $PSCmdlet.ShouldProcess("Container $containerName", "Create")) {
-            continue
-        }
-
-        Write-Host ("Creating blob container '{0}' in storage account '{1}'..." -f `
+        Write-Host ("Creating or updating blob container '{0}' in storage account '{1}' using Azure Resource Manager REST API..." -f `
             $containerName, $storageAccountName)
 
-        New-AzStorageContainer `
-            -Context $ctx `
-            -Name $containerName `
-            -Permission Off | Out-Null
+        $containerBody = @{
+            properties = @{
+                publicAccess = "None"
+            }
+        } | ConvertTo-Json -Depth 10
+
+        Invoke-RestMethod `
+            -Method Put `
+            -Uri $containerUri `
+            -Headers $headers `
+            -Body $containerBody | Out-Null
+
+        Write-Host ("Container '{0}' is configured." -f $containerName)
     }
 }
 
