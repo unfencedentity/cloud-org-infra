@@ -1,6 +1,3 @@
-
-# File: automation/create-loganalytics.ps1
-
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter(Mandatory = $true)][string]$Environment,
@@ -8,22 +5,20 @@ param(
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
 
-    # Pricing tier for Log Analytics (PerGB2018 is the standard pay-as-you-go tier)
-    [Parameter(Mandatory = $false)][string]$WorkspaceSku = "PerGB2018",
-
-    # Data retention in days (enterprise default: 30)
-    [Parameter(Mandatory = $false)][int]$RetentionInDays = 7
+    [Parameter(Mandatory = $false)][string]$Sku = "PerGB2018",
+    [Parameter(Mandatory = $false)][int]$RetentionInDays = 30
 )
 
 $ErrorActionPreference = "Stop"
 
-# --------------------------------------------------------------------
-# Naming conventions
-# --------------------------------------------------------------------
-$rgName        = "rg-$App-$Environment-$Region"
+$rgName = "rg-$App-$Environment-$Region"
 $workspaceName = "law-$App-$Environment-$Region"
 
-# Basic tags
+if ($Sku -eq "PerGB2018" -and $RetentionInDays -lt 30) {
+    Write-Host "RetentionInDays '$RetentionInDays' is below the minimum supported value for SKU '$Sku'. Using 30 days instead."
+    $RetentionInDays = 30
+}
+
 $tags = @{
     environment = $Environment
     app         = $App
@@ -31,58 +26,39 @@ $tags = @{
     owner       = "cloud-org-infra"
 }
 
-# --------------------------------------------------------------------
-# Validate Resource Group
-# --------------------------------------------------------------------
 $rg = Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+
 if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
-# --------------------------------------------------------------------
-# Log Analytics Workspace
-# --------------------------------------------------------------------
-$workspace = Get-AzOperationalInsightsWorkspace `
+$existing = Get-AzOperationalInsightsWorkspace `
     -ResourceGroupName $rgName `
     -Name $workspaceName `
     -ErrorAction SilentlyContinue
 
-if ($workspace) {
-    Write-Host "Log Analytics Workspace '$workspaceName' already exists in resource group '$rgName'."
+if ($existing) {
+    Write-Host ("Log Analytics Workspace '{0}' already exists in resource group '{1}'. Skipping create." -f `
+        $workspaceName, $rgName)
 
-    # Align retention with desired configuration
-    if ($workspace.RetentionInDays -ne $RetentionInDays) {
-        if ($PSCmdlet.ShouldProcess("Workspace $workspaceName", "Update retention from $($workspace.RetentionInDays) to $RetentionInDays days")) {
-            Write-Host "Updating retention for Workspace '$workspaceName' to $RetentionInDays days..."
-
-            Set-AzOperationalInsightsWorkspace `
-                -ResourceGroupName $rgName `
-                -Name $workspaceName `
-                -RetentionInDays $RetentionInDays `
-                -ErrorAction Stop `
-            | Out-Null
-
-            Write-Host "Retention for Workspace '$workspaceName' updated."
-        }
-    }
-
-    # Return the latest workspace state
-    return (Get-AzOperationalInsightsWorkspace -ResourceGroupName $rgName -Name $workspaceName)
+    return $existing
 }
 
-if (-not $PSCmdlet.ShouldProcess("Log Analytics Workspace $workspaceName", "Create")) { return }
+if (-not $PSCmdlet.ShouldProcess("Log Analytics Workspace $workspaceName", "Create")) {
+    return
+}
 
-Write-Host "Creating Log Analytics Workspace '$workspaceName' (SKU=$WorkspaceSku, Retention=$RetentionInDays days) in '$Location'..."
+Write-Host ("Creating Log Analytics Workspace '{0}' (SKU={1}, Retention={2} days) in '{3}'..." -f `
+    $workspaceName, $Sku, $RetentionInDays, $Location)
 
 $workspace = New-AzOperationalInsightsWorkspace `
     -ResourceGroupName $rgName `
     -Name $workspaceName `
     -Location $Location `
-    -Sku $WorkspaceSku `
+    -Sku $Sku `
     -RetentionInDays $RetentionInDays `
-    -Tag $tags `
-    -ErrorAction Stop
+    -Tag $tags
 
-Write-Host "Log Analytics Workspace '$workspaceName' created."
+Write-Host ("Log Analytics Workspace '{0}' created." -f $workspaceName)
 
 return $workspace
