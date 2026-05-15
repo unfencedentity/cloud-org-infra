@@ -39,6 +39,23 @@ if ($currentContext.Subscription.Id -ne $subscriptionId) {
 
 Write-Host ("Using subscription: {0}" -f $currentContext.Subscription.Id)
 
+$provider = Get-AzResourceProvider -ProviderNamespace Microsoft.Storage
+
+if ($provider.RegistrationState -ne "Registered") {
+    Write-Host "Microsoft.Storage provider is not registered. Registering now..."
+
+    Register-AzResourceProvider -ProviderNamespace Microsoft.Storage | Out-Null
+
+    do {
+        Start-Sleep -Seconds 10
+        $provider = Get-AzResourceProvider -ProviderNamespace Microsoft.Storage
+        Write-Host ("Microsoft.Storage registration state: {0}" -f $provider.RegistrationState)
+    }
+    while ($provider.RegistrationState -ne "Registered")
+
+    Write-Host "Microsoft.Storage provider registered."
+}
+
 $baseString = "$subscriptionId-$App-$Environment-$Region"
 
 $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
