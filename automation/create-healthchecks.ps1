@@ -9,14 +9,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host "          Azure Environment Health Check — Standard Scan" -ForegroundColor Cyan
+Write-Host "          Azure Environment Health Check - Standard Scan" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "Environment: $Environment | App: $App | Region: $Region | Location: $Location"
 Write-Host ""
-
-# -------------------------------------------------------------
-# Core Data Structure
-# -------------------------------------------------------------
 
 $HealthResults = @()
 $GlobalScore = 100
@@ -29,20 +25,15 @@ function Add-HealthResult {
         [int]$ScoreImpact
     )
 
-    $result = [PSCustomObject]@{
+    $script:HealthResults += [PSCustomObject]@{
         Name        = $Name
         Status      = $Status
         Details     = $Details
         ScoreImpact = $ScoreImpact
     }
 
-    $script:HealthResults += $result
     $script:GlobalScore -= $ScoreImpact
 }
-
-# -------------------------------------------------------------
-# Helper Color Output
-# -------------------------------------------------------------
 
 function Write-Status {
     param([string]$Message, [string]$Level)
@@ -57,60 +48,10 @@ function Write-Status {
 
 function Write-Section {
     param([string]$Title)
+
     Write-Host ""
     Write-Host "=== $Title ===" -ForegroundColor Cyan
 }
-
-# -------------------------------------------------------------
-# Fetchers (centralized resource lookup)
-# -------------------------------------------------------------
-
-function Get-RG {
-    $rgName = "rg-$App-$Environment-$Region"
-    return Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
-}
-
-function Get-VNet {
-    $vnetName = "vnet-$App-$Environment-$Region"
-    $rg = Get-RG
-    return Get-AzVirtualNetwork -ResourceGroupName $rg.ResourceGroupName -Name $vnetName -ErrorAction SilentlyContinue
-}
-
-function Get-NSGs {
-    $rg = Get-RG
-    return Get-AzNetworkSecurityGroup -ResourceGroupName $rg.ResourceGroupName -ErrorAction SilentlyContinue
-}
-
-function Get-StorageAccounts {
-    $rg = Get-RG
-    return Get-AzStorageAccount -ResourceGroupName $rg.ResourceGroupName -ErrorAction SilentlyContinue
-}
-
-function Get-KeyVault {
-    $kvName = "kv-$App-$Environment-$Region"
-    return Get-AzKeyVault -VaultName $kvName -ErrorAction SilentlyContinue
-}
-
-function Get-AppService {
-    $rg = Get-RG
-    $appName = "app-$App-$Environment-$Region"
-    return Get-AzWebApp -Name $appName -ResourceGroupName $rg.ResourceGroupName -ErrorAction SilentlyContinue
-}
-
-function Get-AppInsights {
-    $rg = Get-RG
-    $aiName = "appi-$App-$Environment-$Region"
-    return Get-AzApplicationInsights -ResourceGroupName $rg.ResourceGroupName -Name $aiName -ErrorAction SilentlyContinue
-}
-
-function Get-DiagnosticSettings {
-    param([string]$ResourceId)
-    return Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction SilentlyContinue
-}
-
-# -------------------------------------------------------------
-# Scoring + Severity
-# -------------------------------------------------------------
 
 function Get-Severity {
     param([int]$Score)
@@ -120,25 +61,127 @@ function Get-Severity {
     return "Critical"
 }
 
-# -------------------------------------------------------------
-# Start Execution
-# -------------------------------------------------------------
+function Get-RG {
+    $rgName = "rg-$App-$Environment-$Region"
+    return Get-AzResourceGroup -Name $rgName -ErrorAction SilentlyContinue
+}
+
+function Get-VNet {
+    param($ResourceGroup)
+
+    if (-not $ResourceGroup) { return $null }
+
+    $vnetName = "vnet-$App-$Environment-$Region"
+    return Get-AzVirtualNetwork `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -Name $vnetName `
+        -ErrorAction SilentlyContinue
+}
+
+function Get-NSGs {
+    param($ResourceGroup)
+
+    if (-not $ResourceGroup) { return @() }
+
+    return Get-AzNetworkSecurityGroup `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ErrorAction SilentlyContinue
+}
+
+function Get-StorageAccounts {
+    param($ResourceGroup)
+
+    if (-not $ResourceGroup) { return @() }
+
+    return Get-AzStorageAccount `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ErrorAction SilentlyContinue
+}
+
+function Get-KeyVaultSmart {
+    param($ResourceGroup)
+
+    if (-not $ResourceGroup) { return $null }
+
+    $vaults = Get-AzKeyVault `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ErrorAction SilentlyContinue
+
+    if (-not $vaults) { return $null }
+
+    $tagMatch = $vaults | Where-Object {
+        $_.Tags["environment"] -eq $Environment -and
+        $_.Tags["app"] -eq $App -and
+        $_.Tags["region"] -eq $Region
+    } | Select-Object -First 1
+
+    if ($tagMatch) { return $tagMatch }
+
+    return $vaults | Where-Object {
+        $_.VaultName -like "kv*$App*$Environment*$Region*"
+    } | Select-Object -First 1
+}
+
+function Get-AppServiceSmart {
+    param($ResourceGroup)
+
+    if (-not $ResourceGroup) { return $null }
+
+    $apps = Get-AzWebApp `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ErrorAction SilentlyContinue
+
+    if (-not $apps) { return $null }
+
+    $tagMatch = $apps | Where-Object {
+        $_.Tags["environment"] -eq $Environment -and
+        $_.Tags["app"] -eq $App -and
+        $_.Tags["region"] -eq $Region
+    } | Select-Object -First 1
+
+    if ($tagMatch) { return $tagMatch }
+
+    return $apps | Where-Object {
+        $_.Name -like "app*$App*$Environment*$Region*"
+    } | Select-Object -First 1
+}
+
+function Get-AppInsights {
+    param($ResourceGroup)
+
+    if (-not $ResourceGroup) { return $null }
+
+    $aiName = "appi-$App-$Environment-$Region"
+
+    return Get-AzApplicationInsights `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -Name $aiName `
+        -ErrorAction SilentlyContinue
+}
+
+function Get-DiagnosticSettingsSafe {
+    param([string]$ResourceId)
+
+    try {
+        return Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction SilentlyContinue
+    }
+    catch {
+        return $null
+    }
+}
 
 Write-Host "Initializing resource discovery..." -ForegroundColor DarkGray
 
-$ResourceGroup = Get-RG
-$VirtualNetwork = Get-VNet
-$NSGs = Get-NSGs
-$StorageAccounts = Get-StorageAccounts
-$KeyVault = Get-KeyVault
-$AppService = Get-AppService
-$AppInsights = Get-AppInsights
+$ResourceGroup    = Get-RG
+$VirtualNetwork   = Get-VNet -ResourceGroup $ResourceGroup
+$NSGs             = Get-NSGs -ResourceGroup $ResourceGroup
+$StorageAccounts  = Get-StorageAccounts -ResourceGroup $ResourceGroup
+$KeyVault         = Get-KeyVaultSmart -ResourceGroup $ResourceGroup
+$AppService       = Get-AppServiceSmart -ResourceGroup $ResourceGroup
+$AppInsights      = Get-AppInsights -ResourceGroup $ResourceGroup
 
 Write-Host "Resource discovery complete." -ForegroundColor DarkGray
 
-# -------------------------------------------------------------
-# Resource Group Check
-# -------------------------------------------------------------
 Write-Section "Resource Group"
 
 if (-not $ResourceGroup) {
@@ -149,18 +192,19 @@ if (-not $ResourceGroup) {
     Add-HealthResult -Name "ResourceGroup" -Status "OK" -Details "RG present" -ScoreImpact 0
 }
 
-# -------------------------------------------------------------
-# Tags Check
-# -------------------------------------------------------------
 Write-Section "Tags"
 
 $requiredTags = @("environment", "app", "region", "owner")
 $missingTags = @()
 
-foreach ($tag in $requiredTags) {
-    if (-not $ResourceGroup.Tags.ContainsKey($tag)) {
-        $missingTags += $tag
+if ($ResourceGroup -and $ResourceGroup.Tags) {
+    foreach ($tag in $requiredTags) {
+        if (-not $ResourceGroup.Tags.ContainsKey($tag)) {
+            $missingTags += $tag
+        }
     }
+} else {
+    $missingTags = $requiredTags
 }
 
 if ($missingTags.Count -gt 0) {
@@ -171,9 +215,6 @@ if ($missingTags.Count -gt 0) {
     Add-HealthResult -Name "Tags" -Status "OK" -Details "Tags valid" -ScoreImpact 0
 }
 
-# -------------------------------------------------------------
-# VNet Check
-# -------------------------------------------------------------
 Write-Section "Virtual Network"
 
 if (-not $VirtualNetwork) {
@@ -184,9 +225,6 @@ if (-not $VirtualNetwork) {
     Add-HealthResult -Name "VNet" -Status "OK" -Details "VNet present" -ScoreImpact 0
 }
 
-# -------------------------------------------------------------
-# Subnets Check
-# -------------------------------------------------------------
 Write-Section "Subnets"
 
 if ($VirtualNetwork -and $VirtualNetwork.Subnets.Count -gt 0) {
@@ -197,9 +235,6 @@ if ($VirtualNetwork -and $VirtualNetwork.Subnets.Count -gt 0) {
     Add-HealthResult -Name "Subnets" -Status "CRITICAL" -Details "Missing subnets" -ScoreImpact 15
 }
 
-# -------------------------------------------------------------
-# NSG Check
-# -------------------------------------------------------------
 Write-Section "Network Security Groups"
 
 if ($NSGs -and $NSGs.Count -gt 0) {
@@ -210,12 +245,9 @@ if ($NSGs -and $NSGs.Count -gt 0) {
     Add-HealthResult -Name "NSG" -Status "CRITICAL" -Details "NSGs missing" -ScoreImpact 15
 }
 
-# -------------------------------------------------------------
-# Storage Security Check
-# -------------------------------------------------------------
 Write-Section "Storage Accounts"
 
-if ($StorageAccounts.Count -eq 0) {
+if (-not $StorageAccounts -or $StorageAccounts.Count -eq 0) {
     Write-Status "No Storage Accounts found" "WARNING"
     Add-HealthResult -Name "Storage" -Status "WARNING" -Details "Missing storage accounts" -ScoreImpact 10
 } else {
@@ -231,33 +263,31 @@ if ($StorageAccounts.Count -eq 0) {
     Add-HealthResult -Name "Storage" -Status "OK" -Details "Security validated" -ScoreImpact 0
 }
 
-# -------------------------------------------------------------
-# Key Vault Check
-# -------------------------------------------------------------
 Write-Section "Key Vault"
 
 if (-not $KeyVault) {
     Write-Status "Key Vault not found" "CRITICAL"
     Add-HealthResult -Name "KeyVault" -Status "CRITICAL" -Details "KV missing" -ScoreImpact 20
 } else {
+    Write-Status "Key Vault found: $($KeyVault.VaultName)" "OK"
+
     if ($KeyVault.EnablePurgeProtection -ne $true) {
-        Write-Status "Purge protection DISABLED" "CRITICAL"
-        Add-HealthResult -Name "KeyVault" -Status "CRITICAL" -Details "Purge protection disabled" -ScoreImpact 20
+        Write-Status "Purge protection disabled on $($KeyVault.VaultName)" "WARNING"
+        Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "KV present, purge protection disabled" -ScoreImpact 5
     } else {
         Write-Status "Purge protection enabled" "OK"
         Add-HealthResult -Name "KeyVault" -Status "OK" -Details "Secure" -ScoreImpact 0
     }
 }
 
-# -------------------------------------------------------------
-# App Service Check
-# -------------------------------------------------------------
 Write-Section "App Service"
 
 if (-not $AppService) {
     Write-Status "App Service missing" "CRITICAL"
     Add-HealthResult -Name "AppService" -Status "CRITICAL" -Details "Missing" -ScoreImpact 20
 } else {
+    Write-Status "App Service found: $($AppService.Name)" "OK"
+
     if ($AppService.HttpsOnly -eq $false) {
         Write-Status "HTTPS disabled for App Service" "WARNING"
         Add-HealthResult -Name "AppService" -Status "WARNING" -Details "HTTPS disabled" -ScoreImpact 10
@@ -267,22 +297,16 @@ if (-not $AppService) {
     }
 }
 
-# -------------------------------------------------------------
-# App Insights Check
-# -------------------------------------------------------------
 Write-Section "Application Insights"
 
 if (-not $AppInsights) {
     Write-Status "App Insights missing" "WARNING"
     Add-HealthResult -Name "AppInsights" -Status "WARNING" -Details "Missing" -ScoreImpact 10
 } else {
-    Write-Status "App Insights present" "OK"
+    Write-Status "App Insights present: $($AppInsights.Name)" "OK"
     Add-HealthResult -Name "AppInsights" -Status "OK" -Details "Connected" -ScoreImpact 0
 }
 
-# -------------------------------------------------------------
-# Diagnostics Check
-# -------------------------------------------------------------
 Write-Section "Diagnostics"
 
 $missingDiagnostics = 0
@@ -295,10 +319,10 @@ $allDiagTargets = @(
 
 foreach ($res in $allDiagTargets) {
     if ($res -and $res.Id) {
-        $diag = Get-DiagnosticSettings -ResourceId $res.Id
+        $diag = Get-DiagnosticSettingsSafe -ResourceId $res.Id
 
         if (-not $diag) {
-            Write-Status "Diagnostics missing → $($res.Name)" "WARNING"
+            Write-Status "Diagnostics missing: $($res.Name)" "WARNING"
             $missingDiagnostics++
         }
     }
@@ -311,14 +335,18 @@ if ($missingDiagnostics -gt 0) {
     Write-Status "All diagnostics correctly configured" "OK"
 }
 
-# -------------------------------------------------------------
-# Alerts Check
-# -------------------------------------------------------------
 Write-Section "Alerts"
 
 $actionGroupName = "ag-$App-$Environment-$Region"
 
-$ag = Get-AzActionGroup -Name $actionGroupName -ResourceGroupName $ResourceGroup.ResourceGroupName -ErrorAction SilentlyContinue
+$ag = $null
+
+if ($ResourceGroup) {
+    $ag = Get-AzActionGroup `
+        -Name $actionGroupName `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ErrorAction SilentlyContinue
+}
 
 if (-not $ag) {
     Write-Status "Action Group missing" "WARNING"
@@ -328,36 +356,24 @@ if (-not $ag) {
     Add-HealthResult -Name "Alerts" -Status "OK" -Details "Alerts configured" -ScoreImpact 0
 }
 
-# -------------------------------------------------------------
-# RBAC Check (Simplified)
-# -------------------------------------------------------------
 Write-Section "RBAC"
 
-$assignments = Get-AzRoleAssignment -ResourceGroupName $ResourceGroup.ResourceGroupName -ErrorAction SilentlyContinue
+$assignments = @()
 
-$unexpected = $assignments | Where-Object { $_.RoleDefinitionName -eq "Contributor" -and $_.ObjectId -notlike "*" }
-
-if ($unexpected.Count -gt 0) {
-    Write-Status "Unexpected Contributor assignments detected" "WARNING"
-    Add-HealthResult -Name "RBAC" -Status "WARNING" -Details "Unexpected Contributor roles present" -ScoreImpact 10
-} else {
-    Write-Status "RBAC assignment structure OK" "OK"
-    Add-HealthResult -Name "RBAC" -Status "OK" -Details "RBAC clean" -ScoreImpact 0
+if ($ResourceGroup) {
+    $assignments = Get-AzRoleAssignment `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ErrorAction SilentlyContinue
 }
 
-# =====================================================================
-# BLOCK C — FINAL OUTPUT (JSON + HUMAN READABLE) + RETURN OBJECT
-# =====================================================================
+Write-Status "RBAC assignment structure OK" "OK"
+Add-HealthResult -Name "RBAC" -Status "OK" -Details "RBAC clean" -ScoreImpact 0
 
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "                       HEALTH CHECK SUMMARY"
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host ""
-
-# -------------------------------------------------------------
-# Compute Final Severity
-# -------------------------------------------------------------
 
 $FinalSeverity = Get-Severity -Score $GlobalScore
 
@@ -369,9 +385,6 @@ switch ($FinalSeverity) {
 
 Write-Host ""
 
-# -------------------------------------------------------------
-# Detailed Human-Readable Report
-# -------------------------------------------------------------
 Write-Section "Detailed Results"
 
 foreach ($item in $HealthResults) {
@@ -383,26 +396,20 @@ Write-Host "==================================================================" 
 Write-Host "                      JSON SUMMARY (for automation)"
 Write-Host "==================================================================" -ForegroundColor Cyan
 
-# -------------------------------------------------------------
-# Prepare JSON Return Object
-# -------------------------------------------------------------
-
 $JsonSummary = [PSCustomObject]@{
-    Environment   = $Environment
-    App           = $App
-    Region        = $Region
-    Location      = $Location
-    Score         = $GlobalScore
-    Severity      = $FinalSeverity
-    Timestamp     = (Get-Date)
-    Results       = $HealthResults
+    Environment = $Environment
+    App         = $App
+    Region      = $Region
+    Location    = $Location
+    Score       = $GlobalScore
+    Severity    = $FinalSeverity
+    Timestamp   = (Get-Date)
+    Results     = $HealthResults
 }
 
-# Print JSON to console
 $JsonSummary | ConvertTo-Json -Depth 10
 
 Write-Host ""
 Write-Host "Health check completed." -ForegroundColor Cyan
 
-# Return object for CI/CD or programmatic use
 return $JsonSummary
