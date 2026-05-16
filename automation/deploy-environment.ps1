@@ -69,6 +69,12 @@ $alertsScript             = Join-Path $PSScriptRoot "create-alerts.ps1"
 $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
 $diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
 $healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
+$vmScript                 = Join-Path $PSScriptRoot "create-vm.ps1"
+
+if (-not (Test-Path $vmScript)) {
+    Write-Warning ("Sub-script not found: {0}. VM step skipped." -f $vmScript)
+    $skippedModules += "VM"
+}
 
 # Validate sub-scripts exist
 if (-not (Test-Path $rgScript))                  { throw ("Sub-script not found: {0}" -f $rgScript) }
@@ -211,6 +217,16 @@ if (Test-Path $healthChecksScript) {
         Write-Error "Critical errors detected during health checks. Aborting deployment."
         exit 2
     }
+    # VM
+    if (Test-Path $vmScript) {
+    & $vmScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "VM"
+}
 }
 
 New-DeploymentSummary `
