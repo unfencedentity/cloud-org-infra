@@ -32,6 +32,8 @@ jobs:
       - name: Verify Azure context
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
           Write-Host "Azure CLI account:"
           az account show --query "{name:name, id:id, tenantId:tenantId}" -o table
 
@@ -46,13 +48,19 @@ jobs:
       - name: Deploy infrastructure
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
           $subId = $env:AZURE_SUBSCRIPTION_ID.Trim()
 
           Write-Host "Setting Az PowerShell context..."
-          Set-AzContext -SubscriptionId $subId | Out-Null
+          Set-AzContext -SubscriptionId $subId -ErrorAction Stop | Out-Null
 
+          Write-Host ""
           Write-Host "Current Az context:"
           Get-AzContext | Format-List Account, Tenant, Subscription
+
+          Write-Host ""
+          Write-Host "Starting cloud-org-infra deployment..."
 
           ./automation/deploy-environment.ps1 `
             -Environment dev `
