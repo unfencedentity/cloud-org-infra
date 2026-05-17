@@ -41,7 +41,7 @@ if (-not $appInsights) {
     throw "Application Insights '$appInsightsName' does not exist. Run create-appinsights.ps1 first."
 }
 
-if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Configure extended settings")) {
+if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Configure extended settings and enforce HTTPS")) {
     return
 }
 
@@ -57,9 +57,11 @@ $appSettings = @{
 Set-AzWebApp `
     -ResourceGroupName $rgName `
     -Name $webAppName `
-    -AppSettings $appSettings | Out-Null
+    -AppSettings $appSettings `
+    -HttpsOnly $true | Out-Null
 
 Write-Host ("Extended configuration applied to Web App '{0}'." -f $webAppName)
+Write-Host ("HTTPS enforcement enabled for Web App '{0}'." -f $webAppName)
 
 return Get-AzWebApp `
     -ResourceGroupName $rgName `
