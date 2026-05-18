@@ -393,3 +393,18 @@ Detailed technical documentation is available under:
 * `/operations`
 
 Each infrastructure module includes implementation-focused documentation and operational context.
+
+
+## Latest validation milestone
+
+Validated end-to-end Azure diagnostics provisioning and health check detection across core platform resources.
+
+Current validated state:
+- GitHub Actions deployment succeeds on `develop`
+- OIDC authentication works
+- Deployment remains rerunnable/idempotent
+- Diagnostics are configured for VNet, Key Vault, App Service, and Storage
+- Health check score: 95/100
+- Remaining warning: Key Vault purge protection is disabled
+
+This confirms that the observability layer is integrated with Log Analytics and correctly detected by the health check framework.
