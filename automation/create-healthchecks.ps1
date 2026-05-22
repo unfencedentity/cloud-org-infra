@@ -419,6 +419,96 @@ if ($unexpected.Count -gt 0) {
     Add-HealthResult -Name "RBAC" -Status "OK" -Details "RBAC clean" -ScoreImpact 0
 }
 
+Write-Section "Private DNS"
+
+$dnsZoneName = "internal.cloudorg.local"
+$vnetLinkName = "link-vnet-$App-$Environment-$Region"
+$dnsRecordName = "vm-$App-$Environment-$Region"
+$vmName = "vm-$Environment-$App-$Region-01"
+
+$dnsWarnings = @()
+
+if (-not $ResourceGroup) {
+    Write-Status "Cannot validate DNS because Resource Group is missing" "WARNING"
+    $dnsWarnings += "Resource Group missing"
+}
+else {
+    $dnsZone = Get-AzPrivateDnsZone `
+        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -Name $dnsZoneName `
+        -ErrorAction SilentlyContinue
+
+    if (-not $dnsZone) {
+        Write-Status "Private DNS Zone missing: $dnsZoneName" "WARNING"
+        $dnsWarnings += "Private DNS Zone missing"
+    }
+    else {
+        Write-Status "Private DNS Zone present: $dnsZoneName" "OK"
+
+        $vnetLink = Get-AzPrivateDnsVirtualNetworkLink `
+            -ResourceGroupName $ResourceGroup.ResourceGroupName `
+            -ZoneName $dnsZoneName `
+            -Name $vnetLinkName `
+            -ErrorAction SilentlyContinue
+
+        if (-not $vnetLink) {
+            Write-Status "Private DNS VNet link missing: $vnetLinkName" "WARNING"
+            $dnsWarnings += "VNet link missing"
+        }
+        else {
+            Write-Status "Private DNS VNet link present: $vnetLinkName" "OK"
+        }
+
+        $recordSet = Get-AzPrivateDnsRecordSet `
+            -ResourceGroupName $ResourceGroup.ResourceGroupName `
+            -ZoneName $dnsZoneName `
+            -Name $dnsRecordName `
+            -RecordType A `
+            -ErrorAction SilentlyContinue
+
+        if (-not $recordSet) {
+            Write-Status "Private DNS A record missing: $dnsRecordName.$dnsZoneName" "WARNING"
+            $dnsWarnings += "A record missing"
+        }
+        else {
+            Write-Status "Private DNS A record present: $dnsRecordName.$dnsZoneName" "OK"
+
+            $vm = Get-AzVM `
+                -ResourceGroupName $ResourceGroup.ResourceGroupName `
+                -Name $vmName `
+                -ErrorAction SilentlyContinue
+
+            if ($vm) {
+                $nicId = $vm.NetworkProfile.NetworkInterfaces[0].Id
+                $nicName = ($nicId -split "/")[-1]
+
+                $nic = Get-AzNetworkInterface `
+                    -ResourceGroupName $ResourceGroup.ResourceGroupName `
+                    -Name $nicName `
+                    -ErrorAction SilentlyContinue
+
+                $privateIp = $nic.IpConfigurations[0].PrivateIpAddress
+                $dnsIp = $recordSet.Records[0].Ipv4Address
+
+                if ($dnsIp -eq $privateIp) {
+                    Write-Status "Private DNS A record points to VM private IP: $privateIp" "OK"
+                }
+                else {
+                    Write-Status "Private DNS A record mismatch. DNS=$dnsIp VM=$privateIp" "WARNING"
+                    $dnsWarnings += "A record IP mismatch"
+                }
+            }
+        }
+    }
+}
+
+if ($dnsWarnings.Count -gt 0) {
+    Add-HealthResult -Name "DNS" -Status "WARNING" -Details "$($dnsWarnings -join ', ')" -ScoreImpact 5
+}
+else {
+    Add-HealthResult -Name "DNS" -Status "OK" -Details "Private DNS validated" -ScoreImpact 0
+}
+
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "                       HEALTH CHECK SUMMARY"

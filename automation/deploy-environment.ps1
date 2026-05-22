@@ -22,12 +22,12 @@ function Ensure-AzContext {
 
     if (-not $ctx) {
         if ($env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET -and $env:AZURE_TENANT_ID) {
-            $sec  = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
+            $sec = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
             $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
 
             Connect-AzAccount -ServicePrincipal `
-                -Tenant       $env:AZURE_TENANT_ID `
-                -Credential   $cred `
+                -Tenant $env:AZURE_TENANT_ID `
+                -Credential $cred `
                 -Subscription $SubscriptionId | Out-Null
         }
         else {
@@ -53,7 +53,7 @@ Test-DeploymentPrerequisites `
     -ModulesPath "$PSScriptRoot"
 
 $executedModules = @()
-$skippedModules  = @()
+$skippedModules = @()
 
 # Load scripts
 $rgScript                 = Join-Path $PSScriptRoot "create-rg.ps1"
@@ -68,8 +68,9 @@ $appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.
 $alertsScript             = Join-Path $PSScriptRoot "create-alerts.ps1"
 $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
 $diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
-$healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
 $vmScript                 = Join-Path $PSScriptRoot "create-vm.ps1"
+$dnsScript                = Join-Path $PSScriptRoot "create-dns.ps1"
+$healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
 
 # Validate sub-scripts exist
 if (-not (Test-Path $rgScript)) {
@@ -131,22 +132,27 @@ if (-not (Test-Path $diagnosticsScript)) {
     $skippedModules += "Diagnostics"
 }
 
-if (-not (Test-Path $healthChecksScript)) {
-    Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript)
-    $skippedModules += "Health Checks"
-}
-
 if (-not (Test-Path $vmScript)) {
     Write-Warning ("Sub-script not found: {0}. VM step skipped." -f $vmScript)
     $skippedModules += "VM"
 }
 
+if (-not (Test-Path $dnsScript)) {
+    Write-Warning ("Sub-script not found: {0}. DNS step skipped." -f $dnsScript)
+    $skippedModules += "DNS"
+}
+
+if (-not (Test-Path $healthChecksScript)) {
+    Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript)
+    $skippedModules += "Health Checks"
+}
+
 # Resource Group
 & $rgScript `
     -Environment $Environment `
-    -App         $App `
-    -Region      $Region `
-    -Location    $Location
+    -App $App `
+    -Region $Region `
+    -Location $Location
 
 $executedModules += "Resource Group"
 
@@ -154,9 +160,9 @@ $executedModules += "Resource Group"
 if (Test-Path $networkScript) {
     & $networkScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "Network"
 }
@@ -165,9 +171,9 @@ if (Test-Path $networkScript) {
 if (Test-Path $nsgScript) {
     & $nsgScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "NSG"
 }
@@ -176,9 +182,9 @@ if (Test-Path $nsgScript) {
 if (Test-Path $storageScript) {
     & $storageScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "Storage"
 }
@@ -187,9 +193,9 @@ if (Test-Path $storageScript) {
 if (Test-Path $keyVaultScript) {
     & $keyVaultScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "Key Vault"
 }
@@ -198,9 +204,9 @@ if (Test-Path $keyVaultScript) {
 if (Test-Path $logAnalyticsScript) {
     & $logAnalyticsScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "Log Analytics"
 }
@@ -209,9 +215,9 @@ if (Test-Path $logAnalyticsScript) {
 if (Test-Path $diagnosticsScript) {
     & $diagnosticsScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "Diagnostics"
 }
@@ -220,9 +226,9 @@ if (Test-Path $diagnosticsScript) {
 if (Test-Path $appServiceScript) {
     & $appServiceScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "App Service"
 }
@@ -231,9 +237,9 @@ if (Test-Path $appServiceScript) {
 if (Test-Path $appInsightsScript) {
     & $appInsightsScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "App Insights"
 }
@@ -242,9 +248,9 @@ if (Test-Path $appInsightsScript) {
 if (Test-Path $appServiceExtendedScript) {
     & $appServiceExtendedScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "App Service Extended"
 }
@@ -253,10 +259,10 @@ if (Test-Path $appServiceExtendedScript) {
 if (Test-Path $alertsScript) {
     & $alertsScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location `
-        -AlertEmail  "ops@example.com"
+        -App $App `
+        -Region $Region `
+        -Location $Location `
+        -AlertEmail "ops@example.com"
 
     $executedModules += "Alerts"
 }
@@ -265,9 +271,9 @@ if (Test-Path $alertsScript) {
 if (Test-Path $rbacScript) {
     & $rbacScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location `
+        -App $App `
+        -Region $Region `
+        -Location $Location `
         -ReaderObjectIds @() `
         -ContributorObjectIds @() `
         -KeyVaultSecretsUserObjectIds @()
@@ -279,11 +285,21 @@ if (Test-Path $rbacScript) {
 if (Test-Path $vmScript) {
     & $vmScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     $executedModules += "VM"
+}
+
+# DNS
+if (Test-Path $dnsScript) {
+    & $dnsScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region
+
+    $executedModules += "DNS"
 }
 
 # Health Checks final QA step
@@ -292,9 +308,9 @@ if (Test-Path $healthChecksScript) {
 
     $healthResult = & $healthChecksScript `
         -Environment $Environment `
-        -App         $App `
-        -Region      $Region `
-        -Location    $Location
+        -App $App `
+        -Region $Region `
+        -Location $Location
 
     Write-Host "Health checks completed."
     $executedModules += "Health Checks"
@@ -307,11 +323,11 @@ if (Test-Path $healthChecksScript) {
 
 New-DeploymentSummary `
     -EnvironmentName $Environment `
-    -App             $App `
-    -Region          $Region `
-    -Location        $Location `
+    -App $App `
+    -Region $Region `
+    -Location $Location `
     -ExecutedModules $executedModules `
-    -SkippedModules  $skippedModules `
-    -Status          "Success"
+    -SkippedModules $skippedModules `
+    -Status "Success"
 
 Write-Host "Orchestration complete."
