@@ -47,6 +47,6 @@ jobs:
             Set-AzContext -SubscriptionId "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
             ./automation/stop-environment.ps1 `
-              -Environment "${{ github.event.inputs.environment }}" `
-              -App "${{ github.event.inputs.app }}" `
-              -Region "${{ github.event.inputs.region }}"
+              -Environment "${{ github.event.inputs.environment || 'dev' }}" `
+              -App "${{ github.event.inputs.app || 'core' }}" `
+              -Region "${{ github.event.inputs.region || 'weu' }}"
