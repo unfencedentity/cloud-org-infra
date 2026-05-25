@@ -52,7 +52,7 @@ else {
         Write-Host "VM found: $($vm.Name) | State: $powerState"
 
         if ($powerState -eq "VM deallocated" -or $powerState -eq "VM stopped") {
-            Write-Host "VM already stopped/deallocated: $($vm.Name)" -ForegroundColor Yellow
+            Write-Host "VM already deallocated/stopped. Skipping stop operation." -ForegroundColor Yellow
 
             $summary += [PSCustomObject]@{
                 ResourceType = "VirtualMachine"
@@ -97,7 +97,7 @@ else {
         Write-Host "App Service found: $($appService.Name) | State: $($appService.State)"
 
         if ($appService.State -eq "Stopped") {
-            Write-Host "App Service already stopped: $($appService.Name)" -ForegroundColor Yellow
+            Write-Host "App Service already stopped. Skipping stop operation: $($appService.Name)" -ForegroundColor Yellow
 
             $summary += [PSCustomObject]@{
                 ResourceType = "AppService"
