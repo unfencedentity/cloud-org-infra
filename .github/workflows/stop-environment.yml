@@ -16,6 +16,9 @@ on:
         required: true
         default: "weu"
 
+  schedule:
+    - cron: "0 21 * * 1-5"
+
 permissions:
   id-token: write
   contents: read
