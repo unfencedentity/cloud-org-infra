@@ -1,11 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IronFluff</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>IRONFLUFF</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #050505;
+      color: white;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 5rem;
+      letter-spacing: 12px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      color: #888;
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+    }
+
+    .glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+      filter: blur(80px);
+      z-index: -1;
+    }
+  </style>
 </head>
-<body style="background:black;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;">
-  <h1>IRONFLUFF</h1>
+
+<body>
+
+  <div class="glow"></div>
+
+  <div class="container">
+    <h1>IRONFLUFF</h1>
+    <p>Strength meets softness.</p>
+  </div>
+
 </body>
 </html>
