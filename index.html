@@ -17,63 +17,79 @@
       background: #050505;
       color: white;
       font-family: Arial, sans-serif;
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      padding: 20px;
-      box-sizing: border-box;
+      padding: 24px;
     }
-
-.container {
-  text-align: center;
-  transform: translateY(-4vh);
-}
-    
-.logo {
-    width: clamp(260px, 45vw, 420px);
-}  margin-bottom: 36px;
-  mix-blend-mode: screen;
-  opacity: 0.92;
-  filter: drop-shadow(0 0 28px rgba(255, 255, 255, 0.12));
-}
-
-h1 {
-  font-size: clamp(2.4rem, 12vw, 5rem);
-  letter-spacing: clamp(4px, 2vw, 12px);
-  margin-bottom: 20px;
-  word-break: normal;
-}
-    
-
-p {
-  color: #888;
-  font-size: clamp(0.9rem, 4vw, 1.1rem);
-  letter-spacing: clamp(1px, 1vw, 3px);
-  padding: 0 20px;
-}
 
     .glow {
       position: absolute;
-      width: 500px;
-      height: 500px;
+      width: 620px;
+      height: 620px;
       background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
-      filter: blur(80px);
-      z-index: -1;
+      filter: blur(90px);
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      transform: translateY(-3vh);
+    }
+
+    .logo {
+      display: block;
+      width: clamp(230px, 38vw, 360px);
+      margin: 0 auto 34px;
+      opacity: 0.96;
+      filter: drop-shadow(0 0 32px rgba(255, 255, 255, 0.16));
+    }
+
+    h1 {
+      font-size: clamp(3.4rem, 9vw, 7rem);
+      letter-spacing: clamp(6px, 1.4vw, 18px);
+      margin-bottom: 22px;
+      line-height: 0.95;
+      font-weight: 700;
+    }
+
+    p {
+      color: #8b8b8b;
+      font-size: clamp(0.95rem, 3.2vw, 1.2rem);
+      letter-spacing: clamp(2px, 0.8vw, 5px);
+      padding: 0 20px;
+    }
+
+    @media (max-width: 480px) {
+      .logo {
+        width: clamp(190px, 64vw, 260px);
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        font-size: clamp(2.7rem, 13vw, 4rem);
+        letter-spacing: clamp(4px, 1.6vw, 8px);
+      }
+
+      p {
+        font-size: 0.95rem;
+        letter-spacing: 3px;
+      }
     }
   </style>
 </head>
 
 <body>
-
   <div class="glow"></div>
 
-  <div class="container">
-<img src="assets/logo.png" class="logo" alt="IronFluff Logo">
-
-<h1>IRONFLUFF</h1>    <p>Strength meets softness.</p>
-  </div>
-
+  <main class="container">
+    <img src="assets/logo.png" class="logo" alt="IronFluff Logo" />
+    <h1>IRONFLUFF</h1>
+    <p>Strength meets softness.</p>
+  </main>
 </body>
 </html>
