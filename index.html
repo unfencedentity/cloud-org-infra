@@ -27,8 +27,8 @@
 
     .glow {
       position: absolute;
-      width: 620px;
-      height: 620px;
+      width: 640px;
+      height: 640px;
       background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
       filter: blur(90px);
       z-index: 0;
@@ -38,46 +38,51 @@
       position: relative;
       z-index: 1;
       text-align: center;
-      transform: translateY(-3vh);
+      transform: translateY(-2vh);
     }
 
     .logo {
       display: block;
-      width: clamp(230px, 38vw, 360px);
-      margin: 0 auto 34px;
+      width: clamp(340px, 32vw, 520px);
+      margin: 0 auto 18px;
       opacity: 0.96;
       filter: drop-shadow(0 0 32px rgba(255, 255, 255, 0.16));
     }
 
     h1 {
-      font-size: clamp(3.4rem, 9vw, 7rem);
-      letter-spacing: clamp(6px, 1.4vw, 18px);
-      margin-bottom: 22px;
-      line-height: 0.95;
+      font-size: clamp(2.8rem, 7vw, 5.4rem);
+      letter-spacing: clamp(4px, 1vw, 12px);
+      margin-bottom: 18px;
+      line-height: 1;
       font-weight: 700;
     }
 
     p {
       color: #8b8b8b;
-      font-size: clamp(0.95rem, 3.2vw, 1.2rem);
-      letter-spacing: clamp(2px, 0.8vw, 5px);
+      font-size: clamp(0.95rem, 2vw, 1.15rem);
+      letter-spacing: clamp(2px, 0.7vw, 5px);
       padding: 0 20px;
     }
 
     @media (max-width: 480px) {
+      .container {
+        transform: translateY(-3vh);
+      }
+
       .logo {
-        width: clamp(190px, 64vw, 260px);
-        margin-bottom: 28px;
+        width: min(78vw, 300px);
+        margin-bottom: 20px;
       }
 
       h1 {
-        font-size: clamp(2.7rem, 13vw, 4rem);
-        letter-spacing: clamp(4px, 1.6vw, 8px);
+        font-size: clamp(2.4rem, 12vw, 3.6rem);
+        letter-spacing: clamp(3px, 1.4vw, 7px);
+        margin-bottom: 16px;
       }
 
       p {
-        font-size: 0.95rem;
-        letter-spacing: 3px;
+        font-size: 0.9rem;
+        letter-spacing: 2.5px;
       }
     }
   </style>
