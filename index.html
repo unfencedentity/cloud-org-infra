@@ -7,6 +7,7 @@
   <title>IRONFLUFF</title>
 
   <style>
+
     * {
       margin: 0;
       padding: 0;
@@ -18,20 +19,14 @@
       color: white;
       font-family: Arial, sans-serif;
       min-height: 100vh;
+
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
-      padding: 24px;
-    }
 
-    .glow {
-      position: absolute;
-      width: 640px;
-      height: 640px;
-      background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
-      filter: blur(90px);
-      z-index: 0;
+      overflow: hidden;
+      padding: 20px;
+      position: relative;
     }
 
     .container {
@@ -43,58 +38,96 @@
 
     .logo {
       display: block;
-      width: clamp(340px, 32vw, 520px);
-      margin: 0 auto 18px;
+      width: min(420px, 70vw);
+      margin: 0 auto 24px;
+
       opacity: 0.96;
-      filter: drop-shadow(0 0 32px rgba(255, 255, 255, 0.16));
+
+      filter:
+        drop-shadow(0 0 32px rgba(255,255,255,0.16));
     }
 
     h1 {
-      font-size: clamp(2.8rem, 7vw, 5.4rem);
-      letter-spacing: clamp(4px, 1vw, 12px);
+      font-size: clamp(3rem, 8vw, 6rem);
+      letter-spacing: clamp(5px, 1vw, 14px);
+
       margin-bottom: 18px;
+
       line-height: 1;
       font-weight: 700;
     }
 
     p {
-      color: #8b8b8b;
-      font-size: clamp(0.95rem, 2vw, 1.15rem);
-      letter-spacing: clamp(2px, 0.7vw, 5px);
+      color: #888;
+
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+
+      letter-spacing: clamp(1px, 0.5vw, 3px);
+
       padding: 0 20px;
     }
 
-    @media (max-width: 480px) {
+    .glow {
+      position: absolute;
+
+      width: 700px;
+      height: 700px;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(255,255,255,0.08),
+          transparent 70%
+        );
+
+      filter: blur(90px);
+
+      z-index: 0;
+    }
+
+    @media (max-width: 768px) {
+
       .container {
-        transform: translateY(-3vh);
+        transform: translateY(-1vh);
       }
 
       .logo {
-        width: min(78vw, 300px);
-        margin-bottom: 20px;
+        width: 72vw;
+        margin-bottom: 18px;
       }
 
       h1 {
-        font-size: clamp(2.4rem, 12vw, 3.6rem);
-        letter-spacing: clamp(3px, 1.4vw, 7px);
-        margin-bottom: 16px;
+        font-size: clamp(2.8rem, 13vw, 4.5rem);
+        letter-spacing: 4px;
       }
 
       p {
-        font-size: 0.9rem;
-        letter-spacing: 2.5px;
+        font-size: 1rem;
+        letter-spacing: 2px;
       }
+
     }
+
   </style>
 </head>
 
 <body>
+
   <div class="glow"></div>
 
-  <main class="container">
-    <img src="assets/logo.png" class="logo" alt="IronFluff Logo" />
+  <div class="container">
+
+    <img
+      src="assets/ironfluff-logo.png?v=2"
+      class="logo"
+      alt="IronFluff Logo"
+    />
+
     <h1>IRONFLUFF</h1>
+
     <p>Strength meets softness.</p>
-  </main>
+
+  </div>
+
 </body>
 </html>
