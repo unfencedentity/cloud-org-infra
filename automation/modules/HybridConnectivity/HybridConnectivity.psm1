@@ -65,9 +65,27 @@ function Ensure-GatewaySubnet {
         -Name $VirtualNetworkName `
         -ErrorAction Stop
 
+}
+
     return ($updatedVirtualNetwork.Subnets | Where-Object {
         $_.Name -eq "GatewaySubnet"
     })
 }
 
-Export-ModuleMember -Function Ensure-GatewaySubnet
+function Ensure-VpnGatewayPublicIp {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceGroupName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PublicIpName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Location
+    )
+
+    Write-Host "Ensuring VPN Gateway Public IP '$PublicIpName' exists..."
+}
+
+Export-ModuleMember -Function Ensure-GatewaySubnet, Ensure-VpnGatewayPublicIp
