@@ -12,24 +12,33 @@ function Ensure-GatewaySubnet {
     )
 
     Write-Host "Ensuring GatewaySubnet exists in virtual network '$VirtualNetworkName'..."
+
     if ([string]::IsNullOrWhiteSpace($GatewaySubnetAddressPrefix)) {
-    throw "GatewaySubnetAddressPrefix cannot be empty."
-}
+        throw "GatewaySubnetAddressPrefix cannot be empty."
+    }
 
-if ($GatewaySubnetAddressPrefix -notmatch '^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$') {
-    throw "GatewaySubnetAddressPrefix must be a valid CIDR block, for example '10.10.255.0/27'."
-}
+    if ($GatewaySubnetAddressPrefix -notmatch '^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$') {
+        throw "GatewaySubnetAddressPrefix must be a valid CIDR block, for example '10.10.255.0/27'."
+    }
 
-$prefixLength = [int]($GatewaySubnetAddressPrefix.Split('/')[1])
+    $prefixLength = [int]($GatewaySubnetAddressPrefix.Split('/')[1])
 
-if ($prefixLength -gt 27) {
-    throw "GatewaySubnetAddressPrefix should be /27 or larger for VPN Gateway scenarios."
-}
+    if ($prefixLength -gt 27) {
+        throw "GatewaySubnetAddressPrefix should be /27 or larger for VPN Gateway scenarios."
+    }
 
     $virtualNetwork = Get-AzVirtualNetwork `
         -ResourceGroupName $ResourceGroupName `
         -Name $VirtualNetworkName `
         -ErrorAction Stop
+
+    $overlappingSubnet = $virtualNetwork.Subnets | Where-Object {
+        $_.AddressPrefix -eq $GatewaySubnetAddressPrefix -and $_.Name -ne "GatewaySubnet"
+    }
+
+    if ($overlappingSubnet) {
+        throw "GatewaySubnetAddressPrefix overlaps with existing subnet '$($overlappingSubnet.Name)' using prefix '$GatewaySubnetAddressPrefix'."
+    }
 
     $existingGatewaySubnet = $virtualNetwork.Subnets | Where-Object {
         $_.Name -eq "GatewaySubnet"
