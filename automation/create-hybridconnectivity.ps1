@@ -35,6 +35,13 @@ Ensure-VpnGatewayPublicIp `
     )
 )
 
+Ensure-VirtualNetworkGateway `
+    -ResourceGroupName $ResourceGroupName `
+    -GatewayName "vpngw-core-dev-weu" `
+    -Location $Location `
+    -VirtualNetworkName $VirtualNetworkName `
+    -PublicIpName $PublicIpName
+    
     Ensure-PointToSiteConfiguration `
     -ResourceGroupName "rg-core-dev-weu" `
     -GatewayName "vpngw-core-dev-weu" `
