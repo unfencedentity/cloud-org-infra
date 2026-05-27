@@ -180,7 +180,7 @@ $virtualNetworkGateway = New-AzVirtualNetworkGateway `
     -IpConfigurations $gatewayIpConfig `
     -GatewayType Vpn `
     -VpnType RouteBased `
-    -GatewaySku VpnGw1
+    -GatewaySku VpnGw1AZ
 
 Write-Host "Virtual Network Gateway created successfully."
 
