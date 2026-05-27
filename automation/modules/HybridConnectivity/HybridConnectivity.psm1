@@ -86,6 +86,27 @@ function Ensure-VpnGatewayPublicIp {
     )
 
     Write-Host "Ensuring VPN Gateway Public IP '$PublicIpName' exists..."
-}
 
-Export-ModuleMember -Function Ensure-GatewaySubnet, Ensure-VpnGatewayPublicIp
+    $existingPublicIp = Get-AzPublicIpAddress `
+        -ResourceGroupName $ResourceGroupName `
+        -Name $PublicIpName `
+        -ErrorAction SilentlyContinue
+
+    if ($existingPublicIp) {
+        Write-Host "VPN Gateway Public IP already exists. Skipping creation."
+        return $existingPublicIp
+    }
+
+    Write-Host "VPN Gateway Public IP not found. Creating Public IP..."
+
+    $publicIp = New-AzPublicIpAddress `
+        -ResourceGroupName $ResourceGroupName `
+        -Name $PublicIpName `
+        -Location $Location `
+        -Sku Standard `
+        -AllocationMethod Static
+
+    Write-Host "VPN Gateway Public IP created successfully."
+
+    return $publicIp
+}
