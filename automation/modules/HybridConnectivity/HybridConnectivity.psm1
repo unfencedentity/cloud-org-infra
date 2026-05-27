@@ -110,3 +110,88 @@ function Ensure-VpnGatewayPublicIp {
 
     return $publicIp
 }
+
+function Ensure-VirtualNetworkGateway {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceGroupName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$GatewayName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Location,
+
+        [Parameter(Mandatory = $true)]
+        [string]$VirtualNetworkName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PublicIpName
+    )
+
+    Write-Host "Ensuring Virtual Network Gateway '$GatewayName' exists..."
+
+    $existingGateway = Get-AzVirtualNetworkGateway `
+    -ResourceGroupName $ResourceGroupName `
+    -Name $GatewayName `
+    -ErrorAction SilentlyContinue
+
+if ($existingGateway) {
+    Write-Host "Virtual Network Gateway already exists. Skipping creation."
+    return $existingGateway
+}
+
+Write-Host "Retrieving Virtual Network..."
+
+$virtualNetwork = Get-AzVirtualNetwork `
+    -ResourceGroupName $ResourceGroupName `
+    -Name $VirtualNetworkName `
+    -ErrorAction Stop
+
+Write-Host "Retrieving GatewaySubnet..."
+
+$gatewaySubnet = $virtualNetwork.Subnets | Where-Object {
+    $_.Name -eq "GatewaySubnet"
+}
+
+if (-not $gatewaySubnet) {
+    throw "GatewaySubnet was not found in virtual network '$VirtualNetworkName'."
+}
+
+Write-Host "Retrieving VPN Gateway Public IP..."
+
+$publicIp = Get-AzPublicIpAddress `
+    -ResourceGroupName $ResourceGroupName `
+    -Name $PublicIpName `
+    -ErrorAction Stop
+
+    Write-Host "Creating gateway IP configuration..."
+
+$gatewayIpConfig = New-AzVirtualNetworkGatewayIpConfig `
+    -Name "gwipconfig" `
+    -SubnetId $gatewaySubnet.Id `
+    -PublicIpAddressId $publicIp.Id
+
+    Write-Host "Creating Virtual Network Gateway..."
+
+$virtualNetworkGateway = New-AzVirtualNetworkGateway `
+    -ResourceGroupName $ResourceGroupName `
+    -Name $GatewayName `
+    -Location $Location `
+    -IpConfigurations $gatewayIpConfig `
+    -GatewayType Vpn `
+    -VpnType RouteBased `
+    -GatewaySku VpnGw1
+
+Write-Host "Virtual Network Gateway created successfully."
+
+return $virtualNetworkGateway
+}
+
+}
+
+Export-ModuleMember -Function `
+    Ensure-GatewaySubnet, `
+    Ensure-VpnGatewayPublicIp, `
+    Ensure-VirtualNetworkGateway
