@@ -12,6 +12,13 @@ function Ensure-GatewaySubnet {
     )
 
     Write-Host "Ensuring GatewaySubnet exists in virtual network '$VirtualNetworkName'..."
+    if ([string]::IsNullOrWhiteSpace($GatewaySubnetAddressPrefix)) {
+    throw "GatewaySubnetAddressPrefix cannot be empty."
+}
+
+if ($GatewaySubnetAddressPrefix -notmatch '^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$') {
+    throw "GatewaySubnetAddressPrefix must be a valid CIDR block, for example '10.10.255.0/27'."
+}
 
     $virtualNetwork = Get-AzVirtualNetwork `
         -ResourceGroupName $ResourceGroupName `
