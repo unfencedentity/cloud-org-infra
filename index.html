@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>IRONFLUFF</title>
+
+  <style>
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #050505;
+      color: white;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      overflow: hidden;
+      padding: 20px;
+      position: relative;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      transform: translateY(-2vh);
+    }
+
+    .logo {
+      display: block;
+      width: min(420px, 70vw);
+      margin: 0 auto 24px;
+
+      opacity: 0.96;
+
+      filter:
+        drop-shadow(0 0 32px rgba(255,255,255,0.16));
+    }
+
+    h1 {
+      font-size: clamp(3rem, 8vw, 6rem);
+      letter-spacing: clamp(5px, 1vw, 14px);
+
+      margin-bottom: 18px;
+
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    p {
+      color: #888;
+
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+
+      letter-spacing: clamp(1px, 0.5vw, 3px);
+
+      padding: 0 20px;
+    }
+
+    .glow {
+      position: absolute;
+
+      width: 700px;
+      height: 700px;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(255,255,255,0.08),
+          transparent 70%
+        );
+
+      filter: blur(90px);
+
+      z-index: 0;
+    }
+
+    @media (max-width: 768px) {
+
+      .container {
+        transform: translateY(-1vh);
+      }
+
+      .logo {
+        width: 72vw;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        font-size: clamp(2.8rem, 13vw, 4.5rem);
+        letter-spacing: 4px;
+      }
+
+      p {
+        font-size: 1rem;
+        letter-spacing: 2px;
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="glow"></div>
+
+  <div class="container">
+
+    <img
+      src="assets/ironfluff-logo.png?v=2"
+      class="logo"
+      alt="IronFluff Logo"
+    />
+
+    <h1>IRONFLUFF</h1>
+
+    <p>Strength meets softness.</p>
+
+  </div>
+
+</body>
+</html>
