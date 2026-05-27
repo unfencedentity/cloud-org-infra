@@ -187,7 +187,6 @@ $virtualNetworkGateway = New-AzVirtualNetworkGateway `
 Write-Host "Virtual Network Gateway created successfully."
 
 return $virtualNetworkGateway
-}
 
 }
 
