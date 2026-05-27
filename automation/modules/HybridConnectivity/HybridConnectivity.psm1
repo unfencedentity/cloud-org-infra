@@ -102,8 +102,8 @@ function Ensure-VpnGatewayPublicIp {
         -Name $PublicIpName `
         -Location $Location `
         -Sku Standard `
-        -AllocationMethod Static
-        -Zone 1,2,3
+        -AllocationMethod Static `
+        -Zone "1","2","3"
 
     Write-Host "VPN Gateway Public IP created successfully."
 
