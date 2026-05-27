@@ -29,6 +29,12 @@ Ensure-VpnGatewayPublicIp `
     -PublicIpName $PublicIpName `
     -Location $Location
 
+    $rootCertBase64 = [System.Convert]::ToBase64String(
+    [System.IO.File]::ReadAllBytes(
+        "C:\dev\cloud-org-infra\certs\cloud-org-infra-root-cert.cer"
+    )
+)
+
     Ensure-PointToSiteConfiguration `
     -ResourceGroupName "rg-core-dev-weu" `
     -GatewayName "vpngw-core-dev-weu" `
