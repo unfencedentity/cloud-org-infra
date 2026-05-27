@@ -65,8 +65,6 @@ function Ensure-GatewaySubnet {
         -Name $VirtualNetworkName `
         -ErrorAction Stop
 
-}
-
     return ($updatedVirtualNetwork.Subnets | Where-Object {
         $_.Name -eq "GatewaySubnet"
     })
