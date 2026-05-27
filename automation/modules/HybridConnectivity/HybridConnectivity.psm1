@@ -20,6 +20,12 @@ if ($GatewaySubnetAddressPrefix -notmatch '^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$') {
     throw "GatewaySubnetAddressPrefix must be a valid CIDR block, for example '10.10.255.0/27'."
 }
 
+$prefixLength = [int]($GatewaySubnetAddressPrefix.Split('/')[1])
+
+if ($prefixLength -gt 27) {
+    throw "GatewaySubnetAddressPrefix should be /27 or larger for VPN Gateway scenarios."
+}
+
     $virtualNetwork = Get-AzVirtualNetwork `
         -ResourceGroupName $ResourceGroupName `
         -Name $VirtualNetworkName `
