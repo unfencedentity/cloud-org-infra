@@ -191,7 +191,74 @@ return $virtualNetworkGateway
 
 }
 
+function Ensure-PointToSiteConfiguration {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceGroupName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$GatewayName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$VpnClientAddressPool,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RootCertificateName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RootCertificatePublicData
+    )
+
+    Write-Host "Ensuring Point-to-Site VPN configuration on gateway '$GatewayName'..."
+
+    if ([string]::IsNullOrWhiteSpace($VpnClientAddressPool)) {
+        throw "VpnClientAddressPool cannot be empty."
+    }
+
+    if ($VpnClientAddressPool -notmatch '^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$') {
+        throw "VpnClientAddressPool must be a valid CIDR block, for example '172.16.201.0/24'."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($RootCertificatePublicData)) {
+        throw "RootCertificatePublicData cannot be empty."
+    }
+
+    $gateway = Get-AzVirtualNetworkGateway `
+        -ResourceGroupName $ResourceGroupName `
+        -Name $GatewayName `
+        -ErrorAction Stop
+
+    $existingAddressPool = $gateway.VpnClientConfiguration.VpnClientAddressPool.AddressPrefixes
+
+    if ($existingAddressPool -contains $VpnClientAddressPool) {
+        Write-Host "Point-to-Site address pool already configured."
+    }
+
+    $rootCertificate = New-AzVpnClientRootCertificate `
+        -Name $RootCertificateName `
+        -PublicCertData $RootCertificatePublicData
+
+    $vpnClientAddressPool = New-Object Microsoft.Azure.Commands.Network.Models.PSAddressSpace
+    $vpnClientAddressPool.AddressPrefixes = @($VpnClientAddressPool)
+
+    Set-AzVirtualNetworkGateway `
+        -VirtualNetworkGateway $gateway `
+        -VpnClientAddressPool $vpnClientAddressPool `
+        -VpnClientRootCertificates $rootCertificate `
+        -VpnClientProtocol IkeV2,OpenVPN
+
+    Write-Host "Point-to-Site VPN configuration applied successfully."
+
+    return Get-AzVirtualNetworkGateway `
+        -ResourceGroupName $ResourceGroupName `
+        -Name $GatewayName `
+        -ErrorAction Stop
+}
+
+
 Export-ModuleMember -Function `
     Ensure-GatewaySubnet, `
     Ensure-VpnGatewayPublicIp, `
-    Ensure-VirtualNetworkGateway
+    Ensure-VirtualNetworkGateway, `
+    Ensure-PointToSiteConfiguration
