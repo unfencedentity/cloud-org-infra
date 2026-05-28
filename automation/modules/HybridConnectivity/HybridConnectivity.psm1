@@ -237,8 +237,7 @@ function Ensure-PointToSiteConfiguration {
         -Name $RootCertificateName `
         -PublicCertData $RootCertificatePublicData
 
-    $vpnClientAddressPool = New-Object Microsoft.Azure.Commands.Network.Models.PSAddressSpace
-    $vpnClientAddressPool.AddressPrefix = @($VpnClientAddressPool)
+    $vpnClientAddressPool = @($VpnClientAddressPool)
 
     Set-AzVirtualNetworkGateway `
         -VirtualNetworkGateway $gateway `
