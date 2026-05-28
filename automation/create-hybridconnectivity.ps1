@@ -13,6 +13,9 @@ param (
 
     [Parameter(Mandatory = $true)]
     [string]$Location
+    ,
+    [Parameter(Mandatory = $true)]
+    [string]$RootCertificatePath
 )
 
 $modulePath = Join-Path $PSScriptRoot "modules/HybridConnectivity/HybridConnectivity.psm1"
@@ -31,8 +34,7 @@ Ensure-VpnGatewayPublicIp `
 
     $rootCertBase64 = [System.Convert]::ToBase64String(
     [System.IO.File]::ReadAllBytes(
-        "C:\dev\cloud-org-infra\certs\cloud-org-infra-root-cert.cer"
-    )
+    $RootCertificatePath    )
 )
 
 Ensure-VirtualNetworkGateway `
