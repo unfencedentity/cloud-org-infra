@@ -400,6 +400,52 @@ Potential future improvements:
 
 ---
 
+## Validation Evidence
+
+Successfully validated:
+
+- VPN Client Connected
+- Assigned VPN Client IP: 172.16.250.2
+- Private VM Reachability: 10.10.2.5
+- SSH Connectivity Established
+- GitHub Actions Deployment Workflow Created
+
+### Validation Commands
+
+```powershell
+ipconfig
+
+ping 10.10.2.5
+
+Test-NetConnection 10.10.2.5 -Port 22
+
+ssh azureuser@10.10.2.5
+```
+
+### Validation Results
+
+```text
+VPN Client IP: 172.16.250.2
+
+Ping:
+Packets Sent = 4
+Packets Received = 4
+Packet Loss = 0%
+
+Port 22:
+TcpTestSucceeded = True
+
+SSH:
+Connection Established Successfully
+
+Target VM:
+10.10.2.5
+```
+
+Validation Date: June 2026
+
+---
+
 ## Outcome
 
 Successfully implemented enterprise-grade Azure Point-to-Site VPN automation with:
