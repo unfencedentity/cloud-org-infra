@@ -29,4 +29,56 @@ function Get-VmOsDisk {
     }
 }
 
-Export-ModuleMember -Function Get-VmOsDisk
+function Ensure-DiskSnapshot {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$SnapshotName,
+        [Parameter(Mandatory = $true)][string]$ResourceGroupName,
+        [Parameter(Mandatory = $true)][string]$Location,
+        [Parameter(Mandatory = $true)][string]$SourceDiskId,
+        [Parameter()][hashtable]$Tags
+    )
+
+    try {
+        Write-Host "Ensuring disk snapshot '$SnapshotName' exists..."
+
+        $existingSnapshot = Get-AzSnapshot `
+            -ResourceGroupName $ResourceGroupName `
+            -SnapshotName $SnapshotName `
+            -ErrorAction SilentlyContinue
+
+        if ($existingSnapshot) {
+            Write-Host "Snapshot already exists. Skipping creation."
+            return $existingSnapshot
+        }
+
+        Write-Host "Snapshot not found. Creating snapshot from source disk..."
+
+        $snapshotConfig = New-AzSnapshotConfig `
+            -SourceUri $SourceDiskId `
+            -Location $Location `
+            -CreateOption Copy `
+            -Incremental
+
+        $snapshot = New-AzSnapshot `
+            -ResourceGroupName $ResourceGroupName `
+            -SnapshotName $SnapshotName `
+            -Snapshot $snapshotConfig
+
+        if ($Tags) {
+            Update-AzTag `
+                -ResourceId $snapshot.Id `
+                -Tag $Tags `
+                -Operation Merge | Out-Null
+        }
+
+        Write-Host "Snapshot created successfully: $SnapshotName"
+
+        return $snapshot
+    }
+    catch {
+        throw "[Snapshots] Failed to ensure snapshot '$SnapshotName' :: $($_.Exception.Message)"
+    }
+}
+
+Export-ModuleMember -Function Get-VmOsDisk, Ensure-DiskSnapshot
