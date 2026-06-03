@@ -27,6 +27,8 @@ Write-Host "Location: $Location"
 
 Import-Module "$PSScriptRoot\modules\Snapshots\Snapshots.psm1" -Force
 
+Write-Host "Snapshots module loaded successfully."
+
 $osDisk = Get-VmOsDisk `
     -ResourceGroupName $resourceGroupName `
     -VmName $vmName
