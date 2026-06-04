@@ -31,7 +31,6 @@ function Enable-VmBackupProtection {
         $container = Get-AzRecoveryServicesBackupContainer `
             -ContainerType AzureVM `
             -FriendlyName $VmName `
-            -Status Registered `
             -ErrorAction SilentlyContinue
 
         if ($container) {
