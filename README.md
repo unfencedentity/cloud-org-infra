@@ -331,3 +331,15 @@ Designed with a focus on:
 * Security-oriented architecture
 * Long-term maintainability
 * Modular engineering practices
+
+
+## Backup and Recovery
+
+The environment includes:
+
+- Recovery Services Vault
+- VM Backup Policies
+- Automated VM Protection
+- Recovery Point validation
+- On-demand backup support
+- GitHub Actions automation
