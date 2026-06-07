@@ -13,6 +13,8 @@ VM
 ↓
 Backup Policy
 ↓
+Backup Job
+↓
 Recovery Services Vault
 ↓
 Recovery Point
@@ -35,3 +37,15 @@ The implementation was validated by:
 - Backup Jobs
 - Recovery Points
 - Restore Operations
+
+- ## Recovery Types
+
+### Snapshot
+- Fast point-in-time disk copy
+- Short-term operational recovery
+
+### VM Backup
+- Policy-based protection
+- Recovery Services Vault storage
+- Long-term retention
+- Full VM restore support
