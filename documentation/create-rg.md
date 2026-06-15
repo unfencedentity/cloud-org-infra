@@ -81,3 +81,63 @@ The module returns the Resource Group object:
 - Newly created RG if not
 
 This allows other deployment modules or orchestration layers to consume the returned object.
+
+---
+
+## Validation
+
+The implementation was validated by:
+
+* Creating Resource Groups in Azure
+* Verifying naming convention compliance
+* Verifying tag assignment
+* Executing repeated deployments
+* Confirming idempotent behavior
+
+---
+
+## AZ-104 Topics
+
+* Resource Groups
+* Azure Subscriptions
+* Azure Regions
+* Azure Tags
+* Resource Organization
+* Azure Governance
+* Azure Resource Manager (ARM)
+
+---
+
+## Common Interview Topics
+
+* What is a Resource Group?
+* Why use Resource Groups?
+* Resource Group vs Subscription
+* Resource Group naming conventions
+* Resource tagging strategies
+* Azure governance fundamentals
+
+---
+
+## Common Mistakes
+
+* Creating resources in the wrong Resource Group
+* Inconsistent naming conventions
+* Missing tags for governance and cost management
+* Assuming Resource Groups provide security boundaries
+
+---
+
+## Simple Analogy
+
+A Resource Group is like a folder that organizes related Azure resources. It helps administrators manage, monitor, and govern resources as a logical unit.
+
+---
+
+## Key Takeaways
+
+* Resource Groups provide logical organization for Azure resources.
+* Tags improve governance, reporting, and cost management.
+* Idempotent deployments prevent duplicate infrastructure.
+* Resource Groups are a foundational Azure administrative concept.
+
