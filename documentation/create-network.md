@@ -101,3 +101,66 @@ The module returns the Azure virtual network object:
 - Newly created VNet if it did not exist.
 
 This allows other modules (for NSGs, application services, gateways, etc.) to consume the VNet configuration.
+
+---
+
+## Validation
+
+The implementation was validated by:
+
+* Creating a Virtual Network
+* Creating multiple subnets
+* Verifying address space assignment
+* Verifying subnet creation
+* Deploying dependent resources into subnets
+* Executing repeated deployments to confirm idempotency
+
+---
+
+## AZ-104 Topics
+
+* Virtual Networks (VNets)
+* Subnets
+* Address Spaces
+* IP Address Planning
+* Network Segmentation
+* Azure Networking
+* CIDR Notation
+
+---
+
+## Common Interview Topics
+
+* What is a Virtual Network?
+* Why use subnets?
+* VNet vs Subnet
+* CIDR notation
+* Address planning strategies
+* Network segmentation
+* Azure networking fundamentals
+
+---
+
+## Common Mistakes
+
+* Overlapping address spaces
+* Poor subnet planning
+* Using address ranges that cannot scale
+* Deploying resources into incorrect subnets
+* Forgetting future growth requirements
+
+---
+
+## Simple Analogy
+
+A Virtual Network is like a company campus. Subnets are individual buildings within that campus, each designed for a specific purpose such as applications, databases, or management services.
+
+---
+
+## Key Takeaways
+
+* Virtual Networks provide network isolation in Azure.
+* Subnets organize workloads into logical network segments.
+* Proper IP planning is critical for future growth.
+* VNets are a foundational component of Azure infrastructure.
+
