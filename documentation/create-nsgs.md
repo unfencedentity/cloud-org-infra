@@ -142,3 +142,66 @@ The module returns the Network Security Group object:
 - Newly created NSG if it did not exist.
 
 This NSG object can be consumed by other modules or orchestration layers, for example when creating application gateways, load balancers, or additional subnet associations.
+
+---
+
+## Validation
+
+The implementation was validated by:
+
+* Creating Network Security Groups
+* Deploying inbound security rules
+* Associating NSGs with subnets
+* Verifying subnet associations
+* Confirming rule deployment
+* Executing repeated deployments to verify idempotency
+
+---
+
+## AZ-104 Topics
+
+* Network Security Groups (NSGs)
+* Security Rules
+* Inbound Rules
+* Outbound Rules
+* Rule Priority
+* Service Tags
+* Azure Networking
+* Network Segmentation
+
+---
+
+## Common Interview Topics
+
+* What is an NSG?
+* NSG vs Azure Firewall
+* Inbound vs Outbound Rules
+* Rule Priority evaluation
+* Subnet-level vs NIC-level NSGs
+* Service Tags and security design
+
+---
+
+## Common Mistakes
+
+* Creating overly permissive rules
+* Misconfiguring rule priorities
+* Forgetting outbound traffic requirements
+* Blocking required Azure platform traffic
+* Assuming NSGs perform Layer 7 inspection
+
+---
+
+## Simple Analogy
+
+An NSG is like a security checkpoint at the entrance of a building. Every person entering or leaving is evaluated against a predefined set of rules before access is granted.
+
+---
+
+## Key Takeaways
+
+* NSGs control network traffic at the subnet and network interface levels.
+* Security rules are evaluated by priority.
+* NSGs improve workload isolation and network security.
+* Proper rule design reduces unnecessary exposure to the internet.
+
