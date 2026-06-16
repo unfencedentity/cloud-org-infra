@@ -1,83 +1,283 @@
-Module Documentation — create-diagnostics.ps1
-Centralized Diagnostic Settings for Azure Resources
+# Diagnostics Module (create-diagnostics.ps1)
 
-Overview:
-This module configures Diagnostic Settings for all supported Azure resources and routes all logs and metrics to a central Log Analytics Workspace (LAW). It is fully automated, idempotent, naming-driven, and aligned with Landing Zone best practices.
+This module configures Azure Diagnostic Settings for supported resources and routes logs and metrics to a centralized Log Analytics Workspace (LAW).
 
-1. Automatic Resource Discovery:
-- The script dynamically discovers resources using naming conventions and tags.
-- Log Analytics Workspace follows: la-<App>-<Environment>-<Region>
-- Key Vault follows: kv-<App>-<Environment>-<Region>
-- Storage accounts use tags: app=<App>, environment=<Environment>
-This removes all hardcoding and ensures multi-environment and multi-region compatibility.
+It is designed to be:
 
-2. Unified Logs & Metrics (CategoryGroup):
-All diagnostic settings use:
-- CategoryGroup = AllLogs
-- CategoryGroup = AllMetrics
-This ensures complete observability, standardized monitoring, SIEM compatibility, and zero maintenance when Azure adds new diagnostic categories.
+- Idempotent
+- Environment-agnostic
+- Naming-driven
+- Governance-aligned
+- Suitable for CI/CD automation
 
-3. Fully Idempotent:
-Before applying a diagnostic setting, the script checks:
-Get-AzDiagnosticSetting | Where-Object { $_.Name -eq $SettingName }
-If the setting exists, it is SKIPPED.
-If not, it is CREATED.
-This makes the module safe for:
-- CI/CD pipelines
-- Daily/weekly operational runs
-- Re-deployments
-- Multi-region rollouts
-- Zero-duplication monitoring
+---
 
-4. Consistent Naming:
-Diagnostic settings follow this global pattern:
+## Purpose
+
+The module automatically discovers supported Azure resources and configures Diagnostic Settings using a standardized approach.
+
+Its primary goals are:
+
+- Centralized logging
+- Centralized metrics collection
+- Consistent monitoring configuration
+- Reduced operational overhead
+- Improved security visibility
+- Governance and compliance readiness
+
+All logs and metrics are routed to a central Log Analytics Workspace.
+
+---
+
+## Features
+
+- Automatic resource discovery
+- Centralized Log Analytics integration
+- AllLogs and AllMetrics support
+- Idempotent execution
+- Standardized naming conventions
+- CI/CD friendly
+- Multi-environment support
+- Multi-region support
+- Governance-aligned monitoring
+
+---
+
+## Naming Convention
+
+Diagnostic Settings follow the pattern:
+
 diag-<resource-name>
-Examples:
-diag-vnet-core-dev-weu
-diag-kv-core-dev-weu
-diag-app-core-dev-weu
-This ensures predictable governance, easy audits, and simplified observability.
 
-5. Supported Resource Types:
+Examples:
+
+diag-vnet-core-dev-weu
+
+diag-nsg-core-dev-weu
+
+diag-kv-core-dev-weu
+
+diag-app-core-dev-weu
+
+The destination Log Analytics Workspace follows:
+
+law-<app>-<environment>-<region>
+
+Example:
+
+law-core-dev-weu
+
+---
+
+## Automatic Resource Discovery
+
+The module dynamically discovers Azure resources using naming conventions and resource metadata.
+
+Examples:
+
+Log Analytics Workspace:
+
+law-<app>-<environment>-<region>
+
+Key Vault:
+
+kv-<app>-<environment>-<region>
+
+Storage Accounts:
+
+Tags:
+
+app=<App>
+
+environment=<Environment>
+
+This removes hardcoded resource references and enables reusable deployments across environments and regions.
+
+---
+
+## Diagnostic Categories
+
+The module uses Azure Category Groups whenever supported.
+
+Configured categories:
+
+- AllLogs
+- AllMetrics
+
+Benefits:
+
+- Complete observability
+- Reduced maintenance
+- Automatic support for newly added Azure diagnostic categories
+- SIEM compatibility
+- Standardized monitoring across services
+
+---
+
+## Supported Resource Types
+
 The module currently supports:
+
 - Virtual Networks (VNets)
 - Network Security Groups (NSGs)
 - Storage Accounts
 - Key Vaults
 - App Service Plans
 - App Services
-- Log Analytics (as destination only)
-- Application Insights (already provides logs natively)
-Future planned additions:
+
+Destination:
+
+- Log Analytics Workspace (LAW)
+
+Application Insights is not configured as a target because telemetry is collected natively.
+
+---
+
+## Planned Future Support
+
+Future enhancements may include:
+
 - Virtual Machines
-- API Management
-- Cosmos DB
 - Azure SQL
-- EventHub logs
-- Long-term storage auditing
+- Cosmos DB
+- API Management
+- Event Hubs
+- Long-term archival storage
+- Additional platform services
 
-6. Operational Flow:
-1. Load parameters (App, Environment, Region, Location)
-2. Identify the Log Analytics workspace
-3. Discover all Azure resources that support diagnostic settings
-4. Build a standardized diagnostic setting name (diag-<resource>)
-5. Check if diagnostic setting already exists
-6. If not, create it using AllLogs + AllMetrics
-7. Output final status for each resource
-The entire process is 100% automated and environment-agnostic.
+---
 
-7. Why it matters for clients:
-This module gives companies:
-- Full security visibility
+## Usage Example
+
+```powershell
+.\create-diagnostics.ps1 `
+    -Environment dev `
+    -App core `
+    -Region weu `
+    -Location westeurope
+```
+
+---
+
+## Operational Flow
+
+The module performs the following steps:
+
+1. Load deployment parameters
+2. Locate the target Log Analytics Workspace
+3. Discover supported Azure resources
+4. Generate standardized diagnostic setting names
+5. Check for existing diagnostic settings
+6. Create missing diagnostic settings
+7. Route logs and metrics to Log Analytics
+8. Return deployment status
+
+---
+
+## Idempotency Behavior
+
+Before creating a Diagnostic Setting, the module checks whether it already exists.
+
+If the setting exists:
+
+- No changes are made
+- The resource is skipped
+
+If the setting does not exist:
+
+- A new Diagnostic Setting is created
+
+This allows safe execution during:
+
+- CI/CD deployments
+- Infrastructure updates
+- Repeated deployments
+- Environment rebuilds
+- Multi-region rollouts
+
+---
+
+## Return Value
+
+The module returns deployment status information for each processed resource.
+
+Information includes:
+
+- Resource name
+- Resource type
+- Diagnostic setting status
+- Creation result
+- Skip result
+
+---
+
+## Validation
+
+The implementation was validated by:
+
+- Creating Diagnostic Settings for supported resources
+- Verifying Log Analytics ingestion
+- Verifying metrics collection
+- Verifying repeated deployments
+- Confirming idempotent behavior
+- Confirming centralized logging functionality
+
+---
+
+## AZ-104 Topics
+
+- Azure Monitor
+- Diagnostic Settings
+- Log Analytics Workspace
+- Metrics
+- Logs
+- Monitoring
+- Resource Health
+- Governance
+
+---
+
+## Common Interview Topics
+
+- What are Diagnostic Settings?
+- Difference between Metrics and Logs
+- Why use Log Analytics?
+- How Diagnostic Settings integrate with Azure Monitor
+- Why centralized monitoring matters
+- Governance and compliance use cases
+
+---
+
+## Common Mistakes
+
+- Not enabling Diagnostic Settings
+- Storing logs in multiple destinations without strategy
+- Missing critical audit logs
+- Inconsistent monitoring across environments
+- No centralized Log Analytics Workspace
+- Assuming Azure services automatically send logs
+
+---
+
+## Simple Analogy
+
+Diagnostic Settings are similar to security cameras installed throughout a building.
+
+Each Azure resource generates events and activity.
+
+Diagnostic Settings collect those events and send them to a central monitoring room (Log Analytics Workspace) where administrators can search, analyze, alert, and investigate issues.
+
+---
+
+## Why It Matters
+
+This module provides:
+
 - Centralized monitoring
-- Lower operational costs
-- Compliance readiness (ISO, SOC2, CIS)
-- A scalable, repeatable monitoring foundation
-- Automated governance across all environments
+- Improved troubleshooting
+- Better security visibility
+- Compliance readiness
+- Operational consistency
+- Enterprise-scale observability
 
-8. Why it matters for you (as a consultant):
-With this module you deliver:
-- Enterprise-grade security
-- Zero-manual configuration monitoring
-- Repeatable, production-ready infrastructure
-- A tangible asset you can sell immediately as part of a Landing Zone package
+It establishes the monitoring foundation required for production-ready Azure environments.
