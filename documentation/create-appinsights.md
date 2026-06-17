@@ -143,3 +143,95 @@ This enables a fully automated, standardized, enterprise-grade observability lay
 
 Example:
 
+## Usage Example
+
+### Basic execution
+
+```powershell
+.\create-appinsights.ps1 `
+    -Environment dev `
+    -App core `
+    -Region weu `
+    -Location westeurope
+```
+
+### Example Result
+
+Application Insights:
+
+appi-core-dev-weu
+
+Connected Log Analytics Workspace:
+
+law-core-dev-weu
+
+Resource Group:
+
+rg-core-dev-weu
+
+```md
+---
+
+## Validation
+
+The implementation was validated by:
+
+- Creating a new Application Insights resource
+- Linking Application Insights to Log Analytics Workspace
+- Verifying telemetry ingestion
+- Verifying Workspace-based configuration
+- Executing repeated deployments to confirm idempotency
+- Confirming correct tag application
+
+---
+
+## AZ-104 Topics
+
+- Azure Monitor
+- Application Insights
+- Log Analytics Workspace
+- Telemetry
+- Monitoring
+- Metrics
+- Logs
+- Observability
+
+---
+
+## Common Interview Topics
+
+- What is Application Insights?
+- Application Insights vs Log Analytics
+- Workspace-based Application Insights
+- What telemetry does Application Insights collect?
+- How Application Insights integrates with App Service
+- Why centralize telemetry in Log Analytics?
+
+---
+
+## Common Mistakes
+
+- Creating standalone Application Insights instances without Log Analytics integration
+- Not centralizing telemetry
+- Missing retention and monitoring strategy
+- Confusing Application Insights with Log Analytics
+- Not monitoring application performance and failures
+
+---
+
+## Simple Analogy
+
+Application Insights is like a health monitoring system for an application.
+
+While infrastructure monitoring tells you whether servers and resources are healthy, Application Insights tells you whether the application itself is healthy, how users interact with it, where errors occur, and how quickly requests are processed.
+
+---
+
+## Key Takeaways
+
+- Application Insights provides application-level monitoring and telemetry.
+- Workspace-based Application Insights centralizes observability in Log Analytics.
+- The module automatically creates or validates telemetry resources.
+- Idempotent execution makes the module safe for CI/CD and repeated deployments.
+- Application Insights is a core component of enterprise monitoring architectures.
+
