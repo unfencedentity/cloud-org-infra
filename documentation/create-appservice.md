@@ -42,27 +42,39 @@ The module follows the global cloud-org-infra naming standard.
 
 Resource Group:
 
+```text
 rg-<app>-<environment>-<region>
+```
 
 Example:
 
+```text
 rg-core-dev-weu
+```
 
 App Service Plan:
 
+```text
 asp-<app>-<environment>-<region>
+```
 
 Example:
 
+```text
 asp-core-dev-weu
+```
 
 Web App:
 
+```text
 app-<app>-<environment>-<region>
+```
 
 Example:
 
+```text
 app-core-dev-weu
+```
 
 This ensures predictable naming across applications, environments, regions, and automation workflows.
 
@@ -85,13 +97,12 @@ This ensures predictable naming across applications, environments, regions, and 
 
 The module applies the following standard tags:
 
+```text
 environment = <Environment>
-
-app = <App>
-
-region = <Region>
-
-owner = cloud-org-infra
+app         = <App>
+region      = <Region>
+owner       = cloud-org-infra
+```
 
 These tags support governance, cost allocation, ownership tracking, and environment visibility.
 
@@ -188,86 +199,117 @@ It provides:
     -App core `
     -Region weu `
     -Location westeurope
+```
 
-    Example Result
+---
+
+## Example Result
 
 Resource Group:
 
+```text
 rg-core-dev-weu
+```
 
 App Service Plan:
 
+```text
 asp-core-dev-weu
+```
 
 Web App:
 
+```text
 app-core-dev-weu
+```
 
-Execution Flow
+---
+
+## Execution Flow
 
 The module performs the following steps:
 
-Validate input parameters
-Build standardized resource names
-Validate Resource Group existence
-Check for existing App Service Plan
-Create App Service Plan if missing
-Check for existing Web App
-Create Web App if missing
-Return the Web App object
-Return Value
+1. Validate input parameters
+2. Build standardized resource names
+3. Validate Resource Group existence
+4. Check for existing App Service Plan
+5. Create App Service Plan if missing
+6. Check for existing Web App
+7. Create Web App if missing
+8. Return the Web App object
+
+---
+
+## Return Value
 
 The module returns the Web App object.
 
 Possible outcomes:
 
-Existing Web App resource
-Newly created Web App resource
+- Existing Web App resource
+- Newly created Web App resource
 
 This allows downstream modules to consume the Web App configuration.
 
-Validation
+---
+
+## Validation
 
 The implementation was validated by:
 
-Creating an App Service Plan
-Creating a Web App
-Verifying resource reuse
-Verifying naming convention compliance
-Verifying tag assignment
-Executing repeated deployments
-Confirming idempotent behavior
-AZ-104 Topics
-Azure App Service
-App Service Plans
-Web Apps
-PaaS
-Scaling
-Deployment Slots
-Managed Identity
-Azure Monitor
-Application Settings
-Custom Domains
-TLS/SSL
-Common Interview Topics
-What is Azure App Service?
-What is an App Service Plan?
-App Service Plan vs Web App
-Windows vs Linux App Service
-Scaling options
-Deployment Slots
-Managed Identity integration
-App Service pricing tiers
-App Service vs Virtual Machine
-Common Mistakes
-Confusing App Service Plan with Web App
-Selecting the wrong pricing tier
-Deploying directly to production without slots
-Missing monitoring configuration
-Not using Managed Identity where possible
-Ignoring scaling requirements
-Assuming App Service provides full VM-level control
-Simple Analogy
+- Creating an App Service Plan
+- Creating a Web App
+- Verifying resource reuse
+- Verifying naming convention compliance
+- Verifying tag assignment
+- Executing repeated deployments
+- Confirming idempotent behavior
+
+---
+
+## AZ-104 Topics
+
+- Azure App Service
+- App Service Plans
+- Web Apps
+- PaaS
+- Scaling
+- Deployment Slots
+- Managed Identity
+- Azure Monitor
+- Application Settings
+- Custom Domains
+- TLS/SSL
+
+---
+
+## Common Interview Topics
+
+- What is Azure App Service?
+- What is an App Service Plan?
+- App Service Plan vs Web App
+- Windows vs Linux App Service
+- Scaling options
+- Deployment Slots
+- Managed Identity integration
+- App Service pricing tiers
+- App Service vs Virtual Machine
+
+---
+
+## Common Mistakes
+
+- Confusing App Service Plan with Web App
+- Selecting the wrong pricing tier
+- Deploying directly to production without slots
+- Missing monitoring configuration
+- Not using Managed Identity where possible
+- Ignoring scaling requirements
+- Assuming App Service provides full VM-level control
+
+---
+
+## Simple Analogy
 
 An App Service Plan is like a building.
 
@@ -277,9 +319,12 @@ The building provides the compute resources, while the application uses those re
 
 Multiple applications can share the same building if the capacity is sufficient.
 
-Key Takeaways
-App Service is Azure's managed platform for hosting web applications.
-App Service Plans provide the underlying compute capacity.
-Web Apps host the application workload.
-The module supports safe, repeatable, idempotent deployments.
-App Service is a core Azure PaaS service and an important AZ-104 topic.
+---
+
+## Key Takeaways
+
+- App Service is Azure's managed platform for hosting web applications.
+- App Service Plans provide the underlying compute capacity.
+- Web Apps host the application workload.
+- The module supports safe, repeatable, idempotent deployments.
+- App Service is a core Azure PaaS service and an important AZ-104 topic.
