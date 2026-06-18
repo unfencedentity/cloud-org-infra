@@ -12,27 +12,27 @@ The module provisions the core Azure App Service resources required to host web 
 
 Its primary goals are:
 
-- Web application hosting
-- Standardized App Service Plan deployment
-- Standardized Web App deployment
-- Repeatable infrastructure provisioning
-- CI/CD-friendly automation
-- Consistent naming and governance
-- Safe repeated execution
+* Web application hosting
+* Standardized App Service Plan deployment
+* Standardized Web App deployment
+* Repeatable infrastructure provisioning
+* CI/CD-friendly automation
+* Consistent naming and governance
+* Safe repeated execution
 
 ---
 
 ## Features
 
-- Creates or reuses an App Service Plan
-- Creates or reuses a Web App
-- Uses standardized naming conventions
-- Supports configurable SKU
-- Supports Windows or Linux runtime configuration
-- Applies governance tags
-- Supports idempotent execution
-- Supports WhatIf and Confirm behavior
-- Integrates with the main deployment orchestrator
+* Creates or reuses an App Service Plan
+* Creates or reuses a Web App
+* Uses standardized naming conventions
+* Supports configurable SKU
+* Supports Windows or Linux runtime configuration
+* Applies governance tags
+* Supports idempotent execution
+* Supports WhatIf and Confirm behavior
+* Integrates with the main deployment orchestrator
 
 ---
 
@@ -40,7 +40,7 @@ Its primary goals are:
 
 The module follows the global cloud-org-infra naming standard.
 
-Resource Group:
+### Resource Group
 
 ```text
 rg-<app>-<environment>-<region>
@@ -52,7 +52,7 @@ Example:
 rg-core-dev-weu
 ```
 
-App Service Plan:
+### App Service Plan
 
 ```text
 asp-<app>-<environment>-<region>
@@ -64,7 +64,7 @@ Example:
 asp-core-dev-weu
 ```
 
-Web App:
+### Web App
 
 ```text
 app-<app>-<environment>-<region>
@@ -82,14 +82,14 @@ This ensures predictable naming across applications, environments, regions, and 
 
 ## Parameters
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| Environment | string | Yes | Deployment environment such as dev, test, or prod |
-| App | string | Yes | Application identifier |
-| Region | string | Yes | Region short-code such as weu or neu |
-| Location | string | Yes | Azure location such as westeurope |
-| AppServicePlanSku | string | No | App Service Plan SKU, default B1 |
-| RuntimeStack | string | No | Runtime platform, Windows or Linux |
+| Name              | Type   | Required | Description                                       |
+| ----------------- | ------ | -------- | ------------------------------------------------- |
+| Environment       | string | Yes      | Deployment environment such as dev, test, or prod |
+| App               | string | Yes      | Application identifier                            |
+| Region            | string | Yes      | Region short-code such as weu or neu              |
+| Location          | string | Yes      | Azure location such as westeurope                 |
+| AppServicePlanSku | string | No       | App Service Plan SKU, default B1                  |
+| RuntimeStack      | string | No       | Runtime platform, Windows or Linux                |
 
 ---
 
@@ -114,11 +114,11 @@ The module requires the target Resource Group to exist before execution.
 
 Required module:
 
-- create-rg.ps1
+* create-rg.ps1
 
 The module is normally executed by:
 
-- deploy-environment.ps1
+* deploy-environment.ps1
 
 Manual execution is possible, but the orchestrator is preferred for full environment deployment.
 
@@ -130,32 +130,32 @@ The module follows an idempotent deployment model.
 
 If the App Service Plan already exists:
 
-- Existing plan is reused
-- No duplicate plan is created
+* Existing plan is reused
+* No duplicate plan is created
 
 If the App Service Plan does not exist:
 
-- A new plan is created
-- SKU and location are applied
-- Naming convention is enforced
+* A new plan is created
+* SKU and location are applied
+* Naming convention is enforced
 
 If the Web App already exists:
 
-- Existing Web App is reused
-- No duplicate Web App is created
+* Existing Web App is reused
+* No duplicate Web App is created
 
 If the Web App does not exist:
 
-- A new Web App is created
-- It is associated with the App Service Plan
+* A new Web App is created
+* It is associated with the App Service Plan
 
 This makes the module safe for:
 
-- CI/CD pipelines
-- Repeated deployments
-- Environment rebuilds
-- Infrastructure validation
-- Development and testing workflows
+* CI/CD pipelines
+* Repeated deployments
+* Environment rebuilds
+* Infrastructure validation
+* Development and testing workflows
 
 ---
 
@@ -165,11 +165,11 @@ The App Service Plan provides the compute resources used by the Web App.
 
 It defines:
 
-- Pricing tier
-- Compute capacity
-- Scaling boundaries
-- Operating system platform
-- Regional placement
+* Pricing tier
+* Compute capacity
+* Scaling boundaries
+* Operating system platform
+* Regional placement
 
 Multiple Web Apps can share the same App Service Plan when appropriate.
 
@@ -181,11 +181,11 @@ The Web App is the application hosting resource.
 
 It provides:
 
-- Managed web hosting
-- Platform-managed infrastructure
-- Built-in scaling options
-- Application deployment target
-- Integration with monitoring and identity features
+* Managed web hosting
+* Platform-managed infrastructure
+* Built-in scaling options
+* Application deployment target
+* Integration with monitoring and identity features
 
 ---
 
@@ -246,8 +246,8 @@ The module returns the Web App object.
 
 Possible outcomes:
 
-- Existing Web App resource
-- Newly created Web App resource
+* Existing Web App resource
+* Newly created Web App resource
 
 This allows downstream modules to consume the Web App configuration.
 
@@ -257,55 +257,55 @@ This allows downstream modules to consume the Web App configuration.
 
 The implementation was validated by:
 
-- Creating an App Service Plan
-- Creating a Web App
-- Verifying resource reuse
-- Verifying naming convention compliance
-- Verifying tag assignment
-- Executing repeated deployments
-- Confirming idempotent behavior
+* Creating an App Service Plan
+* Creating a Web App
+* Verifying resource reuse
+* Verifying naming convention compliance
+* Verifying tag assignment
+* Executing repeated deployments
+* Confirming idempotent behavior
 
 ---
 
 ## AZ-104 Topics
 
-- Azure App Service
-- App Service Plans
-- Web Apps
-- PaaS
-- Scaling
-- Deployment Slots
-- Managed Identity
-- Azure Monitor
-- Application Settings
-- Custom Domains
-- TLS/SSL
+* Azure App Service
+* App Service Plans
+* Web Apps
+* PaaS
+* Scaling
+* Deployment Slots
+* Managed Identity
+* Azure Monitor
+* Application Settings
+* Custom Domains
+* TLS/SSL
 
 ---
 
 ## Common Interview Topics
 
-- What is Azure App Service?
-- What is an App Service Plan?
-- App Service Plan vs Web App
-- Windows vs Linux App Service
-- Scaling options
-- Deployment Slots
-- Managed Identity integration
-- App Service pricing tiers
-- App Service vs Virtual Machine
+* What is Azure App Service?
+* What is an App Service Plan?
+* App Service Plan vs Web App
+* Windows vs Linux App Service
+* Scaling options
+* Deployment Slots
+* Managed Identity integration
+* App Service pricing tiers
+* App Service vs Virtual Machine
 
 ---
 
 ## Common Mistakes
 
-- Confusing App Service Plan with Web App
-- Selecting the wrong pricing tier
-- Deploying directly to production without slots
-- Missing monitoring configuration
-- Not using Managed Identity where possible
-- Ignoring scaling requirements
-- Assuming App Service provides full VM-level control
+* Confusing App Service Plan with Web App
+* Selecting the wrong pricing tier
+* Deploying directly to production without slots
+* Missing monitoring configuration
+* Not using Managed Identity where possible
+* Ignoring scaling requirements
+* Assuming App Service provides full VM-level control
 
 ---
 
@@ -323,8 +323,8 @@ Multiple applications can share the same building if the capacity is sufficient.
 
 ## Key Takeaways
 
-- App Service is Azure's managed platform for hosting web applications.
-- App Service Plans provide the underlying compute capacity.
-- Web Apps host the application workload.
-- The module supports safe, repeatable, idempotent deployments.
-- App Service is a core Azure PaaS service and an important AZ-104 topic.
+* App Service is Azure's managed platform for hosting web applications.
+* App Service Plans provide the underlying compute capacity.
+* Web Apps host the application workload.
+* The module supports safe, repeatable, idempotent deployments.
+* App Service is a core Azure PaaS service and an important AZ-104 topic.
