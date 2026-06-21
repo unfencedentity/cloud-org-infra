@@ -1,0 +1,40 @@
+name: Deploy Azure Policy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-policy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup PowerShell
+        uses: PowerShell/setup-powershell@v2
+
+      - name: Install Az.Resources
+        shell: pwsh
+        run: |
+          Install-Module Az.Resources -Force -Scope CurrentUser -Repository PSGallery
+
+      - name: Deploy Azure Policy
+        shell: pwsh
+        run: |
+          ./automation/create-policy.ps1 `
+            -Environment dev `
+            -App core `
+            -Region weu
