@@ -97,8 +97,8 @@ az vm create `
     --admin-username $adminUsername `
     --vnet-name $vnetName `
     --subnet $subnetName `
-    --public-ip-address '""' `
-    --nsg '""' `
+    --public-ip-address "" `
+    --nsg "" `
     --generate-ssh-keys `
     --location $Location
 
