@@ -70,8 +70,10 @@ $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
 $diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
 $vmScript                 = Join-Path $PSScriptRoot "create-vm.ps1"
 $dnsScript                = Join-Path $PSScriptRoot "create-dns.ps1"
-$healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
 $privateEndpointScript    = Join-Path $PSScriptRoot "create-private-endpoint.ps1"
+$healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
+
+
 
 # Validate sub-scripts exist
 if (-not (Test-Path $rgScript)) {
@@ -143,15 +145,16 @@ if (-not (Test-Path $dnsScript)) {
     $skippedModules += "DNS"
 }
 
+if (-not (Test-Path $privateEndpointScript)) {
+    Write-Warning ("Sub-script not found: {0}. Private Endpoint step skipped." -f $privateEndpointScript)
+    $skippedModules += "Private Endpoint"
+}
+
 if (-not (Test-Path $healthChecksScript)) {
     Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript)
     $skippedModules += "Health Checks"
 }
 
-if (-not (Test-Path $privateEndpointScript)) {
-    Write-Warning ("Sub-script not found: {0}. Private Endpoint step skipped." -f $privateEndpointScript)
-    $skippedModules += "Private Endpoint"
-}
 
 
 # Resource Group
