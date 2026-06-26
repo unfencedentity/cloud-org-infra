@@ -71,6 +71,7 @@ $diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
 $vmScript                 = Join-Path $PSScriptRoot "create-vm.ps1"
 $dnsScript                = Join-Path $PSScriptRoot "create-dns.ps1"
 $healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
+$privateEndpointScript    = Join-Path $PSScriptRoot "create-private-endpoint.ps1"
 
 # Validate sub-scripts exist
 if (-not (Test-Path $rgScript)) {
@@ -146,6 +147,12 @@ if (-not (Test-Path $healthChecksScript)) {
     Write-Warning ("Sub-script not found: {0}. Health checks skipped." -f $healthChecksScript)
     $skippedModules += "Health Checks"
 }
+
+if (-not (Test-Path $privateEndpointScript)) {
+    Write-Warning ("Sub-script not found: {0}. Private Endpoint step skipped." -f $privateEndpointScript)
+    $skippedModules += "Private Endpoint"
+}
+
 
 # Resource Group
 & $rgScript `
@@ -300,6 +307,17 @@ if (Test-Path $dnsScript) {
         -Region $Region
 
     $executedModules += "DNS"
+}
+
+# Private Endpoint
+if (Test-Path $privateEndpointScript) {
+    & $privateEndpointScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "Private Endpoint"
 }
 
 # Health Checks final QA step
