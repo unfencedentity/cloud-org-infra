@@ -15,8 +15,21 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+
 $resourceGroupName = "rg-$App-$Environment-$Region"
-$storageAccountName = "st$core$Environment$Region".ToLower().Replace("-", "")
+
+$baseString = "$subscriptionId-$App-$Environment-$Region"
+
+$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [System.Text.Encoding]::UTF8.GetBytes($baseString)
+)
+
+$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
+
+$storageAccountName = "st$App$Environment$Region$hash"
+$storageAccountName = $storageAccountName.ToLower().Replace("-", "")
+
 $vnetName = "vnet-core-$Environment-$Region"
 $subnetName = "subnet-app"
 
