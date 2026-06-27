@@ -61,14 +61,15 @@ $networkScript            = Join-Path $PSScriptRoot "create-network.ps1"
 $nsgScript                = Join-Path $PSScriptRoot "create-nsgs.ps1"
 $storageScript            = Join-Path $PSScriptRoot "create-storage.ps1"
 $keyVaultScript           = Join-Path $PSScriptRoot "create-keyvault.ps1"
+$managedIdentityScript    = Join-Path $PSScriptRoot "create-managed-identity.ps1"
+$vmScript                 = Join-Path $PSScriptRoot "create-vm.ps1"
 $appServiceScript         = Join-Path $PSScriptRoot "create-appservice.ps1"
+$appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.ps1"
 $logAnalyticsScript       = Join-Path $PSScriptRoot "create-loganalytics.ps1"
 $appInsightsScript        = Join-Path $PSScriptRoot "create-appinsights.ps1"
-$appServiceExtendedScript = Join-Path $PSScriptRoot "create-appservice-extended.ps1"
+$diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
 $alertsScript             = Join-Path $PSScriptRoot "create-alerts.ps1"
 $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
-$diagnosticsScript        = Join-Path $PSScriptRoot "create-diagnostics.ps1"
-$vmScript                 = Join-Path $PSScriptRoot "create-vm.ps1"
 $dnsScript                = Join-Path $PSScriptRoot "create-dns.ps1"
 $privateEndpointScript    = Join-Path $PSScriptRoot "create-private-endpoint.ps1"
 $healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
@@ -100,9 +101,24 @@ if (-not (Test-Path $keyVaultScript)) {
     $skippedModules += "Key Vault"
 }
 
+if (-not (Test-Path $managedIdentityScript)) {
+    Write-Warning ("Sub-script not found: {0}. Managed Identity step skipped." -f $managedIdentityScript)
+    $skippedModules += "Managed Identity"
+}
+
+if (-not (Test-Path $vmScript)) {
+    Write-Warning ("Sub-script not found: {0}. VM step skipped." -f $vmScript)
+    $skippedModules += "VM"
+}
+
 if (-not (Test-Path $appServiceScript)) {
     Write-Warning ("Sub-script not found: {0}. App Service step skipped." -f $appServiceScript)
     $skippedModules += "App Service"
+}
+
+if (-not (Test-Path $appServiceExtendedScript)) {
+    Write-Warning ("Sub-script not found: {0}. App Service Extended step skipped." -f $appServiceExtendedScript)
+    $skippedModules += "App Service Extended"
 }
 
 if (-not (Test-Path $logAnalyticsScript)) {
@@ -115,9 +131,9 @@ if (-not (Test-Path $appInsightsScript)) {
     $skippedModules += "App Insights"
 }
 
-if (-not (Test-Path $appServiceExtendedScript)) {
-    Write-Warning ("Sub-script not found: {0}. App Service Extended step skipped." -f $appServiceExtendedScript)
-    $skippedModules += "App Service Extended"
+if (-not (Test-Path $diagnosticsScript)) {
+    Write-Warning ("Sub-script not found: {0}. Diagnostics step skipped." -f $diagnosticsScript)
+    $skippedModules += "Diagnostics"
 }
 
 if (-not (Test-Path $alertsScript)) {
@@ -128,16 +144,6 @@ if (-not (Test-Path $alertsScript)) {
 if (-not (Test-Path $rbacScript)) {
     Write-Warning ("Sub-script not found: {0}. RBAC step skipped." -f $rbacScript)
     $skippedModules += "RBAC"
-}
-
-if (-not (Test-Path $diagnosticsScript)) {
-    Write-Warning ("Sub-script not found: {0}. Diagnostics step skipped." -f $diagnosticsScript)
-    $skippedModules += "Diagnostics"
-}
-
-if (-not (Test-Path $vmScript)) {
-    Write-Warning ("Sub-script not found: {0}. VM step skipped." -f $vmScript)
-    $skippedModules += "VM"
 }
 
 if (-not (Test-Path $dnsScript)) {
@@ -210,26 +216,26 @@ if (Test-Path $keyVaultScript) {
     $executedModules += "Key Vault"
 }
 
-# Log Analytics Workspace
-if (Test-Path $logAnalyticsScript) {
-    & $logAnalyticsScript `
+# Managed Identity
+if (Test-Path $managedIdentityScript) {
+    & $managedIdentityScript `
         -Environment $Environment `
         -App $App `
         -Region $Region `
         -Location $Location
 
-    $executedModules += "Log Analytics"
+    $executedModules += "Managed Identity"
 }
 
-# Central Diagnostics
-if (Test-Path $diagnosticsScript) {
-    & $diagnosticsScript `
+# VM
+if (Test-Path $vmScript) {
+    & $vmScript `
         -Environment $Environment `
         -App $App `
         -Region $Region `
         -Location $Location
 
-    $executedModules += "Diagnostics"
+    $executedModules += "VM"
 }
 
 # App Service
@@ -243,6 +249,28 @@ if (Test-Path $appServiceScript) {
     $executedModules += "App Service"
 }
 
+# Extended App Service Configuration
+if (Test-Path $appServiceExtendedScript) {
+    & $appServiceExtendedScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "App Service Extended"
+}
+
+# Log Analytics Workspace
+if (Test-Path $logAnalyticsScript) {
+    & $logAnalyticsScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "Log Analytics"
+}
+
 # Application Insights
 if (Test-Path $appInsightsScript) {
     & $appInsightsScript `
@@ -254,15 +282,15 @@ if (Test-Path $appInsightsScript) {
     $executedModules += "App Insights"
 }
 
-# Extended App Service Configuration
-if (Test-Path $appServiceExtendedScript) {
-    & $appServiceExtendedScript `
+# Central Diagnostics
+if (Test-Path $diagnosticsScript) {
+    & $diagnosticsScript `
         -Environment $Environment `
         -App $App `
         -Region $Region `
         -Location $Location
 
-    $executedModules += "App Service Extended"
+    $executedModules += "Diagnostics"
 }
 
 # Alerts
@@ -289,17 +317,6 @@ if (Test-Path $rbacScript) {
         -KeyVaultSecretsUserObjectIds @()
 
     $executedModules += "RBAC"
-}
-
-# VM
-if (Test-Path $vmScript) {
-    & $vmScript `
-        -Environment $Environment `
-        -App $App `
-        -Region $Region `
-        -Location $Location
-
-    $executedModules += "VM"
 }
 
 # DNS
