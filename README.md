@@ -343,3 +343,11 @@ The environment includes:
 - Recovery Point validation
 - On-demand backup support
 - GitHub Actions automation
+
+---
+
+## Managed Identity
+
+This deployment creates a User Assigned Managed Identity and attaches it to the App Service.
+
+The identity enables passwordless authentication between Azure services and prepares the environment for secure Key Vault access without storing credentials in code.
