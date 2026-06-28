@@ -84,12 +84,13 @@ if ($PSCmdlet.ShouldProcess($appService.Name, "Assign User Assigned Managed Iden
     Write-Host "Assigning Managed Identity '$managedIdentityName' to App Service '$($appService.Name)'"
 
     az webapp identity assign `
-    --resource-group "$resourceGroupName" `
-    --name "$($appService.Name)" `
-    --identities "$($identity.Id)" | Out-Null
+        --resource-group "$resourceGroupName" `
+        --name "$($appService.Name)" `
+        --identities "$($identity.Id)" | Out-Null
 
-if ($LASTEXITCODE -ne 0) {
-    throw "Failed to assign Managed Identity '$managedIdentityName' to App Service '$($appService.Name)'."
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to assign Managed Identity '$managedIdentityName' to App Service '$($appService.Name)'."
+    }
 
     Write-Host "Managed Identity assigned to App Service successfully."
 }
