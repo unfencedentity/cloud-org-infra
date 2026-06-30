@@ -5,7 +5,8 @@
 Cloud Org Infra is a modular Azure infrastructure automation framework built with PowerShell and Azure REST APIs.
 
 The project focuses on repeatable, idempotent, and enterprise-oriented infrastructure provisioning across Azure environments.
-It automates the deployment of core cloud infrastructure components while enforcing operational consistency, standardized naming, centralized observability, and security-focused configuration.
+
+It automates the deployment of core cloud infrastructure components while enforcing operational consistency, standardized naming, centralized observability, identity-based security, private networking, and deployment validation.
 
 This repository was designed to simulate real-world cloud engineering and infrastructure operations patterns commonly found in enterprise Azure environments.
 
@@ -18,13 +19,15 @@ This repository was designed to simulate real-world cloud engineering and infras
 * Enterprise-style naming and tagging standards
 * Centralized infrastructure orchestration
 * Azure REST API integration for advanced scenarios
-* GitHub Actions and Azure DevOps CI/CD ready
+* GitHub Actions with Azure OIDC authentication
 * Security-focused infrastructure configuration
+* User Assigned Managed Identity integration
+* Private Endpoint and Private DNS integration
 * Centralized diagnostics and observability
 * RBAC automation and access standardization
 * Environment health validation and reporting
-* Private Endpoint and Private DNS integration
 * Deployment validation and execution summaries
+* Start and stop automation for cost control
 
 ---
 
@@ -33,20 +36,50 @@ This repository was designed to simulate real-world cloud engineering and infras
 ```mermaid
 flowchart TD
 
-A[GitHub Actions / Local Execution]
---> B[deploy-environment.ps1]
+A["GitHub Actions or Local Execution"]
+B["deploy-environment.ps1"]
 
-B --> C[Resource Group]
-C --> D[Networking]
-D --> E[Network Security Groups]
-C --> F[Storage Account]
-C --> G[Key Vault]
-C --> H[Log Analytics Workspace]
-C --> I[Application Insights]
-C --> J[App Service]
-C --> K[RBAC]
-C --> L[Diagnostics]
-C --> M[Health Checks]
+C["Resource Group"]
+D["Virtual Network and Subnets"]
+E["Network Security Groups"]
+F["Storage Account"]
+G["Key Vault"]
+H["User Assigned Managed Identity"]
+I["Virtual Machine"]
+J["App Service Plan and App Service"]
+K["App Service Extended Configuration"]
+L["Log Analytics Workspace"]
+M["Application Insights"]
+N["Diagnostic Settings"]
+O["Action Group and Alerts"]
+P["RBAC Assignments"]
+Q["Private DNS Zone"]
+R["Private Endpoint"]
+S["Health Checks"]
+T["Deployment Summary"]
+
+A --> B
+B --> C
+C --> D
+D --> E
+C --> F
+C --> G
+C --> H
+C --> I
+C --> J
+J --> K
+C --> L
+C --> M
+L --> N
+M --> N
+C --> O
+C --> P
+C --> Q
+F --> R
+Q --> R
+H --> J
+B --> S
+S --> T
 ```
 
 The deployment flow follows a dependency-aware orchestration model to ensure consistent and predictable infrastructure provisioning.
@@ -69,12 +102,16 @@ Each environment can provision:
 * Network Security Groups
 * Storage Accounts
 * Azure Key Vault
+* User Assigned Managed Identity
 * App Service Plans and App Services
+* Virtual Machines
 * Log Analytics Workspace
 * Application Insights
 * Azure Monitor Diagnostics
 * Action Groups and Alerting
 * RBAC Assignments
+* Private DNS Zones
+* Private Endpoints
 * Environment Health Validation
 
 ---
@@ -87,7 +124,8 @@ Security-related capabilities include:
 
 * HTTPS-only App Services
 * Minimum TLS version enforcement
-* Managed Identity enablement
+* User Assigned Managed Identity
+* Passwordless authentication between Azure services
 * Azure Key Vault integration
 * Private Endpoint support
 * Private DNS integration
@@ -120,6 +158,50 @@ Diagnostics are configured automatically during deployment and routed centrally 
 
 ---
 
+## Identity
+
+The environment creates a User Assigned Managed Identity and attaches it to the App Service.
+
+This enables passwordless authentication between Azure services and prepares the environment for secure Key Vault access without storing credentials in code.
+
+Benefits:
+
+* No client secrets in application code
+* No password rotation for service-to-service authentication
+* Reusable identity lifecycle
+* Azure RBAC integration
+* Enterprise-ready authentication pattern
+
+---
+
+## Private Networking
+
+The environment includes Private Endpoint and Private DNS integration for secure access to Azure PaaS services.
+
+Current implementation:
+
+* Storage Account Blob service exposed through Private Endpoint
+* Private DNS Zone for `privatelink.blob.core.windows.net`
+* Private Endpoint connected to the application subnet
+* DNS records managed through Private DNS Zone Group
+
+This reduces public exposure and prepares the environment for enterprise-grade network isolation.
+
+---
+
+## Backup and Recovery
+
+The environment includes:
+
+* Recovery Services Vault
+* VM Backup Policies
+* Automated VM Protection
+* Recovery Point validation
+* On-demand backup support
+* GitHub Actions automation
+
+---
+
 ## Idempotent Deployment Model
 
 All deployment modules are designed to be idempotent.
@@ -144,11 +226,14 @@ Example naming patterns:
 * `nsg-core-dev-weu`
 * `stcoredevweuXXXXXX`
 * `kvcoredevweuXXXXXX`
+* `mi-core-dev-weu`
+* `vm-dev-core-weu-01`
 * `asp-core-dev-weu`
 * `app-core-dev-weu`
 * `law-core-dev-weu`
 * `appi-core-dev-weu`
 * `ag-core-dev-weu`
+* `pe-storage-dev-weu`
 
 This structure improves:
 
@@ -175,15 +260,19 @@ Execution sequence:
 3. `create-nsgs.ps1`
 4. `create-storage.ps1`
 5. `create-keyvault.ps1`
-6. `create-loganalytics.ps1`
-7. `create-diagnostics.ps1`
+6. `create-managed-identity.ps1`
+7. `create-vm.ps1`
 8. `create-appservice.ps1`
-9. `create-appinsights.ps1`
-10. `create-appservice-extended.ps1`
-11. `create-alerts.ps1`
-12. `create-rbac.ps1`
-13. `create-healthchecks.ps1`
-14. `New-DeploymentSummary.ps1`
+9. `create-appservice-extended.ps1`
+10. `create-loganalytics.ps1`
+11. `create-appinsights.ps1`
+12. `create-diagnostics.ps1`
+13. `create-alerts.ps1`
+14. `create-rbac.ps1`
+15. `create-dns.ps1`
+16. `create-private-endpoint.ps1`
+17. `create-healthchecks.ps1`
+18. `New-DeploymentSummary.ps1`
 
 Each deployment module is designed to be modular, reusable, and independently maintainable.
 
@@ -208,10 +297,13 @@ This deployment provisions:
 * Networking
 * Security
 * Storage
+* Identity
+* Virtual Machines
+* Application Hosting
 * Monitoring
 * Diagnostics
-* Application Hosting
 * RBAC
+* Private Networking
 * Validation
 
 in a fully automated sequence.
@@ -227,7 +319,17 @@ in a fully automated sequence.
 
   * `Connect-AzAccount`
     OR
+  * GitHub Actions OIDC authentication
+    OR
   * Service Principal credentials
+
+Required environment variables for GitHub Actions OIDC authentication:
+
+```text
+AZURE_CLIENT_ID
+AZURE_TENANT_ID
+AZURE_SUBSCRIPTION_ID
+```
 
 Required environment variables for Service Principal authentication:
 
@@ -249,6 +351,8 @@ The project is designed for CI/CD execution using:
 * Service Principal authentication
 * Validation workflows
 * Environment deployment orchestration
+* Start Environment workflow
+* Stop Environment workflow
 
 Typical pipeline flow:
 
@@ -291,6 +395,8 @@ The project intentionally focuses on operational infrastructure concerns commonl
 * Environment validation
 * Deployment repeatability
 * RBAC governance
+* Identity-based access
+* Private networking
 * Diagnostics automation
 * Infrastructure hardening
 * Dependency-aware orchestration
@@ -310,6 +416,7 @@ Planned future enhancements include:
 * Policy-as-Code integration
 * Advanced observability dashboards
 * Remote state management
+* Key Vault secret access using Managed Identity
 
 ---
 
@@ -329,25 +436,7 @@ Designed with a focus on:
 * Cloud operations
 * Observability
 * Security-oriented architecture
+* Identity-based access
+* Private networking
 * Long-term maintainability
 * Modular engineering practices
-
-
-## Backup and Recovery
-
-The environment includes:
-
-- Recovery Services Vault
-- VM Backup Policies
-- Automated VM Protection
-- Recovery Point validation
-- On-demand backup support
-- GitHub Actions automation
-
----
-
-## Managed Identity
-
-This deployment creates a User Assigned Managed Identity and attaches it to the App Service.
-
-The identity enables passwordless authentication between Azure services and prepares the environment for secure Key Vault access without storing credentials in code.
