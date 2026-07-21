@@ -1,166 +1,160 @@
-# Network Module (create-network.ps1)
+# Network Architecture and Modules
 
-This module provisions a virtual network (VNet) and a set of subnets based on standardized naming and addressing conventions. It is designed to be idempotent and can be safely executed multiple times.
+This document covers the network automation implemented by:
 
----
+- create-network.ps1
+- create-vnetpeering.ps1
 
-## Features
-
-- Creates a VNet in an existing resource group
-- Creates one or more subnets from a configurable map
-- Standardized naming convention for the VNet
-- Built-in tagging aligned with the core project
-- Idempotent behavior (create or skip if already exists)
-- Returns the created or existing VNet object
+The implementation is idempotent and validates existing resources before any create or update action.
 
 ---
 
-## Naming Convention
+## Validated Hub-and-Spoke Topology
 
-The virtual network name follows the pattern:
+Current validated topology:
 
-vnet-<app>-<environment>-<region>
+- Core VNet: vnet-core-dev-weu
+- Core address space: 10.10.0.0/16
+- Hub VNet: vnet-hub-dev-weu
+- Hub address space: 10.20.0.0/16
+- Hub subnet: subnet-hub-services
+- Hub subnet prefix: 10.20.0.0/24
 
-Example:
+Bidirectional peering:
 
-vnet-core-dev-weu
+- peer-core-to-hub
+- peer-hub-to-core
 
-The resource group is expected to follow:
-
-rg-<app>-<environment>-<region>
-
-Example:
-
-rg-core-dev-weu
-
----
-
-## Parameters
-
-Name | Type | Required | Description
------|------|----------|-------------
-Environment | string | Yes | Deployment environment (dev, test, prod, etc.)
-App | string | Yes | Application identifier
-Region | string | Yes | Region short-code (weu, neu, eus, etc.)
-Location | string | Yes | Azure location (westeurope, northeurope, etc.)
-AddressPrefix | string | No | VNet address space (default: 10.10.0.0/16)
-Subnets | hashtable | No | Map of subnet name to address prefix
+```text
+vnet-core-dev-weu (10.10.0.0/16)
+        |
+        | VNet Peering (bidirectional)
+        |
+vnet-hub-dev-weu (10.20.0.0/16)
+  +-- subnet-hub-services (10.20.0.0/24)
+```
 
 ---
 
-## Default Addressing
+## Module Responsibilities
 
-By default, the module uses:
+create-network.ps1:
 
-- VNet address space: 10.10.0.0/16  
-- Subnets:
-  - subnet-core : 10.10.1.0/24  
-  - subnet-app  : 10.10.2.0/24  
-  - subnet-data : 10.10.3.0/24  
+- Ensures Core VNet exists with expected address space and required subnets
+- Ensures Hub VNet exists with expected address space
+- Ensures Hub subnet exists with expected prefix
+- Validates existing address spaces and subnet prefixes
+- Fails fast on conflicting configuration
 
-These values can be overridden using the AddressPrefix and Subnets parameters.
+create-vnetpeering.ps1:
 
----
-
-## Usage Examples
-
-### Basic execution
-
-.\create-network.ps1 -Environment dev -App core -Region weu -Location westeurope
-
-### Custom address space and subnets
-
-.\create-network.ps1 `
-  -Environment dev `
-  -App core `
-  -Region weu `
-  -Location westeurope `
-  -AddressPrefix "10.20.0.0/16" `
-  -Subnets @{ `
-      "subnet-core" = "10.20.1.0/24"; `
-      "subnet-app"  = "10.20.2.0/24"; `
-      "subnet-data" = "10.20.3.0/24" `
-  }
+- Validates both VNets exist before peering operations
+- Validates VNet address spaces do not overlap
+- Creates or updates peer-core-to-hub and peer-hub-to-core
+- Keeps peering settings aligned to the current validated configuration
 
 ---
 
-## Idempotency Behavior
+## Naming and Addressing
 
-The module checks for an existing VNet in the target resource group:
+Resource group:
 
-- If the VNet already exists, the script logs a message and returns the existing VNet object.
-- If the VNet does not exist, it is created with the specified address space, subnets, and tags.
+- rg-<app>-<environment>-<region>
 
----
+Core VNet:
 
-## Return Value
+- vnet-<app>-<environment>-<region>
+- Default address space: 10.10.0.0/16
 
-The module returns the Azure virtual network object:
+Hub VNet:
 
-- Existing VNet if it was already present.
-- Newly created VNet if it did not exist.
+- vnet-hub-<environment>-<region>
+- Default address space: 10.20.0.0/16
 
-This allows other modules (for NSGs, application services, gateways, etc.) to consume the VNet configuration.
+Hub subnet:
 
----
-
-## Validation
-
-The implementation was validated by:
-
-* Creating a Virtual Network
-* Creating multiple subnets
-* Verifying address space assignment
-* Verifying subnet creation
-* Deploying dependent resources into subnets
-* Executing repeated deployments to confirm idempotency
+- subnet-hub-services
+- Default prefix: 10.20.0.0/24
 
 ---
 
-## AZ-104 Topics
+## Peering Configuration
 
-* Virtual Networks (VNets)
-* Subnets
-* Address Spaces
-* IP Address Planning
-* Network Segmentation
-* Azure Networking
-* CIDR Notation
+Both directions are configured identically:
 
----
+- AllowVirtualNetworkAccess: true
+- AllowForwardedTraffic: false
+- AllowGatewayTransit: false
+- UseRemoteGateways: false
 
-## Common Interview Topics
+Reasoning:
 
-* What is a Virtual Network?
-* Why use subnets?
-* VNet vs Subnet
-* CIDR notation
-* Address planning strategies
-* Network segmentation
-* Azure networking fundamentals
+- Forwarded traffic is disabled until centralized transit/routing controls exist (Azure Firewall, NVA, VPN Gateway, or Route Server).
+- Gateway transit and remote gateways are disabled because the current architecture does not yet include a shared transit gateway design.
 
 ---
 
-## Common Mistakes
+## Effective Routes Behavior
 
-* Overlapping address spaces
-* Poor subnet planning
-* Using address ranges that cannot scale
-* Deploying resources into incorrect subnets
-* Forgetting future growth requirements
+When VNet peering is connected, Azure automatically inserts routes for remote VNet prefixes into each NIC's effective routes.
 
----
+Expected route behavior:
 
-## Simple Analogy
+- Source NIC in Core sees Hub prefixes with Next Hop Type = VNet peering
+- Source NIC in Hub sees Core prefixes with Next Hop Type = VNet peering
 
-A Virtual Network is like a company campus. Subnets are individual buildings within that campus, each designed for a specific purpose such as applications, databases, or management services.
+This route insertion is automatic and does not require a UDR for basic peered VNet connectivity.
 
 ---
 
-## Key Takeaways
+## Idempotency and Validation Model
 
-* Virtual Networks provide network isolation in Azure.
-* Subnets organize workloads into logical network segments.
-* Proper IP planning is critical for future growth.
-* VNets are a foundational component of Azure infrastructure.
+Network and peering modules are safe to re-run.
+
+Behavior:
+
+- Existing resources with matching configuration are reused unchanged
+- Missing resources are created
+- Existing peerings with drift are updated only for required properties
+- Conflicting network configuration causes explicit script failure
+
+Conflict examples that fail deployment:
+
+- Existing Hub VNet has an address space that does not include 10.20.0.0/16
+- Existing subnet-hub-services has a prefix other than 10.20.0.0/24
+- Core and Hub VNet address spaces overlap
+
+---
+
+## Troubleshooting
+
+1. Peering state
+
+- Check both peerings and confirm PeeringState is Connected.
+- If one side is Initiated, verify the opposite peering exists and targets the correct remote VNet.
+
+2. Peering synchronization
+
+- If properties differ across sides, rerun create-vnetpeering.ps1.
+- Validate that each peering references the correct remote VNet resource ID.
+
+3. Effective routes
+
+- On a VM NIC, inspect effective routes.
+- Confirm remote VNet prefixes appear with Next Hop Type = VNet peering.
+
+4. NSGs
+
+- Validate subnet and NIC NSG rules allow expected source/destination and port ranges.
+- Remember that peering connectivity can still be blocked by NSG denies.
+
+5. UDRs
+
+- Check route tables associated to source and destination subnets.
+- Ensure no UDR sends remote VNet prefixes to an unintended next hop.
+
+6. Overlapping address spaces
+
+- Validate that Core and Hub address spaces do not overlap.
+- If overlap exists, peering creation or connectivity will fail and address planning must be corrected first.
 

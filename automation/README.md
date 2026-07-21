@@ -35,18 +35,19 @@ A[Local Execution / GitHub Actions]
 B --> C[Deployment Prerequisite Validation]
 B --> D[Resource Group]
 B --> E[Networking]
-B --> F[NSGs]
-B --> G[Storage]
-B --> H[Key Vault]
-B --> I[Log Analytics]
-B --> J[Diagnostics]
-B --> K[App Service]
-B --> L[Application Insights]
-B --> M[Extended App Service Hardening]
-B --> N[Alerts]
-B --> O[RBAC]
-B --> P[Health Checks]
-B --> Q[Deployment Summary]
+B --> F[VNet Peering]
+B --> G[NSGs]
+B --> H[Storage]
+B --> I[Key Vault]
+B --> J[Log Analytics]
+B --> K[Diagnostics]
+B --> L[App Service]
+B --> M[Application Insights]
+B --> N[Extended App Service Hardening]
+B --> O[Alerts]
+B --> P[RBAC]
+B --> Q[Health Checks]
+B --> R[Deployment Summary]
 ```
 
 The orchestration layer executes modules in a dependency-aware order to ensure consistent infrastructure provisioning.
@@ -93,6 +94,7 @@ cd automation
 | ------------------------------------- | ------------------------------------------------------ |
 | `create-rg.ps1`                       | Resource Group provisioning                            |
 | `create-network.ps1`                  | Virtual Network and subnet provisioning                |
+| `create-vnetpeering.ps1`              | Bidirectional Core/Hub VNet peering                    |
 | `create-nsgs.ps1`                     | Network Security Group creation and subnet association |
 | `create-storage.ps1`                  | Storage Account and container provisioning             |
 | `create-keyvault.ps1`                 | Azure Key Vault provisioning                           |

@@ -6,6 +6,11 @@ param(
 
     [string]$ResourceGroupName,
     [string]$VNetName,
+    [string]$HubVNetName,
+    [string]$HubSubnetName = "subnet-hub-services",
+    [string]$HubSubnetPrefix = "10.20.0.0/24",
+    [string]$CoreToHubPeeringName = "peer-core-to-hub",
+    [string]$HubToCorePeeringName = "peer-hub-to-core",
     [string[]]$RequiredSubnetNames = @("subnet-core-services", "subnet-apps"),
     [string[]]$RequiredNsgNames = @("nsg-core-services", "nsg-apps")
 )
@@ -20,6 +25,10 @@ if ([string]::IsNullOrWhiteSpace($VNetName)) {
     $VNetName = "vnet-{0}-{1}-{2}" -f $App, $Environment, $Region
 }
 
+if ([string]::IsNullOrWhiteSpace($HubVNetName)) {
+    $HubVNetName = "vnet-hub-{0}-{1}" -f $Environment, $Region
+}
+
 Write-Host ""
 Write-Host "============================================="
 Write-Host "AZURE ENVIRONMENT VALIDATION AUDIT"
@@ -32,6 +41,7 @@ Write-Host ("Region      : {0}" -f $Region)
 Write-Host ("Location    : {0}" -f $Location)
 Write-Host ("Resource RG : {0}" -f $ResourceGroupName)
 Write-Host ("VNet        : {0}" -f $VNetName)
+Write-Host ("Hub VNet    : {0}" -f $HubVNetName)
 Write-Host ""
 
 $validationResults = @()
@@ -98,6 +108,135 @@ else {
         Write-Host ("[SKIP] Cannot validate subnet because VNet is missing: {0}" -f $subnetName) -ForegroundColor Yellow
         Add-ValidationResult -Name "Subnet" -Result "SKIP" -Message ("Cannot validate subnet because VNet is missing: {0}" -f $subnetName)
     }
+}
+
+Write-Host "Checking Hub Virtual Network..."
+
+$hubVnet = Get-AzVirtualNetwork -Name $HubVNetName -ResourceGroupName $ResourceGroupName -ErrorAction SilentlyContinue
+
+if ($hubVnet) {
+    Write-Host ("[PASS] Hub Virtual Network found: {0}" -f $HubVNetName) -ForegroundColor Green
+    Add-ValidationResult -Name "Hub Virtual Network" -Result "PASS" -Message ("Hub Virtual Network found: {0}" -f $HubVNetName)
+}
+else {
+    Write-Host ("[FAIL] Hub Virtual Network missing: {0}" -f $HubVNetName) -ForegroundColor Red
+    Add-ValidationResult -Name "Hub Virtual Network" -Result "FAIL" -Message ("Hub Virtual Network missing: {0}" -f $HubVNetName)
+}
+
+Write-Host "Checking Hub subnet..."
+
+if ($hubVnet) {
+    $hubSubnet = $hubVnet.Subnets | Where-Object { $_.Name -eq $HubSubnetName }
+
+    if ($hubSubnet) {
+        $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefix)
+        if ($hubSubnet.AddressPrefixes) {
+            $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefixes)
+        }
+
+        if ($actualHubSubnetPrefixes -contains $HubSubnetPrefix) {
+            Write-Host ("[PASS] Hub subnet found with expected prefix: {0} ({1})" -f $HubSubnetName, $HubSubnetPrefix) -ForegroundColor Green
+            Add-ValidationResult -Name "Hub Subnet" -Result "PASS" -Message ("Hub subnet found with expected prefix: {0} ({1})" -f $HubSubnetName, $HubSubnetPrefix)
+        }
+        else {
+            $actualHubPrefixesText = $actualHubSubnetPrefixes -join ", "
+            Write-Host ("[FAIL] Hub subnet prefix mismatch for {0}. Expected: {1}. Actual: {2}" -f $HubSubnetName, $HubSubnetPrefix, $actualHubPrefixesText) -ForegroundColor Red
+            Add-ValidationResult -Name "Hub Subnet" -Result "FAIL" -Message ("Hub subnet prefix mismatch for {0}. Expected: {1}. Actual: {2}" -f $HubSubnetName, $HubSubnetPrefix, $actualHubPrefixesText)
+        }
+    }
+    else {
+        Write-Host ("[FAIL] Hub subnet missing: {0}" -f $HubSubnetName) -ForegroundColor Red
+        Add-ValidationResult -Name "Hub Subnet" -Result "FAIL" -Message ("Hub subnet missing: {0}" -f $HubSubnetName)
+    }
+}
+else {
+    Write-Host ("[SKIP] Cannot validate hub subnet because Hub VNet is missing: {0}" -f $HubSubnetName) -ForegroundColor Yellow
+    Add-ValidationResult -Name "Hub Subnet" -Result "SKIP" -Message ("Cannot validate hub subnet because Hub VNet is missing: {0}" -f $HubSubnetName)
+}
+
+Write-Host "Checking VNet peerings..."
+
+$expectedAllowVnetAccess = $true
+$expectedAllowForwarded = $false
+$expectedAllowGatewayTransit = $false
+$expectedUseRemoteGateways = $false
+
+if ($vnet -and $hubVnet) {
+    $coreToHubPeering = Get-AzVirtualNetworkPeering `
+        -Name $CoreToHubPeeringName `
+        -VirtualNetworkName $VNetName `
+        -ResourceGroupName $ResourceGroupName `
+        -ErrorAction SilentlyContinue
+
+    if ($coreToHubPeering) {
+        if ($coreToHubPeering.PeeringState -eq "Connected") {
+            Write-Host ("[PASS] VNet peering connected: {0}" -f $CoreToHubPeeringName) -ForegroundColor Green
+            Add-ValidationResult -Name "VNet Peering CoreToHub State" -Result "PASS" -Message ("Peering connected: {0}" -f $CoreToHubPeeringName)
+        }
+        else {
+            Write-Host ("[FAIL] VNet peering state is not Connected for {0}. Current state: {1}" -f $CoreToHubPeeringName, $coreToHubPeering.PeeringState) -ForegroundColor Red
+            Add-ValidationResult -Name "VNet Peering CoreToHub State" -Result "FAIL" -Message ("Peering state is not Connected for {0}. Current state: {1}" -f $CoreToHubPeeringName, $coreToHubPeering.PeeringState)
+        }
+
+        $coreToHubSettingsMatch =
+            ($coreToHubPeering.AllowVirtualNetworkAccess -eq $expectedAllowVnetAccess) -and
+            ($coreToHubPeering.AllowForwardedTraffic -eq $expectedAllowForwarded) -and
+            ($coreToHubPeering.AllowGatewayTransit -eq $expectedAllowGatewayTransit) -and
+            ($coreToHubPeering.UseRemoteGateways -eq $expectedUseRemoteGateways)
+
+        if ($coreToHubSettingsMatch) {
+            Write-Host ("[PASS] VNet peering settings match for {0}" -f $CoreToHubPeeringName) -ForegroundColor Green
+            Add-ValidationResult -Name "VNet Peering CoreToHub Settings" -Result "PASS" -Message ("Peering settings match for {0}" -f $CoreToHubPeeringName)
+        }
+        else {
+            Write-Host ("[FAIL] VNet peering settings mismatch for {0}" -f $CoreToHubPeeringName) -ForegroundColor Red
+            Add-ValidationResult -Name "VNet Peering CoreToHub Settings" -Result "FAIL" -Message ("Peering settings mismatch for {0}" -f $CoreToHubPeeringName)
+        }
+    }
+    else {
+        Write-Host ("[FAIL] VNet peering missing: {0}" -f $CoreToHubPeeringName) -ForegroundColor Red
+        Add-ValidationResult -Name "VNet Peering CoreToHub" -Result "FAIL" -Message ("VNet peering missing: {0}" -f $CoreToHubPeeringName)
+    }
+
+    $hubToCorePeering = Get-AzVirtualNetworkPeering `
+        -Name $HubToCorePeeringName `
+        -VirtualNetworkName $HubVNetName `
+        -ResourceGroupName $ResourceGroupName `
+        -ErrorAction SilentlyContinue
+
+    if ($hubToCorePeering) {
+        if ($hubToCorePeering.PeeringState -eq "Connected") {
+            Write-Host ("[PASS] VNet peering connected: {0}" -f $HubToCorePeeringName) -ForegroundColor Green
+            Add-ValidationResult -Name "VNet Peering HubToCore State" -Result "PASS" -Message ("Peering connected: {0}" -f $HubToCorePeeringName)
+        }
+        else {
+            Write-Host ("[FAIL] VNet peering state is not Connected for {0}. Current state: {1}" -f $HubToCorePeeringName, $hubToCorePeering.PeeringState) -ForegroundColor Red
+            Add-ValidationResult -Name "VNet Peering HubToCore State" -Result "FAIL" -Message ("Peering state is not Connected for {0}. Current state: {1}" -f $HubToCorePeeringName, $hubToCorePeering.PeeringState)
+        }
+
+        $hubToCoreSettingsMatch =
+            ($hubToCorePeering.AllowVirtualNetworkAccess -eq $expectedAllowVnetAccess) -and
+            ($hubToCorePeering.AllowForwardedTraffic -eq $expectedAllowForwarded) -and
+            ($hubToCorePeering.AllowGatewayTransit -eq $expectedAllowGatewayTransit) -and
+            ($hubToCorePeering.UseRemoteGateways -eq $expectedUseRemoteGateways)
+
+        if ($hubToCoreSettingsMatch) {
+            Write-Host ("[PASS] VNet peering settings match for {0}" -f $HubToCorePeeringName) -ForegroundColor Green
+            Add-ValidationResult -Name "VNet Peering HubToCore Settings" -Result "PASS" -Message ("Peering settings match for {0}" -f $HubToCorePeeringName)
+        }
+        else {
+            Write-Host ("[FAIL] VNet peering settings mismatch for {0}" -f $HubToCorePeeringName) -ForegroundColor Red
+            Add-ValidationResult -Name "VNet Peering HubToCore Settings" -Result "FAIL" -Message ("Peering settings mismatch for {0}" -f $HubToCorePeeringName)
+        }
+    }
+    else {
+        Write-Host ("[FAIL] VNet peering missing: {0}" -f $HubToCorePeeringName) -ForegroundColor Red
+        Add-ValidationResult -Name "VNet Peering HubToCore" -Result "FAIL" -Message ("VNet peering missing: {0}" -f $HubToCorePeeringName)
+    }
+}
+else {
+    Write-Host "[SKIP] Cannot validate VNet peerings because one or both VNets are missing." -ForegroundColor Yellow
+    Add-ValidationResult -Name "VNet Peering" -Result "SKIP" -Message "Cannot validate VNet peerings because one or both VNets are missing."
 }
 
 Write-Host "Checking Network Security Groups..."

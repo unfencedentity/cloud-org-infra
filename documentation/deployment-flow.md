@@ -117,6 +117,7 @@ Examples:
 
 - Resource Groups
 - Networking
+- VNet Peering
 - Storage
 - Key Vault
 - App Services
