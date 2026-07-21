@@ -73,6 +73,7 @@ $rbacScript               = Join-Path $PSScriptRoot "create-rbac.ps1"
 $dnsScript                = Join-Path $PSScriptRoot "create-dns.ps1"
 $privateEndpointScript    = Join-Path $PSScriptRoot "create-private-endpoint.ps1"
 $healthChecksScript       = Join-Path $PSScriptRoot "create-healthchecks.ps1"
+$vnetPeeringScript        = Join-Path $PSScriptRoot "create-vnetpeering.ps1"
 
 
 
@@ -161,6 +162,11 @@ if (-not (Test-Path $healthChecksScript)) {
     $skippedModules += "Health Checks"
 }
 
+if (-not (Test-Path $vnetPeeringScript)) {
+    Write-Warning ("Sub-script not found: {0}. VNet peering step skipped." -f $vnetPeeringScript)
+    $skippedModules += "VNet Peering"
+}
+
 
 
 # Resource Group
@@ -181,6 +187,17 @@ if (Test-Path $networkScript) {
         -Location $Location
 
     $executedModules += "Network"
+}
+
+# VNet Peering
+if (Test-Path $vnetPeeringScript) {
+    & $vnetPeeringScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "VNet Peering"
 }
 
 # NSGs

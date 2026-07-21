@@ -1,19 +1,54 @@
-# Networking Design (Draft)
+# Networking Design
 
-## VNet
-- Address space: 10.20.0.0/16
+## Current Topology
 
-## Subnets
-- subnet-core-services: 10.20.1.0/24
-- subnet-apps: 10.20.2.0/24
-- subnet-data: 10.20.3.0/24
+- Core VNet: vnet-core-dev-weu
+- Core address space: 10.10.0.0/16
+- Hub VNet: vnet-hub-dev-weu
+- Hub address space: 10.20.0.0/16
+- Hub subnet: subnet-hub-services
+- Hub subnet prefix: 10.20.0.0/24
 
-## Design principles
-- Segmentation by function (core, apps, data)
-- Least privilege network access
-- Private communication preferred (Private Endpoints)
+```text
+vnet-core-dev-weu (10.10.0.0/16)
+        |
+        | VNet Peering (bidirectional)
+        |
+vnet-hub-dev-weu (10.20.0.0/16)
+  +-- subnet-hub-services (10.20.0.0/24)
+```
 
-## Next steps
-- Define NSG rules per subnet
-- Add Private Endpoint strategy
-- Integrate with Private DNS Zones
+## Peering Design
+
+Directional peerings:
+
+- peer-core-to-hub
+- peer-hub-to-core
+
+Validated configuration for both:
+
+- AllowVirtualNetworkAccess = true
+- AllowForwardedTraffic = false
+- AllowGatewayTransit = false
+- UseRemoteGateways = false
+
+Rationale:
+
+- Forwarded traffic remains disabled until transit controls are intentionally introduced (Azure Firewall, NVA, VPN Gateway, or Route Server).
+- Gateway transit and remote gateways remain disabled because there is no shared transit gateway pattern in the current design.
+
+## Routing Behavior
+
+With connected peering, Azure injects remote VNet prefixes into effective routes automatically.
+
+Expected next hop for remote VNet prefixes:
+
+- Next Hop Type = VNet peering
+
+## Design Principles
+
+- Deterministic naming and address planning
+- Non-overlapping VNet CIDR ranges
+- Idempotent network automation
+- Explicit validation and fail-fast on configuration drift
+- Secure-by-default peering configuration
