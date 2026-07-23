@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
 
-    # Optional: allows extending the default tag set
+# Optional: allows extending the default tag set
     [Parameter(Mandatory = $false)][hashtable]$AdditionalTags
 )
 
