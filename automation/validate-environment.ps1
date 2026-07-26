@@ -135,9 +135,14 @@ if ($hubVnet) {
     $hubSubnet = $hubVnet.Subnets | Where-Object { $_.Name -eq $HubSubnetName }
 
     if ($hubSubnet) {
-        $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefix)
-        if ($hubSubnet.AddressPrefixes) {
+        $actualHubSubnetPrefixes = @()
+        $hubSubnetPropertyNames = @($hubSubnet.PSObject.Properties.Name)
+
+        if ($hubSubnetPropertyNames -contains "AddressPrefixes") {
             $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefixes)
+        }
+        elseif ($hubSubnetPropertyNames -contains "AddressPrefix") {
+            $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefix)
         }
 
         if ($actualHubSubnetPrefixes -contains $HubSubnetPrefix) {
