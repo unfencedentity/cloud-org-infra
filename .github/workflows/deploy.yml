@@ -53,8 +53,8 @@ jobs:
             ./automation/deploy-environment.ps1 `
               -Env dev `
               -App core `
-              -Region weu `
-              -Location westeurope
+              -Region neu `
+              -Location northeurope
           azPSVersion: latest
 
       - name: Post Azure Login (OIDC)
