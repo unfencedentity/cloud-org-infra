@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string]$Environment,
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
-    [Parameter(Mandatory = $true)][string]$Location
+    [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $false)][string]$MonitoringLocation
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,6 +13,10 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\shared\ObjectShape.ps1"
 
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
+
+if (-not [string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+    Write-Host ("Diagnostics will use workspace discovered by deterministic name in resource group. Monitoring location target: {0}" -f $MonitoringLocation)
+}
 
 $requiredModules = @(
     "Az.Accounts",

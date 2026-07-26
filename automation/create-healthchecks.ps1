@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory = $true)][string]$Environment,
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
-    [Parameter(Mandatory = $true)][string]$Location
+    [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $false)][string]$MonitoringLocation
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +16,9 @@ Write-Host "==================================================================" 
 Write-Host "          Azure Environment Health Check - Standard Scan" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "Environment: $Environment | App: $App | Region: $Region | Location: $Location"
+if (-not [string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+    Write-Host "Monitoring Location: $MonitoringLocation"
+}
 Write-Host ""
 
 $HealthResults = @()
@@ -575,6 +579,7 @@ $JsonSummary = [PSCustomObject]@{
     App         = $App
     Region      = $Region
     Location    = $Location
+    MonitoringLocation = $MonitoringLocation
     Score       = $GlobalScore
     Severity    = $FinalSeverity
     Timestamp   = (Get-Date)

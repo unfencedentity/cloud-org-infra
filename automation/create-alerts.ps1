@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $false)][string]$MonitoringLocation,
 
     # Email address used for the primary action group receiver
     [Parameter(Mandatory = $false)][string]$AlertEmail = "alerts@cloud-org-infra.test"

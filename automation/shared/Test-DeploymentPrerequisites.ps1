@@ -40,6 +40,7 @@ function Test-DeploymentPrerequisites {
         [string]$Region,
         [string]$EnvironmentName,
         [string]$Location,
+        [string]$MonitoringLocation,
         [string]$SubscriptionId,
         [string]$TenantId,
         [string]$VmSize = "Standard_B1s",
@@ -67,6 +68,12 @@ function Test-DeploymentPrerequisites {
     if ([string]::IsNullOrWhiteSpace($Location)) {
         throw "Location parameter is missing."
     }
+
+    if ([string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+        throw "MonitoringLocation parameter is missing."
+    }
+
+    $normalizedMonitoringLocation = $MonitoringLocation.Trim().ToLowerInvariant()
 
     if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
         throw "SubscriptionId parameter is missing."
@@ -105,6 +112,47 @@ function Test-DeploymentPrerequisites {
 
     if ($resolved.Location -ne $Location.ToLowerInvariant()) {
         throw "Resolved location '$($resolved.Location)' does not match provided location '$Location'."
+    }
+
+    function ConvertTo-LocationKey {
+        param(
+            [Parameter(Mandatory = $true)][string]$Value
+        )
+
+        return ($Value.Trim().ToLowerInvariant().Replace(" ", ""))
+    }
+
+    function Assert-ResourceTypeAvailableInLocation {
+        param(
+            [Parameter(Mandatory = $true)][string]$ProviderNamespace,
+            [Parameter(Mandatory = $true)][string]$ResourceTypeName,
+            [Parameter(Mandatory = $true)][string]$TargetLocation,
+            [Parameter(Mandatory = $true)][string]$TargetLabel
+        )
+
+        $providerMetadata = Get-AzResourceProvider -ProviderNamespace $ProviderNamespace -ErrorAction SilentlyContinue
+        if (-not $providerMetadata) {
+            throw "Could not query provider metadata for '$ProviderNamespace'."
+        }
+
+        $resourceTypeMetadata = @($providerMetadata.ResourceTypes | Where-Object {
+            $_.ResourceTypeName -eq $ResourceTypeName
+        }) | Select-Object -First 1
+
+        if (-not $resourceTypeMetadata) {
+            throw "Provider '$ProviderNamespace' does not expose resource type '$ResourceTypeName' in this subscription metadata."
+        }
+
+        $supportedLocations = @($resourceTypeMetadata.Locations)
+        $targetLocationKey = ConvertTo-LocationKey -Value $TargetLocation
+        $supportedLocationKeys = @($supportedLocations | ForEach-Object { ConvertTo-LocationKey -Value $_ })
+
+        if ($supportedLocationKeys -notcontains $targetLocationKey) {
+            $sampleSupported = @($supportedLocations | Select-Object -First 10)
+            $sampleText = if ($sampleSupported.Count -gt 0) { $sampleSupported -join ", " } else { "none published" }
+
+            throw "Required resource type '$ProviderNamespace/$ResourceTypeName' is not available in $TargetLabel location '$TargetLocation'. Choose a location that supports this resource type. Sample supported locations: $sampleText."
+        }
     }
 
     $context = Get-AzContext
@@ -177,6 +225,27 @@ function Test-DeploymentPrerequisites {
             }
         }
     }
+
+    Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.Compute" -ResourceTypeName "virtualMachines" -TargetLocation $Location -TargetLabel "workload"
+
+    foreach ($networkResourceType in @(
+            "virtualNetworks",
+            "networkSecurityGroups",
+            "privateEndpoints",
+            "networkInterfaces"
+        )) {
+        Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.Network" -ResourceTypeName $networkResourceType -TargetLocation $Location -TargetLabel "workload"
+    }
+
+    foreach ($webResourceType in @("serverfarms", "sites")) {
+        Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.Web" -ResourceTypeName $webResourceType -TargetLocation $Location -TargetLabel "workload"
+    }
+
+    Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.ManagedIdentity" -ResourceTypeName "userAssignedIdentities" -TargetLocation $Location -TargetLabel "workload"
+    Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.Storage" -ResourceTypeName "storageAccounts" -TargetLocation $Location -TargetLabel "workload"
+    Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.KeyVault" -ResourceTypeName "vaults" -TargetLocation $Location -TargetLabel "workload"
+    Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.OperationalInsights" -ResourceTypeName "workspaces" -TargetLocation $normalizedMonitoringLocation -TargetLabel "monitoring"
+    Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.Insights" -ResourceTypeName "components" -TargetLocation $normalizedMonitoringLocation -TargetLabel "monitoring"
 
     $skuCandidates = Get-AzComputeResourceSku -ErrorAction Stop | Where-Object {
         $_.ResourceType -eq "virtualMachines" -and

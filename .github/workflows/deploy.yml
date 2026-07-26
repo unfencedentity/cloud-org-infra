@@ -19,6 +19,10 @@ on:
         description: "Azure location"
         required: true
         default: "denmarkeast"
+      monitoring_location:
+        description: "Azure location for monitoring resources"
+        required: true
+        default: "westeurope"
       vm_size:
         description: "VM size"
         required: true
@@ -81,6 +85,7 @@ jobs:
               -App "${{ github.event.inputs.app || 'core' }}" `
               -Region "${{ github.event.inputs.region || 'deu' }}" `
               -Location "${{ github.event.inputs.location || 'denmarkeast' }}" `
+              -MonitoringLocation "${{ github.event.inputs.monitoring_location || 'westeurope' }}" `
               -VmSize "${{ github.event.inputs.vm_size || 'Standard_B1s' }}" `
               -SubscriptionId "${{ secrets.AZURE_SUBSCRIPTION_ID }}" `
               -TenantId "${{ secrets.AZURE_TENANT_ID }}"

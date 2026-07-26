@@ -3,6 +3,7 @@ param(
     [string]$App         = "core",
     [string]$Region,
     [string]$Location,
+    [string]$MonitoringLocation,
     [string]$SubscriptionId,
     [string]$TenantId,
     [string]$VmSize = "Standard_B1s"
@@ -19,6 +20,12 @@ $deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location 
 $Region = $deploymentContext.Region
 $Location = $deploymentContext.Location
 
+if ([string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+    throw "MonitoringLocation parameter is required. Provide a supported Azure region for monitoring resources."
+}
+
+$MonitoringLocation = $MonitoringLocation.Trim().ToLowerInvariant()
+
 if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
     $SubscriptionId = Get-DeploymentSubscriptionId
 }
@@ -27,8 +34,8 @@ if ([string]::IsNullOrWhiteSpace($TenantId)) {
     $TenantId = Get-DeploymentTenantId
 }
 
-Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
-    $Environment, $App, $Region, $Location)
+Write-Host ("Starting full deployment for Env={0} App={1} Region={2} WorkloadLocation={3} MonitoringLocation={4}" -f `
+    $Environment, $App, $Region, $Location, $MonitoringLocation)
 
 function Ensure-AzContext {
     param(
@@ -68,6 +75,7 @@ Test-DeploymentPrerequisites `
     -Region $Region `
     -EnvironmentName $Environment `
     -Location $Location `
+    -MonitoringLocation $MonitoringLocation `
     -SubscriptionId $SubscriptionId `
     -TenantId $TenantId `
     -VmSize $VmSize `
@@ -283,7 +291,7 @@ if (Test-Path $logAnalyticsScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "Log Analytics"
 }
@@ -294,7 +302,7 @@ if (Test-Path $appInsightsScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "App Insights"
 }
@@ -305,7 +313,8 @@ if (Test-Path $appServiceExtendedScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "App Service Extended"
 }
@@ -327,7 +336,8 @@ if (Test-Path $diagnosticsScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "Diagnostics"
 }
@@ -339,6 +349,7 @@ if (Test-Path $alertsScript) {
         -App $App `
         -Region $Region `
         -Location $Location `
+        -MonitoringLocation $MonitoringLocation `
         -AlertEmail "ops@example.com"
 
     $executedModules += "Alerts"
@@ -387,7 +398,8 @@ if (Test-Path $healthChecksScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -MonitoringLocation $MonitoringLocation
 
     Write-Host "Health checks completed."
     $executedModules += "Health Checks"
