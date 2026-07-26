@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $rgName = "rg-$App-$Environment-$Region"
 $appInsightsName = "appi-$App-$Environment-$Region"
+$workspaceName = "law-$App-$Environment-$Region"
 
 Disable-AzContextAutosave -Scope Process | Out-Null
 
@@ -72,6 +73,15 @@ if (-not $rg) {
     throw "Resource group '$rgName' does not exist. Run create-rg.ps1 first."
 }
 
+$workspace = Get-AzOperationalInsightsWorkspace `
+    -ResourceGroupName $rgName `
+    -Name $workspaceName `
+    -ErrorAction SilentlyContinue
+
+if (-not $workspace) {
+    throw "Log Analytics workspace '$workspaceName' does not exist. Run create-loganalytics.ps1 first."
+}
+
 $existing = Get-AzApplicationInsights `
     -ResourceGroupName $rgName `
     -Name $appInsightsName `
@@ -97,6 +107,7 @@ $appInsights = New-AzApplicationInsights `
     -Location $Location `
     -Kind "web" `
     -ApplicationType $ApplicationType `
+    -WorkspaceResourceId $workspace.ResourceId `
     -Tag $tags
 
 Write-Host ("Application Insights '{0}' created." -f `

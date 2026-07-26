@@ -271,17 +271,6 @@ if (Test-Path $appServiceScript) {
     $executedModules += "App Service"
 }
 
-# Extended App Service Configuration
-if (Test-Path $appServiceExtendedScript) {
-    & $appServiceExtendedScript `
-        -Environment $Environment `
-        -App $App `
-        -Region $Region `
-        -Location $Location
-
-    $executedModules += "App Service Extended"
-}
-
 # Log Analytics Workspace
 if (Test-Path $logAnalyticsScript) {
     & $logAnalyticsScript `
@@ -302,6 +291,17 @@ if (Test-Path $appInsightsScript) {
         -Location $Location
 
     $executedModules += "App Insights"
+}
+
+# Extended App Service Configuration
+if (Test-Path $appServiceExtendedScript) {
+    & $appServiceExtendedScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "App Service Extended"
 }
 
 # Central Diagnostics
