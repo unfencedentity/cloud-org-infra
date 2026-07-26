@@ -37,4 +37,4 @@ jobs:
           ./automation/create-policy.ps1 `
             -Environment dev `
             -App core `
-            -Region weu
+            -Region deu

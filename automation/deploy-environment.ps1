@@ -1,14 +1,19 @@
 param(
     [string]$Environment = "dev",
     [string]$App         = "core",
-    [string]$Region      = "weu",
-    [string]$Location    = "westeurope"
+    [string]$Region,
+    [string]$Location
 )
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
 . "$PSScriptRoot\shared\Test-DeploymentPrerequisites.ps1"
 . "$PSScriptRoot\shared\New-DeploymentSummary.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
 
 Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
     $Environment, $App, $Region, $Location)

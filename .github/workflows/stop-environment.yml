@@ -14,7 +14,7 @@ on:
       region:
         description: "Short region code"
         required: true
-        default: "weu"
+        default: "deu"
 
   schedule:
     - cron: "0 21 * * 1-5"
@@ -49,4 +49,4 @@ jobs:
             ./automation/stop-environment.ps1 `
               -Environment "${{ github.event.inputs.environment || 'dev' }}" `
               -App "${{ github.event.inputs.app || 'core' }}" `
-              -Region "${{ github.event.inputs.region || 'weu' }}"
+              -Region "${{ github.event.inputs.region || 'deu' }}"

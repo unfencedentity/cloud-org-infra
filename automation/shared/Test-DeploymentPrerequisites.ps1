@@ -26,7 +26,7 @@ Local path that must exist before orchestration continues.
 .EXAMPLE
 Test-DeploymentPrerequisites `
     -EnvironmentName "dev" `
-    -Location "westeurope" `
+    -Location "denmarkeast" `
     -SubscriptionId "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" `
     -ModulesPath ".\automation"
 
@@ -75,6 +75,7 @@ function Test-DeploymentPrerequisites {
     }
 
     $validLocations = @(
+        "denmarkeast",
         "westeurope",
         "northeurope",
         "uksouth",

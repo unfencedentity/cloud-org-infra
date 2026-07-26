@@ -12,15 +12,15 @@
     ./cleanup.ps1 `
         -Environment dev `
         -App core `
-        -Region weu `
-        -Location westeurope
+        -Region deu `
+        -Location denmarkeast
 
 .EXAMPLE
     ./cleanup.ps1 `
         -Environment dev `
         -App core `
-        -Region weu `
-        -Location westeurope `
+    -Region deu `
+    -Location denmarkeast `
         -Force
 #>
 
@@ -31,15 +31,21 @@ param(
 
     [string]$App = "core",
 
-    [ValidateSet("weu", "neu", "eus", "wus")]
-    [string]$Region = "weu",
+    [ValidateSet("deu", "weu", "neu", "eus", "wus")]
+    [string]$Region,
 
-    [string]$Location = "westeurope",
+    [string]$Location,
 
     [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
+
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
 
 $resourceGroupName = "rg-$App-$Environment-$Region"
 $coreVnetName = "vnet-$App-$Environment-$Region"

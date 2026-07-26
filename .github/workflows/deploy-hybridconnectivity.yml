@@ -31,9 +31,9 @@ jobs:
             Set-AzContext -SubscriptionId "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
             ./automation/create-hybridconnectivity.ps1 `
-              -ResourceGroupName "rg-core-dev-weu" `
-              -VirtualNetworkName "vnet-core-dev-weu" `
+              -ResourceGroupName "rg-core-dev-deu" `
+              -VirtualNetworkName "vnet-core-dev-deu" `
               -GatewaySubnetAddressPrefix "10.10.255.0/27" `
-              -PublicIpName "pip-vpngw-core-dev-weu" `
-              -Location "westeurope" `
+              -PublicIpName "pip-vpngw-core-dev-deu" `
+              -Location "denmarkeast" `
               -RootCertificatePath "./certs/cloud-org-infra-root-cert.cer"

@@ -39,6 +39,11 @@ jobs:
             Install-Module Az.Monitor             -Force -AllowClobber -Scope CurrentUser
             Install-Module Az.KeyVault            -Force -AllowClobber -Scope CurrentUser
             Install-Module Az.Storage             -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Network             -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Websites            -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.ApplicationInsights -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.ManagedServiceIdentity -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.PrivateDns          -Force -AllowClobber -Scope CurrentUser
 
             Write-Host "Az modules installed:"
             Get-Module Az.* -ListAvailable | Select-Object Name, Version
@@ -51,9 +56,9 @@ jobs:
         with:
           inlineScript: |
             ./automation/deploy-environment.ps1 `
-              -Env dev `
+              -Environment dev `
               -App core `
-              -Region de `
+              -Region deu `
               -Location denmarkeast
           azPSVersion: latest
 

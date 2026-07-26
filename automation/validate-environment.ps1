@@ -1,8 +1,8 @@
 param(
     [string]$Environment = "dev",
     [string]$App         = "core",
-    [string]$Region      = "weu",
-    [string]$Location    = "westeurope",
+    [string]$Region,
+    [string]$Location,
 
     [string]$ResourceGroupName,
     [string]$VNetName,
@@ -16,6 +16,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
 
 if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) {
     $ResourceGroupName = "rg-{0}-{1}-{2}" -f $App, $Environment, $Region

@@ -15,13 +15,28 @@
 [CmdletBinding()]
 param(
     [string]$Environment        = "dev",
-    [string]$Location           = "westeurope",
-    [string]$ResourceGroupName  = "rg-dev-weu",
-    [string]$VNetName           = "vnet-org-dev-weu",
+    [string]$Region,
+    [string]$Location,
+    [string]$ResourceGroupName,
+    [string]$VNetName,
     [string]$SubnetName         = "subnet-data"
 )
 
-$kvName = "kv-$Environment-weu-core"
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
+
+if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) {
+    $ResourceGroupName = "rg-$Environment-$Region"
+}
+
+if ([string]::IsNullOrWhiteSpace($VNetName)) {
+    $VNetName = "vnet-org-$Environment-$Region"
+}
+
+$kvName = "kv-$Environment-$Region-core"
 $peName = "pep-$kvName"
 $dnsZoneName = "privatelink.vaultcore.azure.net"
 

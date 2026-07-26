@@ -34,8 +34,8 @@ Final deployment state.
 New-DeploymentSummary `
     -EnvironmentName "dev" `
     -App "core" `
-    -Region "weu" `
-    -Location "westeurope" `
+    -Region "deu" `
+    -Location "denmarkeast" `
     -ExecutedModules @("Resource Group","Network") `
     -SkippedModules @() `
     -Status "Success"

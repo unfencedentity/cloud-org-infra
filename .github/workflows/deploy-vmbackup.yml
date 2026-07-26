@@ -33,4 +33,4 @@ jobs:
             ./automation/create-vmbackup.ps1 `
               -Environment "dev" `
               -App "core" `
-              -Region "weu"
+              -Region "deu"

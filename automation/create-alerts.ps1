@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 $rgName            = "rg-$App-$Environment-$Region"
 $actionGroupName   = "ag-$App-$Environment-$Region"
 
-# Action Groups **cannot** be created in regional locations like westeurope.
+# Action Groups **cannot** be created in regional locations.
 # Microsoft only supports "global" for this resource type.
 $actionGroupLocation = "global"
 

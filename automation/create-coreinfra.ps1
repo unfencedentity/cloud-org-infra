@@ -12,13 +12,20 @@
 
 param(
     [string]$Environment = "dev",
-    [string]$Location = "westeurope",
+  [string]$Region,
+  [string]$Location,
     [string]$Owner     = "lucian"
 )
 
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
+
 # Compute names
-$rgName = "rg-$Environment-weu"
-$storageName = "st$($Environment)weu2401"
+$rgName = "rg-$Environment-$Region"
+$storageName = "st$($Environment)$($Region)2401"
 $tags = @{
     owner = $Owner
     env   = $Environment

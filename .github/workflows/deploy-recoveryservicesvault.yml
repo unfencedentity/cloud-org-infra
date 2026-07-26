@@ -32,5 +32,5 @@ jobs:
 
             ./automation/create-recoveryservicesvault.ps1 `
               -Environment "dev" `
-              -Region "weu" `
-              -Location "westeurope"
+              -Region "deu" `
+              -Location "denmarkeast"

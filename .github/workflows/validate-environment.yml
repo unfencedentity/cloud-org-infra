@@ -14,19 +14,19 @@ on:
       region:
         description: "Short region code"
         required: true
-        default: "weu"
+        default: "deu"
       location:
         description: "Azure location"
         required: true
-        default: "westeurope"
+        default: "denmarkeast"
       resource_group_name:
         description: "Existing Resource Group name"
         required: true
-        default: "rg-dev-weu-01"
+        default: "rg-dev-deu-01"
       vnet_name:
         description: "Existing VNet name"
         required: true
-        default: "vnet-dev-weu-01"
+        default: "vnet-dev-deu-01"
       required_subnet_names:
         description: "Comma-separated subnet names"
         required: true
@@ -34,7 +34,7 @@ on:
       required_nsg_names:
         description: "Comma-separated NSG names"
         required: true
-        default: "nsg-core-weu-01"
+        default: "nsg-core-deu-01"
 
 permissions:
   id-token: write
