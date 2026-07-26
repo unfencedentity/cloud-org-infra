@@ -165,54 +165,54 @@ function Test-DeploymentPrerequisites {
                 $workspaceName = "law-monitor-elig-$suffix"
                 $appInsightsName = "appi-monitor-elig-$suffix"
 
-                $validationTemplate = @"
-{
-    "`$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "location": {
-            "type": "string"
-        },
-        "workspaceName": {
-            "type": "string"
-        },
-        "appInsightsName": {
-            "type": "string"
-        }
-    },
-    "resources": [
-        {
-            "type": "Microsoft.OperationalInsights/workspaces",
-            "apiVersion": "2022-10-01",
-            "name": "[parameters('workspaceName')]",
-            "location": "[parameters('location')]",
-            "properties": {
-                "sku": {
-                    "name": "PerGB2018"
-                },
-                "retentionInDays": 30
-            }
-        },
-        {
-            "type": "Microsoft.Insights/components",
-            "apiVersion": "2020-02-02",
-            "name": "[parameters('appInsightsName')]",
-            "location": "[parameters('location')]",
-            "kind": "web",
-            "dependsOn": [
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-            ],
-            "properties": {
-                "Application_Type": "web",
-                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-            }
-        }
-    ]
-}
-"@
-
                 try {
-                    $validationTemplateObject = $validationTemplate | ConvertFrom-Json
+                    $validationTemplateObject = [hashtable]@{
+                        '$schema' = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
+                        contentVersion = '1.0.0.0'
+                        parameters = @{
+                            location = @{
+                                type = 'string'
+                            }
+                            workspaceName = @{
+                                type = 'string'
+                            }
+                            appInsightsName = @{
+                                type = 'string'
+                            }
+                        }
+                        resources = @(
+                            @{
+                                type = 'Microsoft.OperationalInsights/workspaces'
+                                apiVersion = '2022-10-01'
+                                name = "[parameters('workspaceName')]"
+                                location = "[parameters('location')]"
+                                properties = @{
+                                    sku = @{
+                                        name = 'PerGB2018'
+                                    }
+                                    retentionInDays = 30
+                                }
+                            }
+                            @{
+                                type = 'Microsoft.Insights/components'
+                                apiVersion = '2020-02-02'
+                                name = "[parameters('appInsightsName')]"
+                                location = "[parameters('location')]"
+                                kind = 'web'
+                                dependsOn = @(
+                                    "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+                                )
+                                properties = @{
+                                    Application_Type = 'web'
+                                    WorkspaceResourceId = "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+                                }
+                            }
+                        )
+                    }
+
+                    if ($validationTemplateObject -isnot [System.Collections.Hashtable]) {
+                        throw "Eligibility validation template must be converted to a Hashtable before calling Test-AzResourceGroupDeployment."
+                    }
 
                         $null = New-AzResourceGroup -Name $validationRgName -Location $TargetLocation -Tag @{ purpose = "monitoring-eligibility-validation"; owner = "cloud-org-infra" } -ErrorAction Stop
 
