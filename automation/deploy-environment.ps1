@@ -2,18 +2,30 @@ param(
     [string]$Environment = "dev",
     [string]$App         = "core",
     [string]$Region,
-    [string]$Location
+    [string]$Location,
+    [string]$SubscriptionId,
+    [string]$TenantId,
+    [string]$VmSize = "Standard_B1s"
 )
 
 $ErrorActionPreference = "Stop"
 
 . "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
 . "$PSScriptRoot\shared\Test-DeploymentPrerequisites.ps1"
 . "$PSScriptRoot\shared\New-DeploymentSummary.ps1"
 
 $deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
 $Region = $deploymentContext.Region
 $Location = $deploymentContext.Location
+
+if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
+    $SubscriptionId = Get-DeploymentSubscriptionId
+}
+
+if ([string]::IsNullOrWhiteSpace($TenantId)) {
+    $TenantId = Get-DeploymentTenantId
+}
 
 Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
     $Environment, $App, $Region, $Location)
@@ -48,13 +60,17 @@ function Ensure-AzContext {
     Write-Host ("Using subscription: {0} - {1}" -f $ctx.Subscription.Id, $ctx.Subscription.Name)
 }
 
-Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
-Set-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID | Out-Null
+Ensure-AzContext -SubscriptionId $SubscriptionId
+Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
 
 Test-DeploymentPrerequisites `
+    -AppName $App `
+    -Region $Region `
     -EnvironmentName $Environment `
     -Location $Location `
-    -SubscriptionId $env:AZURE_SUBSCRIPTION_ID `
+    -SubscriptionId $SubscriptionId `
+    -TenantId $TenantId `
+    -VmSize $VmSize `
     -ModulesPath "$PSScriptRoot"
 
 $executedModules = @()
@@ -238,24 +254,14 @@ if (Test-Path $keyVaultScript) {
     $executedModules += "Key Vault"
 }
 
-# Managed Identity
-if (Test-Path $managedIdentityScript) {
-    & $managedIdentityScript `
-        -Environment $Environment `
-        -App $App `
-        -Region $Region `
-        -Location $Location
-
-    $executedModules += "Managed Identity"
-}
-
 # VM
 if (Test-Path $vmScript) {
     & $vmScript `
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -VmSize $VmSize
 
     $executedModules += "VM"
 }
@@ -302,6 +308,17 @@ if (Test-Path $appServiceExtendedScript) {
         -Location $Location
 
     $executedModules += "App Service Extended"
+}
+
+# Managed Identity
+if (Test-Path $managedIdentityScript) {
+    & $managedIdentityScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "Managed Identity"
 }
 
 # Central Diagnostics
@@ -375,7 +392,7 @@ if (Test-Path $healthChecksScript) {
     Write-Host "Health checks completed."
     $executedModules += "Health Checks"
 
-    if ($healthResult.Status -eq "Error") {
+    if ($healthResult -and $healthResult.Severity -eq "Critical") {
         Write-Error "Critical errors detected during health checks. Aborting deployment."
         exit 2
     }

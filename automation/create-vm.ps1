@@ -9,17 +9,23 @@ param(
     [string]$Region,
 
     [Parameter(Mandatory = $true)]
-    [string]$Location
+    [string]$Location,
+
+    [Parameter(Mandatory = $false)]
+    [string]$VmSize = "Standard_B1s"
 )
 
 $ErrorActionPreference = "Stop"
 
-$resourceGroupName = "rg-core-$Environment-$Region"
-$vmName            = "vm-$Environment-$App-$Region-01"
-$vnetName          = "vnet-core-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
+
+$resourceGroupName = $names.ResourceGroupName
+$vmName            = $names.VmName
+$vnetName          = $names.CoreVNetName
 $subnetName        = "subnet-app"
 $adminUsername     = "azureuser"
-$vmSize            = "Standard_B1s"
 $image             = "Ubuntu2204"
 
 Write-Host "Starting VM deployment..."

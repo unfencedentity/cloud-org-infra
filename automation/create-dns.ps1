@@ -11,6 +11,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\ObjectShape.ps1"
+
 $resourceGroupName = "rg-$App-$Environment-$Region"
 $vnetName = "vnet-$App-$Environment-$Region"
 $vmName = "vm-$Environment-$App-$Region-01"
@@ -71,7 +73,15 @@ $vm = Get-AzVM `
     -ResourceGroupName $resourceGroupName `
     -ErrorAction Stop
 
-$nicId = $vm.NetworkProfile.NetworkInterfaces[0].Id
+$networkProfile = Get-ObjectPropertyValue -Object $vm -PropertyName "NetworkProfile"
+$networkInterfaces = Get-ObjectPropertyValue -Object $networkProfile -PropertyName "NetworkInterfaces" -DefaultValue @()
+$firstNetworkInterface = Get-FirstCollectionItem -Collection $networkInterfaces
+$nicId = Get-ObjectPropertyValue -Object $firstNetworkInterface -PropertyName "Id"
+
+if ([string]::IsNullOrWhiteSpace($nicId)) {
+    throw "VM '$vmName' does not expose a network interface id in NetworkProfile.NetworkInterfaces."
+}
+
 $nicName = ($nicId -split "/")[-1]
 
 $nic = Get-AzNetworkInterface `
@@ -79,7 +89,13 @@ $nic = Get-AzNetworkInterface `
     -ResourceGroupName $resourceGroupName `
     -ErrorAction Stop
 
-$privateIp = $nic.IpConfigurations[0].PrivateIpAddress
+$ipConfigurations = Get-ObjectPropertyValue -Object $nic -PropertyName "IpConfigurations" -DefaultValue @()
+$firstIpConfiguration = Get-FirstCollectionItem -Collection $ipConfigurations
+$privateIp = Get-ObjectPropertyValue -Object $firstIpConfiguration -PropertyName "PrivateIpAddress"
+
+if ([string]::IsNullOrWhiteSpace($privateIp)) {
+    throw "NIC '$nicName' does not expose a private IP address."
+}
 
 Write-Host "VM private IP detected: $privateIp"
 

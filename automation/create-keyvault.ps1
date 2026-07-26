@@ -13,24 +13,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
+
 # Naming conventions
-$resourceGroupName = "rg-$App-$Environment-$Region"
-$keyVaultName      = "kv-$App-$Environment-$Region"
-
-# Generate deterministic globally-unique Key Vault name
-$subscriptionId = (Get-AzContext).Subscription.Id
-
-$baseString = "$subscriptionId-$App-$Environment-$Region"
-
-# Compute short stable hash
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
-
-# kv + app + env + region + hash (must only contain letters, numbers)
-$keyVaultName = "kv$App$Environment$Region$hash".ToLower()
-$keyVaultName = $keyVaultName.Replace("-", "")
+$resourceGroupName = $names.ResourceGroupName
+$keyVaultName      = $names.KeyVaultName
 
 
 # Default tags

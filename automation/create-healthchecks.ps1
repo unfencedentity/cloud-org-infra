@@ -9,6 +9,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\ObjectShape.ps1"
+
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "          Azure Environment Health Check - Standard Scan" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
@@ -246,8 +248,13 @@ if (-not $VirtualNetwork) {
 
 Write-Section "Subnets"
 
-if ($VirtualNetwork -and $VirtualNetwork.Subnets.Count -gt 0) {
-    Write-Status "Subnets found: $($VirtualNetwork.Subnets.Count)" "OK"
+$vnetSubnets = @()
+if ($VirtualNetwork) {
+    $vnetSubnets = @(Get-ObjectPropertyValue -Object $VirtualNetwork -PropertyName "Subnets" -DefaultValue @())
+}
+
+if ($VirtualNetwork -and $vnetSubnets.Count -gt 0) {
+    Write-Status "Subnets found: $($vnetSubnets.Count)" "OK"
     Add-HealthResult -Name "Subnets" -Status "OK" -Details "Subnets OK" -ScoreImpact 0
 } else {
     Write-Status "No subnets found" "CRITICAL"
@@ -479,7 +486,17 @@ else {
                 -ErrorAction SilentlyContinue
 
             if ($vm) {
-                $nicId = $vm.NetworkProfile.NetworkInterfaces[0].Id
+                $networkProfile = Get-ObjectPropertyValue -Object $vm -PropertyName "NetworkProfile"
+                $networkInterfaces = Get-ObjectPropertyValue -Object $networkProfile -PropertyName "NetworkInterfaces" -DefaultValue @()
+                $firstNetworkInterface = Get-FirstCollectionItem -Collection $networkInterfaces
+                $nicId = Get-ObjectPropertyValue -Object $firstNetworkInterface -PropertyName "Id"
+
+                if ([string]::IsNullOrWhiteSpace($nicId)) {
+                    Write-Status "VM network interface id missing on $vmName" "WARNING"
+                    $dnsWarnings += "VM NIC id missing"
+                    continue
+                }
+
                 $nicName = ($nicId -split "/")[-1]
 
                 $nic = Get-AzNetworkInterface `
@@ -487,8 +504,25 @@ else {
                     -Name $nicName `
                     -ErrorAction SilentlyContinue
 
-                $privateIp = $nic.IpConfigurations[0].PrivateIpAddress
-                $dnsIp = $recordSet.Records[0].Ipv4Address
+                if (-not $nic) {
+                    Write-Status "NIC not found for VM: $nicName" "WARNING"
+                    $dnsWarnings += "NIC missing"
+                    continue
+                }
+
+                $ipConfigurations = Get-ObjectPropertyValue -Object $nic -PropertyName "IpConfigurations" -DefaultValue @()
+                $firstIpConfiguration = Get-FirstCollectionItem -Collection $ipConfigurations
+                $privateIp = Get-ObjectPropertyValue -Object $firstIpConfiguration -PropertyName "PrivateIpAddress"
+
+                $records = @(Get-ObjectPropertyValue -Object $recordSet -PropertyName "Records" -DefaultValue @())
+                $firstRecord = Get-FirstCollectionItem -Collection $records
+                $dnsIp = Get-ObjectPropertyValue -Object $firstRecord -PropertyName "Ipv4Address"
+
+                if ([string]::IsNullOrWhiteSpace($privateIp) -or [string]::IsNullOrWhiteSpace($dnsIp)) {
+                    Write-Status "Unable to compare DNS/VM IP for $dnsRecordName.$dnsZoneName" "WARNING"
+                    $dnsWarnings += "DNS IP comparison data missing"
+                    continue
+                }
 
                 if ($dnsIp -eq $privateIp) {
                     Write-Status "Private DNS A record points to VM private IP: $privateIp" "OK"

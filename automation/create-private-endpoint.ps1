@@ -15,25 +15,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+. "$PSScriptRoot\shared\ObjectShape.ps1"
 
-$resourceGroupName = "rg-$App-$Environment-$Region"
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
 
-$baseString = "$subscriptionId-$App-$Environment-$Region"
-
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
-
-$storageAccountName = "st$App$Environment$Region$hash"
-$storageAccountName = $storageAccountName.ToLower().Replace("-", "")
-
-$vnetName = "vnet-core-$Environment-$Region"
+$resourceGroupName = $names.ResourceGroupName
+$storageAccountName = $names.StorageAccountName
+$vnetName = $names.CoreVNetName
 $subnetName = "subnet-app"
 
-$privateEndpointName = "pe-storage-$Environment-$Region"
+$privateEndpointName = $names.PrivateEndpointName
 $privateDnsZoneName = "privatelink.blob.core.windows.net"
 $privateDnsZoneGroupName = "default"
 
@@ -99,12 +91,12 @@ $privateLinkServiceConnection = New-AzPrivateLinkServiceConnection `
 if ($PSCmdlet.ShouldProcess($privateEndpointName, "Create Private Endpoint for Storage Blob")) {
     Write-Host "Creating Private Endpoint: $privateEndpointName"
 
-    $privateEndpoint = New-AzPrivateEndpoint `
+    New-AzPrivateEndpoint `
         -ResourceGroupName $resourceGroupName `
         -Name $privateEndpointName `
         -Location $Location `
         -Subnet $subnet `
-        -PrivateLinkServiceConnection $privateLinkServiceConnection
+        -PrivateLinkServiceConnection $privateLinkServiceConnection | Out-Null
 
     Write-Host "Private Endpoint created: $privateEndpointName"
 }
@@ -170,7 +162,7 @@ if (-not $existingDnsZoneGroup) {
             -PrivateDnsZoneConfig @(
                 New-AzPrivateDnsZoneConfig `
                     -Name "blob-config" `
-                    -PrivateDnsZoneId $privateDnsZone.ResourceId
+                    -PrivateDnsZoneId (Get-ObjectPropertyValue -Object $privateDnsZone -PropertyName "ResourceId" -DefaultValue $privateDnsZone.Id)
             ) | Out-Null
 
         Write-Host "Private DNS Zone Group created."

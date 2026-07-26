@@ -14,7 +14,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$rgName = "rg-$App-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
+
+$rgName = $names.ResourceGroupName
 
 if ([string]::IsNullOrWhiteSpace($env:AZURE_SUBSCRIPTION_ID)) {
     throw "AZURE_SUBSCRIPTION_ID environment variable is missing or empty."
@@ -56,16 +60,7 @@ if ($provider.RegistrationState -ne "Registered") {
     Write-Host "Microsoft.Storage provider registered."
 }
 
-$baseString = "$subscriptionId-$App-$Environment-$Region"
-
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
-
-$storageAccountName = "st$App$Environment$Region$hash"
-$storageAccountName = $storageAccountName.ToLower().Replace("-", "")
+$storageAccountName = $names.StorageAccountName
 
 $tags = @{
     environment = $Environment

@@ -2,6 +2,27 @@ name: Deploy Azure infra
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment name"
+        required: true
+        default: "dev"
+      app:
+        description: "Application name"
+        required: true
+        default: "core"
+      region:
+        description: "Region code"
+        required: true
+        default: "deu"
+      location:
+        description: "Azure location"
+        required: true
+        default: "denmarkeast"
+      vm_size:
+        description: "VM size"
+        required: true
+        default: "Standard_B1s"
 
 jobs:
   deploy:
@@ -56,10 +77,13 @@ jobs:
         with:
           inlineScript: |
             ./automation/deploy-environment.ps1 `
-              -Environment dev `
-              -App core `
-              -Region deu `
-              -Location denmarkeast
+              -Environment "${{ github.event.inputs.environment || 'dev' }}" `
+              -App "${{ github.event.inputs.app || 'core' }}" `
+              -Region "${{ github.event.inputs.region || 'deu' }}" `
+              -Location "${{ github.event.inputs.location || 'denmarkeast' }}" `
+              -VmSize "${{ github.event.inputs.vm_size || 'Standard_B1s' }}" `
+              -SubscriptionId "${{ secrets.AZURE_SUBSCRIPTION_ID }}" `
+              -TenantId "${{ secrets.AZURE_TENANT_ID }}"
           azPSVersion: latest
 
       - name: Post Azure Login (OIDC)

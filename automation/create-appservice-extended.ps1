@@ -8,20 +8,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$rgName = "rg-$App-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+. "$PSScriptRoot\shared\ObjectShape.ps1"
 
-$baseString = "$App-$Environment-$Region-$env:AZURE_SUBSCRIPTION_ID"
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
 
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 10).ToLower()
-
-$webAppName = "app-$App-$Environment-$Region-$hash"
-$webAppName = $webAppName.ToLower().Replace("-", "")
-
-$appInsightsName = "appi-$App-$Environment-$Region"
+$rgName = $names.ResourceGroupName
+$webAppName = $names.WebAppName
+$appInsightsName = $names.AppInsightsName
 
 $webApp = Get-AzWebApp `
     -ResourceGroupName $rgName `
@@ -48,8 +42,8 @@ if (-not $PSCmdlet.ShouldProcess("Web App $webAppName", "Configure extended sett
 Write-Host ("Configuring extended settings for Web App '{0}'..." -f $webAppName)
 
 $appSettings = @{
-    "APPLICATIONINSIGHTS_CONNECTION_STRING" = $appInsights.ConnectionString
-    "APPINSIGHTS_INSTRUMENTATIONKEY"        = $appInsights.InstrumentationKey
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = (Get-ObjectPropertyValue -Object $appInsights -PropertyName "ConnectionString" -DefaultValue "")
+    "APPINSIGHTS_INSTRUMENTATIONKEY"        = (Get-ObjectPropertyValue -Object $appInsights -PropertyName "InstrumentationKey" -DefaultValue "")
     "ASPNETCORE_ENVIRONMENT"                = $Environment.ToUpper()
     "WEBSITE_RUN_FROM_PACKAGE"              = "1"
 }

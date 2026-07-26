@@ -10,9 +10,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$rgName = "rg-$App-$Environment-$Region"
-$appInsightsName = "appi-$App-$Environment-$Region"
-$workspaceName = "law-$App-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
+
+$rgName = $names.ResourceGroupName
+$appInsightsName = $names.AppInsightsName
+$workspaceName = $names.LogAnalyticsName
 
 Disable-AzContextAutosave -Scope Process | Out-Null
 

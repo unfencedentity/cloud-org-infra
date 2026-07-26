@@ -8,6 +8,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+. "$PSScriptRoot\shared\ObjectShape.ps1"
+
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
 
 $requiredModules = @(
@@ -30,21 +33,12 @@ foreach ($mod in $requiredModules) {
     Import-Module $mod -ErrorAction Stop
 }
 
-$rgName         = "rg-$App-$Environment-$Region"
-$workspaceName  = "law-$App-$Environment-$Region"
-$keyVaultName   = "kv-$App-$Environment-$Region"
-$vnetName       = "vnet-$App-$Environment-$Region"
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
 
-$baseString = "$App-$Environment-$Region"
-
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
-
-$webAppName = "app-$App-$Environment-$Region-$hash"
-$webAppName = $webAppName.ToLower().Replace("-", "")
+$rgName         = $names.ResourceGroupName
+$workspaceName  = $names.LogAnalyticsName
+$vnetName       = $names.CoreVNetName
+$webAppName     = $names.WebAppName
 
 Write-Host "Configuring diagnostics for '$App' ($Environment/$Region)..."
 
@@ -128,6 +122,8 @@ $keyVault = Get-AzKeyVault `
     -ResourceGroupName $rgName `
     -ErrorAction SilentlyContinue |
     Where-Object {
+        (Test-ObjectProperty -Object $_ -PropertyName "Tags") -and
+        $_.Tags -and
         $_.Tags["app"] -eq $App -and
         $_.Tags["environment"] -eq $Environment
     } |
@@ -163,6 +159,8 @@ $storageAccounts = Get-AzStorageAccount `
 
 $storage = $storageAccounts |
     Where-Object {
+        (Test-ObjectProperty -Object $_ -PropertyName "Tags") -and
+        $_.Tags -and
         $_.Tags["app"] -eq $App -and
         $_.Tags["environment"] -eq $Environment
     } |

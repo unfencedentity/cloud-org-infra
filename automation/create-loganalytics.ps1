@@ -11,8 +11,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$rgName = "rg-$App-$Environment-$Region"
-$workspaceName = "law-$App-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
+
+$rgName = $names.ResourceGroupName
+$workspaceName = $names.LogAnalyticsName
 
 if ($Sku -eq "PerGB2018" -and $RetentionInDays -lt 30) {
     Write-Host "RetentionInDays '$RetentionInDays' is below the minimum supported value for SKU '$Sku'. Using 30 days instead."
