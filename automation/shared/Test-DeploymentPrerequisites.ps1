@@ -155,6 +155,88 @@ function Test-DeploymentPrerequisites {
         }
     }
 
+        function Assert-MonitoringLocationSubscriptionEligible {
+                param(
+                        [Parameter(Mandatory = $true)][string]$TargetLocation
+                )
+
+                $suffix = ([Guid]::NewGuid().ToString("N")).Substring(0, 8)
+                $validationRgName = "rg-monitor-eligibility-$suffix"
+                $workspaceName = "law-monitor-elig-$suffix"
+                $appInsightsName = "appi-monitor-elig-$suffix"
+
+                $validationTemplate = @"
+{
+    "`$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "workspaceName": {
+            "type": "string"
+        },
+        "appInsightsName": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+            }
+        },
+        {
+            "type": "Microsoft.Insights/components",
+            "apiVersion": "2020-02-02",
+            "name": "[parameters('appInsightsName')]",
+            "location": "[parameters('location')]",
+            "kind": "web",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            ],
+            "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            }
+        }
+    ]
+}
+"@
+
+                try {
+                    $validationTemplateObject = $validationTemplate | ConvertFrom-Json
+
+                        $null = New-AzResourceGroup -Name $validationRgName -Location $TargetLocation -Tag @{ purpose = "monitoring-eligibility-validation"; owner = "cloud-org-infra" } -ErrorAction Stop
+
+                        $null = Test-AzResourceGroupDeployment `
+                                -ResourceGroupName $validationRgName `
+                        -TemplateObject $validationTemplateObject `
+                                -TemplateParameterObject @{
+                                        location = $TargetLocation
+                                        workspaceName = $workspaceName
+                                        appInsightsName = $appInsightsName
+                                } `
+                                -ErrorAction Stop
+                }
+                catch {
+                        $azureErrorMessage = $_.Exception.Message
+                        throw "Monitoring location subscription eligibility check failed for '$TargetLocation'. Azure returned: $azureErrorMessage"
+                }
+                finally {
+                        if (Get-AzResourceGroup -Name $validationRgName -ErrorAction SilentlyContinue) {
+                                Remove-AzResourceGroup -Name $validationRgName -Force -ErrorAction SilentlyContinue | Out-Null
+                        }
+                }
+        }
+
     $context = Get-AzContext
 
     if (-not $context) {
@@ -246,6 +328,7 @@ function Test-DeploymentPrerequisites {
     Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.KeyVault" -ResourceTypeName "vaults" -TargetLocation $Location -TargetLabel "workload"
     Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.OperationalInsights" -ResourceTypeName "workspaces" -TargetLocation $normalizedMonitoringLocation -TargetLabel "monitoring"
     Assert-ResourceTypeAvailableInLocation -ProviderNamespace "Microsoft.Insights" -ResourceTypeName "components" -TargetLocation $normalizedMonitoringLocation -TargetLabel "monitoring"
+    Assert-MonitoringLocationSubscriptionEligible -TargetLocation $normalizedMonitoringLocation
 
     $skuCandidates = Get-AzComputeResourceSku -ErrorAction Stop | Where-Object {
         $_.ResourceType -eq "virtualMachines" -and
