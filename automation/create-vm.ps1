@@ -19,7 +19,7 @@ $vmName            = "vm-$Environment-$App-$Region-01"
 $vnetName          = "vnet-core-$Environment-$Region"
 $subnetName        = "subnet-app"
 $adminUsername     = "azureuser"
-$vmSize            = "Standard_D2s_v3"
+$vmSize            = "Standard_B2s"
 $image             = "Ubuntu2204"
 
 Write-Host "Starting VM deployment..."
