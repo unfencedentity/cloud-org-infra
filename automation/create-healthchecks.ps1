@@ -176,7 +176,7 @@ function Test-DiagnosticSettingExists {
 
     $settings = Get-DiagnosticSettingsRest -ResourceId $ResourceId
 
-    if (-not $settings -or $settings.Count -eq 0) {
+    if (@($settings).Count -eq 0) {
         return $false
     }
 
@@ -199,8 +199,8 @@ Write-Host "Initializing resource discovery..." -ForegroundColor DarkGray
 
 $ResourceGroup = Get-RG
 $VirtualNetwork = Get-VNet
-$NSGs = Get-NSGs
-$StorageAccounts = Get-StorageAccounts
+$NSGs = @(Get-NSGs)
+$StorageAccounts = @(Get-StorageAccounts)
 $KeyVault = Get-KeyVault
 $AppService = Get-AppService
 $AppInsights = Get-AppInsights
@@ -232,7 +232,7 @@ if ($ResourceGroup -and $ResourceGroup.Tags) {
     $missingTags = $requiredTags
 }
 
-if ($missingTags.Count -gt 0) {
+if (@($missingTags).Count -gt 0) {
     Write-Status "Missing tags: $($missingTags -join ', ')" "WARNING"
     Add-HealthResult -Name "Tags" -Status "WARNING" -Details "Missing: $($missingTags -join ', ')" -ScoreImpact 10
 } else {
@@ -257,8 +257,8 @@ if ($VirtualNetwork) {
     $vnetSubnets = @(Get-ObjectPropertyValue -Object $VirtualNetwork -PropertyName "Subnets" -DefaultValue @())
 }
 
-if ($VirtualNetwork -and $vnetSubnets.Count -gt 0) {
-    Write-Status "Subnets found: $($vnetSubnets.Count)" "OK"
+if ($VirtualNetwork -and @($vnetSubnets).Count -gt 0) {
+    Write-Status "Subnets found: $(@($vnetSubnets).Count)" "OK"
     Add-HealthResult -Name "Subnets" -Status "OK" -Details "Subnets OK" -ScoreImpact 0
 } else {
     Write-Status "No subnets found" "CRITICAL"
@@ -267,8 +267,8 @@ if ($VirtualNetwork -and $vnetSubnets.Count -gt 0) {
 
 Write-Section "Network Security Groups"
 
-if ($NSGs -and $NSGs.Count -gt 0) {
-    Write-Status "NSGs found: $($NSGs.Count)" "OK"
+if (@($NSGs).Count -gt 0) {
+    Write-Status "NSGs found: $(@($NSGs).Count)" "OK"
     Add-HealthResult -Name "NSG" -Status "OK" -Details "NSGs OK" -ScoreImpact 0
 } else {
     Write-Status "No NSGs found" "CRITICAL"
@@ -277,7 +277,7 @@ if ($NSGs -and $NSGs.Count -gt 0) {
 
 Write-Section "Storage Accounts"
 
-if (-not $StorageAccounts -or $StorageAccounts.Count -eq 0) {
+if (@($StorageAccounts).Count -eq 0) {
     Write-Status "No Storage Accounts found" "WARNING"
     Add-HealthResult -Name "Storage" -Status "WARNING" -Details "Missing storage accounts" -ScoreImpact 10
 } else {
@@ -384,11 +384,11 @@ foreach ($check in $diagnosticChecks) {
     }
 }
 
-if ($diagnosticChecks.Count -eq 0) {
+if (@($diagnosticChecks).Count -eq 0) {
     Write-Status "No diagnostic targets found" "WARNING"
     Add-HealthResult -Name "Diagnostics" -Status "WARNING" -Details "No diagnostic targets found" -ScoreImpact 10
-} elseif ($missingDiagnostics.Count -gt 0) {
-    Add-HealthResult -Name "Diagnostics" -Status "WARNING" -Details "$($missingDiagnostics.Count) resources missing diagnostics: $($missingDiagnostics -join ', ')" -ScoreImpact 10
+} elseif (@($missingDiagnostics).Count -gt 0) {
+    Add-HealthResult -Name "Diagnostics" -Status "WARNING" -Details "$(@($missingDiagnostics).Count) resources missing diagnostics: $($missingDiagnostics -join ', ')" -ScoreImpact 10
 } else {
     Add-HealthResult -Name "Diagnostics" -Status "OK" -Details "All expected diagnostics configured" -ScoreImpact 0
     Write-Status "All diagnostics correctly configured" "OK"
@@ -420,9 +420,9 @@ if ($ResourceGroup) {
     $assignments = @()
 }
 
-$unexpected = $assignments | Where-Object { $_.RoleDefinitionName -eq "Contributor" -and $_.ObjectId -notlike "*" }
+$unexpected = @($assignments | Where-Object { $_.RoleDefinitionName -eq "Contributor" -and $_.ObjectId -notlike "*" })
 
-if ($unexpected.Count -gt 0) {
+if (@($unexpected).Count -gt 0) {
     Write-Status "Unexpected Contributor assignments detected" "WARNING"
     Add-HealthResult -Name "RBAC" -Status "WARNING" -Details "Unexpected Contributor roles present" -ScoreImpact 10
 } else {
@@ -540,7 +540,7 @@ else {
     }
 }
 
-if ($dnsWarnings.Count -gt 0) {
+if (@($dnsWarnings).Count -gt 0) {
     Add-HealthResult -Name "DNS" -Status "WARNING" -Details "$($dnsWarnings -join ', ')" -ScoreImpact 5
 }
 else {
@@ -586,7 +586,7 @@ $JsonSummary = [PSCustomObject]@{
     Results     = $HealthResults
 }
 
-$JsonSummary | ConvertTo-Json -Depth 10
+Write-Host ($JsonSummary | ConvertTo-Json -Depth 10)
 
 Write-Host ""
 Write-Host "Health check completed." -ForegroundColor Cyan

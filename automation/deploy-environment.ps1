@@ -401,10 +401,20 @@ if (Test-Path $healthChecksScript) {
         -Location $Location `
         -MonitoringLocation $MonitoringLocation
 
+    $healthResults = @($healthResult)
+    $criticalHealthResults = @(
+        $healthResults | Where-Object {
+            $null -ne $_ -and
+            $_.PSObject -and
+            $_.PSObject.Properties.Name -contains "Severity" -and
+            $_.Severity -eq "Critical"
+        }
+    )
+
     Write-Host "Health checks completed."
     $executedModules += "Health Checks"
 
-    if ($healthResult -and $healthResult.Severity -eq "Critical") {
+    if ($criticalHealthResults.Count -gt 0) {
         Write-Error "Critical errors detected during health checks. Aborting deployment."
         exit 2
     }
