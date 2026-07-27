@@ -85,7 +85,8 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId must be a full ARM id starting with '/subscriptions/...'. Got: '$ResourceId'"
     }
 
-    $path = "$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
+    $normalizedResourceId = $ResourceId.TrimEnd('/')
+    $path = "{0}/providers/microsoft.insights/diagnosticSettings/{1}?api-version={2}" -f $normalizedResourceId, $SettingName, $ApiVersion
 
     $bodyObject = @{
         properties = @{
