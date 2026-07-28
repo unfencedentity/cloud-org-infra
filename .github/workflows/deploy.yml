@@ -2,6 +2,31 @@ name: Deploy Azure infra
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment name"
+        required: true
+        default: "dev"
+      app:
+        description: "Application name"
+        required: true
+        default: "core"
+      region:
+        description: "Region code"
+        required: true
+        default: "deu"
+      location:
+        description: "Azure location"
+        required: true
+        default: "denmarkeast"
+      monitoring_location:
+        description: "Azure location for monitoring resources"
+        required: true
+        default: "swedencentral"
+      vm_size:
+        description: "VM size"
+        required: true
+        default: "Standard_B1s"
 
 jobs:
   deploy:
@@ -39,6 +64,11 @@ jobs:
             Install-Module Az.Monitor             -Force -AllowClobber -Scope CurrentUser
             Install-Module Az.KeyVault            -Force -AllowClobber -Scope CurrentUser
             Install-Module Az.Storage             -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Network             -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.Websites            -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.ApplicationInsights -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.ManagedServiceIdentity -Force -AllowClobber -Scope CurrentUser
+            Install-Module Az.PrivateDns          -Force -AllowClobber -Scope CurrentUser
 
             Write-Host "Az modules installed:"
             Get-Module Az.* -ListAvailable | Select-Object Name, Version
@@ -51,10 +81,14 @@ jobs:
         with:
           inlineScript: |
             ./automation/deploy-environment.ps1 `
-              -Env dev `
-              -App core `
-              -Region weu `
-              -Location westeurope
+              -Environment "${{ github.event.inputs.environment || 'dev' }}" `
+              -App "${{ github.event.inputs.app || 'core' }}" `
+              -Region "${{ github.event.inputs.region || 'deu' }}" `
+              -Location "${{ github.event.inputs.location || 'denmarkeast' }}" `
+              -MonitoringLocation "${{ github.event.inputs.monitoring_location || 'swedencentral' }}" `
+              -VmSize "${{ github.event.inputs.vm_size || 'Standard_B1s' }}" `
+              -SubscriptionId "${{ secrets.AZURE_SUBSCRIPTION_ID }}" `
+              -TenantId "${{ secrets.AZURE_TENANT_ID }}"
           azPSVersion: latest
 
       - name: Post Azure Login (OIDC)

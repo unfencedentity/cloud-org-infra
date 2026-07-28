@@ -3,12 +3,20 @@ param(
     [Parameter(Mandatory = $true)][string]$Environment,
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
-    [Parameter(Mandatory = $true)][string]$Location
+    [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $false)][string]$MonitoringLocation
 )
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+. "$PSScriptRoot\shared\ObjectShape.ps1"
+
 Write-Host "Loading Az modules in create-diagnostics.ps1..."
+
+if (-not [string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+    Write-Host ("Diagnostics will use workspace discovered by deterministic name in resource group. Monitoring location target: {0}" -f $MonitoringLocation)
+}
 
 $requiredModules = @(
     "Az.Accounts",
@@ -30,21 +38,12 @@ foreach ($mod in $requiredModules) {
     Import-Module $mod -ErrorAction Stop
 }
 
-$rgName         = "rg-$App-$Environment-$Region"
-$workspaceName  = "law-$App-$Environment-$Region"
-$keyVaultName   = "kv-$App-$Environment-$Region"
-$vnetName       = "vnet-$App-$Environment-$Region"
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
 
-$baseString = "$App-$Environment-$Region"
-
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
-
-$webAppName = "app-$App-$Environment-$Region-$hash"
-$webAppName = $webAppName.ToLower().Replace("-", "")
+$rgName         = $names.ResourceGroupName
+$workspaceName  = $names.LogAnalyticsName
+$vnetName       = $names.CoreVNetName
+$webAppName     = $names.WebAppName
 
 Write-Host "Configuring diagnostics for '$App' ($Environment/$Region)..."
 
@@ -86,7 +85,8 @@ function Set-DiagnosticSettingREST {
         throw "Set-DiagnosticSettingREST: ResourceId must be a full ARM id starting with '/subscriptions/...'. Got: '$ResourceId'"
     }
 
-    $path = "$ResourceId/providers/microsoft.insights/diagnosticSettings/$SettingName?api-version=$ApiVersion"
+    $normalizedResourceId = $ResourceId.TrimEnd('/')
+    $path = "{0}/providers/microsoft.insights/diagnosticSettings/{1}?api-version={2}" -f $normalizedResourceId, $SettingName, $ApiVersion
 
     $bodyObject = @{
         properties = @{
@@ -128,6 +128,8 @@ $keyVault = Get-AzKeyVault `
     -ResourceGroupName $rgName `
     -ErrorAction SilentlyContinue |
     Where-Object {
+        (Test-ObjectProperty -Object $_ -PropertyName "Tags") -and
+        $_.Tags -and
         $_.Tags["app"] -eq $App -and
         $_.Tags["environment"] -eq $Environment
     } |
@@ -163,6 +165,8 @@ $storageAccounts = Get-AzStorageAccount `
 
 $storage = $storageAccounts |
     Where-Object {
+        (Test-ObjectProperty -Object $_ -PropertyName "Tags") -and
+        $_.Tags -and
         $_.Tags["app"] -eq $App -and
         $_.Tags["environment"] -eq $Environment
     } |

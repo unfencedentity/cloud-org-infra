@@ -32,4 +32,4 @@ jobs:
 
             ./automation/create-backuppolicy.ps1 `
               -Environment "dev" `
-              -Region "weu"
+              -Region "deu"

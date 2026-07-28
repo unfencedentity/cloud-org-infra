@@ -55,6 +55,28 @@ function Test-AddressPrefixMatch {
     return $normalizedActual -contains $normalizedExpected
 }
 
+function Get-AddressPrefixesFromObject {
+    param(
+        [Parameter(Mandatory = $true)]$Object
+    )
+
+    if ($null -eq $Object) {
+        return @()
+    }
+
+    $propertyNames = @($Object.PSObject.Properties.Name)
+
+    if ($propertyNames -contains "AddressPrefixes") {
+        return @($Object.AddressPrefixes)
+    }
+
+    if ($propertyNames -contains "AddressPrefix") {
+        return @($Object.AddressPrefix)
+    }
+
+    return @()
+}
+
 function Ensure-VNet {
     param(
         [Parameter(Mandatory = $true)][string]$VNetName,
@@ -88,8 +110,10 @@ function Ensure-VNet {
         return $newVnet
     }
 
-    if (-not (Test-AddressPrefixMatch -Actual $existingVnet.AddressSpace.AddressPrefixes -Expected $VNetAddressPrefix)) {
-        $actualPrefixes = ($existingVnet.AddressSpace.AddressPrefixes -join ", ")
+    $existingAddressPrefixes = Get-AddressPrefixesFromObject -Object $existingVnet.AddressSpace
+
+    if (-not (Test-AddressPrefixMatch -Actual $existingAddressPrefixes -Expected $VNetAddressPrefix)) {
+        $actualPrefixes = ($existingAddressPrefixes -join ", ")
         throw "VNet '$VNetName' already exists with conflicting address space(s): [$actualPrefixes]. Expected to include '$VNetAddressPrefix'."
     }
 
@@ -101,10 +125,7 @@ function Ensure-VNet {
         $existingSubnet = $existingVnet.Subnets | Where-Object { $_.Name -eq $subnetName }
 
         if ($existingSubnet) {
-            $actualSubnetPrefixes = @($existingSubnet.AddressPrefix)
-            if ($existingSubnet.AddressPrefixes) {
-                $actualSubnetPrefixes = @($existingSubnet.AddressPrefixes)
-            }
+            $actualSubnetPrefixes = Get-AddressPrefixesFromObject -Object $existingSubnet
 
             if (-not (Test-AddressPrefixMatch -Actual $actualSubnetPrefixes -Expected $expectedPrefix)) {
                 $actual = ($actualSubnetPrefixes -join ", ")

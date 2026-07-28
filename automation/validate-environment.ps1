@@ -1,8 +1,8 @@
 param(
     [string]$Environment = "dev",
     [string]$App         = "core",
-    [string]$Region      = "weu",
-    [string]$Location    = "westeurope",
+    [string]$Region,
+    [string]$Location,
 
     [string]$ResourceGroupName,
     [string]$VNetName,
@@ -16,6 +16,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
 
 if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) {
     $ResourceGroupName = "rg-{0}-{1}-{2}" -f $App, $Environment, $Region
@@ -129,9 +135,14 @@ if ($hubVnet) {
     $hubSubnet = $hubVnet.Subnets | Where-Object { $_.Name -eq $HubSubnetName }
 
     if ($hubSubnet) {
-        $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefix)
-        if ($hubSubnet.AddressPrefixes) {
+        $actualHubSubnetPrefixes = @()
+        $hubSubnetPropertyNames = @($hubSubnet.PSObject.Properties.Name)
+
+        if ($hubSubnetPropertyNames -contains "AddressPrefixes") {
             $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefixes)
+        }
+        elseif ($hubSubnetPropertyNames -contains "AddressPrefix") {
+            $actualHubSubnetPrefixes = @($hubSubnet.AddressPrefix)
         }
 
         if ($actualHubSubnetPrefixes -contains $HubSubnetPrefix) {

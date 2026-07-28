@@ -15,25 +15,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+. "$PSScriptRoot\shared\ObjectShape.ps1"
 
-$resourceGroupName = "rg-$App-$Environment-$Region"
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
 
-$baseString = "$subscriptionId-$App-$Environment-$Region"
-
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 6).ToLower()
-
-$storageAccountName = "st$App$Environment$Region$hash"
-$storageAccountName = $storageAccountName.ToLower().Replace("-", "")
-
-$vnetName = "vnet-core-$Environment-$Region"
+$resourceGroupName = $names.ResourceGroupName
+$storageAccountName = $names.StorageAccountName
+$vnetName = $names.CoreVNetName
 $subnetName = "subnet-app"
 
-$privateEndpointName = "pe-storage-$Environment-$Region"
+$privateEndpointName = $names.PrivateEndpointName
 $privateDnsZoneName = "privatelink.blob.core.windows.net"
 $privateDnsZoneGroupName = "default"
 
@@ -86,9 +78,10 @@ $existingPrivateEndpoint = Get-AzPrivateEndpoint `
     -Name $privateEndpointName `
     -ErrorAction SilentlyContinue
 
-if ($existingPrivateEndpoint) {
+$privateEndpoint = $existingPrivateEndpoint
+
+if ($privateEndpoint) {
     Write-Host "Private Endpoint already exists: $privateEndpointName. Skipping creation."
-    return $existingPrivateEndpoint
 }
 
 $privateLinkServiceConnection = New-AzPrivateLinkServiceConnection `
@@ -96,7 +89,7 @@ $privateLinkServiceConnection = New-AzPrivateLinkServiceConnection `
     -PrivateLinkServiceId $storageAccount.Id `
     -GroupId "blob"
 
-if ($PSCmdlet.ShouldProcess($privateEndpointName, "Create Private Endpoint for Storage Blob")) {
+if (-not $privateEndpoint -and $PSCmdlet.ShouldProcess($privateEndpointName, "Create Private Endpoint for Storage Blob")) {
     Write-Host "Creating Private Endpoint: $privateEndpointName"
 
     $privateEndpoint = New-AzPrivateEndpoint `
@@ -160,6 +153,20 @@ $existingDnsZoneGroup = Get-AzPrivateDnsZoneGroup `
     -ErrorAction SilentlyContinue
 
 if (-not $existingDnsZoneGroup) {
+    $privateDnsZoneResourceId = Get-ObjectPropertyValue `
+        -Object $privateDnsZone `
+        -PropertyName "ResourceId"
+
+    if ([string]::IsNullOrWhiteSpace($privateDnsZoneResourceId)) {
+        $privateDnsZoneResourceId = Get-ObjectPropertyValue `
+            -Object $privateDnsZone `
+            -PropertyName "Id"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($privateDnsZoneResourceId) -or -not $privateDnsZoneResourceId.StartsWith("/subscriptions/")) {
+        throw "Private DNS Zone id could not be resolved to a valid ARM resource id for '$privateDnsZoneName'."
+    }
+
     if ($PSCmdlet.ShouldProcess($privateEndpointName, "Create Private DNS Zone Group")) {
         Write-Host "Creating Private DNS Zone Group for Private Endpoint."
 
@@ -170,7 +177,7 @@ if (-not $existingDnsZoneGroup) {
             -PrivateDnsZoneConfig @(
                 New-AzPrivateDnsZoneConfig `
                     -Name "blob-config" `
-                    -PrivateDnsZoneId $privateDnsZone.ResourceId
+                    -PrivateDnsZoneId $privateDnsZoneResourceId
             ) | Out-Null
 
         Write-Host "Private DNS Zone Group created."

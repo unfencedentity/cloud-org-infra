@@ -33,5 +33,5 @@ jobs:
             ./automation/create-snapshots.ps1 `
               -Environment "dev" `
               -App "core" `
-              -Region "weu" `
-              -Location "westeurope"
+              -Region "deu" `
+              -Location "denmarkeast"

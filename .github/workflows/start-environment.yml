@@ -14,7 +14,7 @@ on:
       region:
         description: "Short region code"
         required: true
-        default: "weu"
+        default: "deu"
 
 permissions:
   id-token: write

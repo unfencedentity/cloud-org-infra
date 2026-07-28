@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
     [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $false)][string]$MonitoringLocation,
 
     # Email address used for the primary action group receiver
     [Parameter(Mandatory = $false)][string]$AlertEmail = "alerts@cloud-org-infra.test"
@@ -17,7 +18,7 @@ $ErrorActionPreference = "Stop"
 $rgName            = "rg-$App-$Environment-$Region"
 $actionGroupName   = "ag-$App-$Environment-$Region"
 
-# Action Groups **cannot** be created in regional locations like westeurope.
+# Action Groups **cannot** be created in regional locations.
 # Microsoft only supports "global" for this resource type.
 $actionGroupLocation = "global"
 

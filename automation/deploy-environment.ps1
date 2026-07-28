@@ -1,17 +1,41 @@
 param(
     [string]$Environment = "dev",
     [string]$App         = "core",
-    [string]$Region      = "weu",
-    [string]$Location    = "westeurope"
+    [string]$Region,
+    [string]$Location,
+    [string]$MonitoringLocation,
+    [string]$SubscriptionId,
+    [string]$TenantId,
+    [string]$VmSize = "Standard_B1s"
 )
 
 $ErrorActionPreference = "Stop"
 
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
 . "$PSScriptRoot\shared\Test-DeploymentPrerequisites.ps1"
 . "$PSScriptRoot\shared\New-DeploymentSummary.ps1"
 
-Write-Host ("Starting full deployment for Env={0} App={1} Region={2} Location={3}" -f `
-    $Environment, $App, $Region, $Location)
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
+
+if ([string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+    throw "MonitoringLocation parameter is required. Provide a supported Azure region for monitoring resources."
+}
+
+$MonitoringLocation = $MonitoringLocation.Trim().ToLowerInvariant()
+
+if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
+    $SubscriptionId = Get-DeploymentSubscriptionId
+}
+
+if ([string]::IsNullOrWhiteSpace($TenantId)) {
+    $TenantId = Get-DeploymentTenantId
+}
+
+Write-Host ("Starting full deployment for Env={0} App={1} Region={2} WorkloadLocation={3} MonitoringLocation={4}" -f `
+    $Environment, $App, $Region, $Location, $MonitoringLocation)
 
 function Ensure-AzContext {
     param(
@@ -43,13 +67,18 @@ function Ensure-AzContext {
     Write-Host ("Using subscription: {0} - {1}" -f $ctx.Subscription.Id, $ctx.Subscription.Name)
 }
 
-Ensure-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID
-Set-AzContext -SubscriptionId $env:AZURE_SUBSCRIPTION_ID | Out-Null
+Ensure-AzContext -SubscriptionId $SubscriptionId
+Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
 
 Test-DeploymentPrerequisites `
+    -AppName $App `
+    -Region $Region `
     -EnvironmentName $Environment `
     -Location $Location `
-    -SubscriptionId $env:AZURE_SUBSCRIPTION_ID `
+    -MonitoringLocation $MonitoringLocation `
+    -SubscriptionId $SubscriptionId `
+    -TenantId $TenantId `
+    -VmSize $VmSize `
     -ModulesPath "$PSScriptRoot"
 
 $executedModules = @()
@@ -233,24 +262,14 @@ if (Test-Path $keyVaultScript) {
     $executedModules += "Key Vault"
 }
 
-# Managed Identity
-if (Test-Path $managedIdentityScript) {
-    & $managedIdentityScript `
-        -Environment $Environment `
-        -App $App `
-        -Region $Region `
-        -Location $Location
-
-    $executedModules += "Managed Identity"
-}
-
 # VM
 if (Test-Path $vmScript) {
     & $vmScript `
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -VmSize $VmSize
 
     $executedModules += "VM"
 }
@@ -266,24 +285,13 @@ if (Test-Path $appServiceScript) {
     $executedModules += "App Service"
 }
 
-# Extended App Service Configuration
-if (Test-Path $appServiceExtendedScript) {
-    & $appServiceExtendedScript `
-        -Environment $Environment `
-        -App $App `
-        -Region $Region `
-        -Location $Location
-
-    $executedModules += "App Service Extended"
-}
-
 # Log Analytics Workspace
 if (Test-Path $logAnalyticsScript) {
     & $logAnalyticsScript `
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "Log Analytics"
 }
@@ -294,9 +302,32 @@ if (Test-Path $appInsightsScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "App Insights"
+}
+
+# Extended App Service Configuration
+if (Test-Path $appServiceExtendedScript) {
+    & $appServiceExtendedScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location `
+        -MonitoringLocation $MonitoringLocation
+
+    $executedModules += "App Service Extended"
+}
+
+# Managed Identity
+if (Test-Path $managedIdentityScript) {
+    & $managedIdentityScript `
+        -Environment $Environment `
+        -App $App `
+        -Region $Region `
+        -Location $Location
+
+    $executedModules += "Managed Identity"
 }
 
 # Central Diagnostics
@@ -305,7 +336,8 @@ if (Test-Path $diagnosticsScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -MonitoringLocation $MonitoringLocation
 
     $executedModules += "Diagnostics"
 }
@@ -317,6 +349,7 @@ if (Test-Path $alertsScript) {
         -App $App `
         -Region $Region `
         -Location $Location `
+        -MonitoringLocation $MonitoringLocation `
         -AlertEmail "ops@example.com"
 
     $executedModules += "Alerts"
@@ -365,12 +398,23 @@ if (Test-Path $healthChecksScript) {
         -Environment $Environment `
         -App $App `
         -Region $Region `
-        -Location $Location
+        -Location $Location `
+        -MonitoringLocation $MonitoringLocation
+
+    $healthResults = @($healthResult)
+    $criticalHealthResults = @(
+        $healthResults | Where-Object {
+            $null -ne $_ -and
+            $_.PSObject -and
+            $_.PSObject.Properties.Name -contains "Severity" -and
+            $_.Severity -eq "Critical"
+        }
+    )
 
     Write-Host "Health checks completed."
     $executedModules += "Health Checks"
 
-    if ($healthResult.Status -eq "Error") {
+    if ($criticalHealthResults.Count -gt 0) {
         Write-Error "Critical errors detected during health checks. Aborting deployment."
         exit 2
     }

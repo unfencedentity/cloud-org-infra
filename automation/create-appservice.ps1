@@ -11,19 +11,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$rgName = "rg-$App-$Environment-$Region"
-$appServicePlanName = "asp-$App-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
 
-$baseString = "$App-$Environment-$Region-$env:AZURE_SUBSCRIPTION_ID"
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
 
-$hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-    [System.Text.Encoding]::UTF8.GetBytes($baseString)
-)
-
-$hash = ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, 10).ToLower()
-
-$webAppName = "app-$App-$Environment-$Region-$hash"
-$webAppName = $webAppName.ToLower().Replace("-", "")
+$rgName = $names.ResourceGroupName
+$appServicePlanName = $names.AppServicePlanName
+$webAppName = $names.WebAppName
 
 $tags = @{
     environment = $Environment

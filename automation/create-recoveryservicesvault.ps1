@@ -1,10 +1,16 @@
 param(
     [string]$Environment = "dev",
-    [string]$Region      = "weu",
-    [string]$Location    = "westeurope"
+    [string]$Region,
+    [string]$Location
 )
 
 $ErrorActionPreference = "Stop"
+
+. "$PSScriptRoot\shared\DeploymentDefaults.ps1"
+
+$deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
+$Region = $deploymentContext.Region
+$Location = $deploymentContext.Location
 
 $resourceGroupName = "rg-core-$Environment-$Region"
 $rsvName           = "rsv-core-$Environment-$Region"

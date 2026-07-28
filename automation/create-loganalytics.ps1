@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Environment,
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
-    [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $true)][string]$MonitoringLocation,
 
     [Parameter(Mandatory = $false)][string]$Sku = "PerGB2018",
     [Parameter(Mandatory = $false)][int]$RetentionInDays = 30
@@ -11,8 +11,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$rgName = "rg-$App-$Environment-$Region"
-$workspaceName = "law-$App-$Environment-$Region"
+. "$PSScriptRoot\shared\DeploymentNaming.ps1"
+
+$names = Get-DeploymentNames -Environment $Environment -App $App -Region $Region
+
+$rgName = $names.ResourceGroupName
+$workspaceName = $names.LogAnalyticsName
 
 if ($Sku -eq "PerGB2018" -and $RetentionInDays -lt 30) {
     Write-Host "RetentionInDays '$RetentionInDays' is below the minimum supported value for SKU '$Sku'. Using 30 days instead."
@@ -49,12 +53,12 @@ if (-not $PSCmdlet.ShouldProcess("Log Analytics Workspace $workspaceName", "Crea
 }
 
 Write-Host ("Creating Log Analytics Workspace '{0}' (SKU={1}, Retention={2} days) in '{3}'..." -f `
-    $workspaceName, $Sku, $RetentionInDays, $Location)
+    $workspaceName, $Sku, $RetentionInDays, $MonitoringLocation)
 
 $workspace = New-AzOperationalInsightsWorkspace `
     -ResourceGroupName $rgName `
     -Name $workspaceName `
-    -Location $Location `
+    -Location $MonitoringLocation `
     -Sku $Sku `
     -RetentionInDays $RetentionInDays `
     -Tag $tags

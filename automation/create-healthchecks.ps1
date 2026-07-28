@@ -4,15 +4,21 @@ param(
     [Parameter(Mandatory = $true)][string]$Environment,
     [Parameter(Mandatory = $true)][string]$App,
     [Parameter(Mandatory = $true)][string]$Region,
-    [Parameter(Mandatory = $true)][string]$Location
+    [Parameter(Mandatory = $true)][string]$Location,
+    [Parameter(Mandatory = $false)][string]$MonitoringLocation
 )
 
 $ErrorActionPreference = "Stop"
+
+. "$PSScriptRoot\shared\ObjectShape.ps1"
 
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "          Azure Environment Health Check - Standard Scan" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "Environment: $Environment | App: $App | Region: $Region | Location: $Location"
+if (-not [string]::IsNullOrWhiteSpace($MonitoringLocation)) {
+    Write-Host "Monitoring Location: $MonitoringLocation"
+}
 Write-Host ""
 
 $HealthResults = @()
@@ -98,11 +104,53 @@ function Get-KeyVault {
         return $null
     }
 
-    $vaults = Get-AzKeyVault -ResourceGroupName $rg.ResourceGroupName -ErrorAction SilentlyContinue
+    $vaults = @(Get-AzKeyVault -ResourceGroupName $rg.ResourceGroupName -ErrorAction SilentlyContinue)
 
-    return $vaults | Where-Object {
-        $_.VaultName -like "$kvPrefix*"
+    $matchedVaultSummary = $vaults | Where-Object {
+        $vaultName = Get-ObjectPropertyValue -Object $_ -PropertyName "VaultName"
+        -not [string]::IsNullOrWhiteSpace($vaultName) -and $vaultName -like "$kvPrefix*"
     } | Select-Object -First 1
+
+    if (-not $matchedVaultSummary) {
+        return [PSCustomObject]@{
+            State            = "Missing"
+            ResourceGroupName = $rg.ResourceGroupName
+            VaultName        = $null
+            Vault            = $null
+        }
+    }
+
+    $matchedVaultName = Get-ObjectPropertyValue -Object $matchedVaultSummary -PropertyName "VaultName"
+
+    if ([string]::IsNullOrWhiteSpace($matchedVaultName)) {
+        return [PSCustomObject]@{
+            State            = "DiscoveryShapeInvalid"
+            ResourceGroupName = $rg.ResourceGroupName
+            VaultName        = $null
+            Vault            = $null
+        }
+    }
+
+    $detailedVault = Get-AzKeyVault `
+        -ResourceGroupName $rg.ResourceGroupName `
+        -VaultName $matchedVaultName `
+        -ErrorAction SilentlyContinue
+
+    if (-not $detailedVault) {
+        return [PSCustomObject]@{
+            State            = "DetailsUnavailable"
+            ResourceGroupName = $rg.ResourceGroupName
+            VaultName        = $matchedVaultName
+            Vault            = $null
+        }
+    }
+
+    return [PSCustomObject]@{
+        State            = "Found"
+        ResourceGroupName = $rg.ResourceGroupName
+        VaultName        = $matchedVaultName
+        Vault            = $detailedVault
+    }
 }
 
 function Get-AppService {
@@ -141,11 +189,17 @@ function Get-DiagnosticSettingsRest {
         $uri = "https://management.azure.com$ResourceId/providers/microsoft.insights/diagnosticSettings?api-version=2021-05-01-preview"
         $response = Invoke-AzRestMethod -Method GET -Uri $uri
 
-        if ($response.StatusCode -lt 200 -or $response.StatusCode -ge 300) {
+        $statusCode = Get-ObjectPropertyValue -Object $response -PropertyName "StatusCode" -DefaultValue 0
+        if ($statusCode -lt 200 -or $statusCode -ge 300) {
             return @()
         }
 
-        $content = $response.Content | ConvertFrom-Json
+        $rawContent = Get-ObjectPropertyValue -Object $response -PropertyName "Content"
+        if ([string]::IsNullOrWhiteSpace($rawContent)) {
+            return @()
+        }
+
+        $content = $rawContent | ConvertFrom-Json
 
         if (-not $content.value) {
             return @()
@@ -170,7 +224,7 @@ function Test-DiagnosticSettingExists {
 
     $settings = Get-DiagnosticSettingsRest -ResourceId $ResourceId
 
-    if (-not $settings -or $settings.Count -eq 0) {
+    if (@($settings).Count -eq 0) {
         return $false
     }
 
@@ -189,13 +243,48 @@ function Get-Severity {
     return "Critical"
 }
 
+function Resolve-ResourceId {
+    param(
+        [Parameter(Mandatory = $false)]$Object
+    )
+
+    $resourceId = Get-ObjectPropertyValue -Object $Object -PropertyName "Id"
+    if ([string]::IsNullOrWhiteSpace($resourceId)) {
+        $resourceId = Get-ObjectPropertyValue -Object $Object -PropertyName "ResourceId"
+    }
+
+    return $resourceId
+}
+
+function Resolve-Name {
+    param(
+        [Parameter(Mandatory = $false)]$Object,
+        [string]$DefaultValue = "unknown"
+    )
+
+    $name = Get-ObjectPropertyValue -Object $Object -PropertyName "Name"
+    if ([string]::IsNullOrWhiteSpace($name)) {
+        $name = Get-ObjectPropertyValue -Object $Object -PropertyName "StorageAccountName"
+    }
+    if ([string]::IsNullOrWhiteSpace($name)) {
+        $name = Get-ObjectPropertyValue -Object $Object -PropertyName "VaultName"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($name)) {
+        return $DefaultValue
+    }
+
+    return $name
+}
+
 Write-Host "Initializing resource discovery..." -ForegroundColor DarkGray
 
 $ResourceGroup = Get-RG
 $VirtualNetwork = Get-VNet
-$NSGs = Get-NSGs
-$StorageAccounts = Get-StorageAccounts
-$KeyVault = Get-KeyVault
+$NSGs = @(Get-NSGs)
+$StorageAccounts = @(Get-StorageAccounts)
+$KeyVaultLookup = Get-KeyVault
+$KeyVault = Get-ObjectPropertyValue -Object $KeyVaultLookup -PropertyName "Vault"
 $AppService = Get-AppService
 $AppInsights = Get-AppInsights
 
@@ -216,9 +305,11 @@ Write-Section "Tags"
 $requiredTags = @("environment", "app", "region", "owner")
 $missingTags = @()
 
-if ($ResourceGroup -and $ResourceGroup.Tags) {
+$resourceGroupTags = Get-ObjectPropertyValue -Object $ResourceGroup -PropertyName "Tags"
+
+if ($ResourceGroup -and $resourceGroupTags -is [System.Collections.IDictionary]) {
     foreach ($tag in $requiredTags) {
-        if (-not $ResourceGroup.Tags.ContainsKey($tag)) {
+        if (-not $resourceGroupTags.ContainsKey($tag)) {
             $missingTags += $tag
         }
     }
@@ -226,7 +317,7 @@ if ($ResourceGroup -and $ResourceGroup.Tags) {
     $missingTags = $requiredTags
 }
 
-if ($missingTags.Count -gt 0) {
+if (@($missingTags).Count -gt 0) {
     Write-Status "Missing tags: $($missingTags -join ', ')" "WARNING"
     Add-HealthResult -Name "Tags" -Status "WARNING" -Details "Missing: $($missingTags -join ', ')" -ScoreImpact 10
 } else {
@@ -240,14 +331,20 @@ if (-not $VirtualNetwork) {
     Write-Status "VNet not found" "CRITICAL"
     Add-HealthResult -Name "VNet" -Status "CRITICAL" -Details "VNet missing" -ScoreImpact 20
 } else {
-    Write-Status "VNet found: $($VirtualNetwork.Name)" "OK"
+    $vnetNameDisplay = Resolve-Name -Object $VirtualNetwork -DefaultValue "unnamed-vnet"
+    Write-Status "VNet found: $vnetNameDisplay" "OK"
     Add-HealthResult -Name "VNet" -Status "OK" -Details "VNet present" -ScoreImpact 0
 }
 
 Write-Section "Subnets"
 
-if ($VirtualNetwork -and $VirtualNetwork.Subnets.Count -gt 0) {
-    Write-Status "Subnets found: $($VirtualNetwork.Subnets.Count)" "OK"
+$vnetSubnets = @()
+if ($VirtualNetwork) {
+    $vnetSubnets = @(Get-ObjectPropertyValue -Object $VirtualNetwork -PropertyName "Subnets" -DefaultValue @())
+}
+
+if ($VirtualNetwork -and @($vnetSubnets).Count -gt 0) {
+    Write-Status "Subnets found: $(@($vnetSubnets).Count)" "OK"
     Add-HealthResult -Name "Subnets" -Status "OK" -Details "Subnets OK" -ScoreImpact 0
 } else {
     Write-Status "No subnets found" "CRITICAL"
@@ -256,8 +353,8 @@ if ($VirtualNetwork -and $VirtualNetwork.Subnets.Count -gt 0) {
 
 Write-Section "Network Security Groups"
 
-if ($NSGs -and $NSGs.Count -gt 0) {
-    Write-Status "NSGs found: $($NSGs.Count)" "OK"
+if (@($NSGs).Count -gt 0) {
+    Write-Status "NSGs found: $(@($NSGs).Count)" "OK"
     Add-HealthResult -Name "NSG" -Status "OK" -Details "NSGs OK" -ScoreImpact 0
 } else {
     Write-Status "No NSGs found" "CRITICAL"
@@ -266,16 +363,22 @@ if ($NSGs -and $NSGs.Count -gt 0) {
 
 Write-Section "Storage Accounts"
 
-if (-not $StorageAccounts -or $StorageAccounts.Count -eq 0) {
+if (@($StorageAccounts).Count -eq 0) {
     Write-Status "No Storage Accounts found" "WARNING"
     Add-HealthResult -Name "Storage" -Status "WARNING" -Details "Missing storage accounts" -ScoreImpact 10
 } else {
     foreach ($st in $StorageAccounts) {
-        if ($st.EnableHttpsTrafficOnly -eq $false) {
-            Write-Status "HTTPS not enforced on $($st.StorageAccountName)" "CRITICAL"
-            Add-HealthResult -Name "StorageSecurity" -Status "CRITICAL" -Details "HTTPS disabled on $($st.StorageAccountName)" -ScoreImpact 20
+        $storageName = Resolve-Name -Object $st -DefaultValue "unknown-storage"
+        $httpsOnlyEnabled = Get-ObjectPropertyValue -Object $st -PropertyName "EnableHttpsTrafficOnly"
+
+        if ($null -eq $httpsOnlyEnabled) {
+            Write-Status "Unable to verify HTTPS enforcement on $storageName" "WARNING"
+            Add-HealthResult -Name "StorageSecurity" -Status "WARNING" -Details "HTTPS enforcement property unavailable on $storageName" -ScoreImpact 5
+        } elseif ($httpsOnlyEnabled -eq $false) {
+            Write-Status "HTTPS not enforced on $storageName" "CRITICAL"
+            Add-HealthResult -Name "StorageSecurity" -Status "CRITICAL" -Details "HTTPS disabled on $storageName" -ScoreImpact 20
         } else {
-            Write-Status "HTTPS enforced on $($st.StorageAccountName)" "OK"
+            Write-Status "HTTPS enforced on $storageName" "OK"
         }
     }
 
@@ -284,16 +387,33 @@ if (-not $StorageAccounts -or $StorageAccounts.Count -eq 0) {
 
 Write-Section "Key Vault"
 
-if (-not $KeyVault) {
+if (-not $KeyVaultLookup -or (Get-ObjectPropertyValue -Object $KeyVaultLookup -PropertyName "State") -eq "Missing") {
     Write-Status "Key Vault not found" "CRITICAL"
     Add-HealthResult -Name "KeyVault" -Status "CRITICAL" -Details "KV missing" -ScoreImpact 20
+} elseif ((Get-ObjectPropertyValue -Object $KeyVaultLookup -PropertyName "State") -eq "DetailsUnavailable") {
+    $discoveryName = Get-ObjectPropertyValue -Object $KeyVaultLookup -PropertyName "VaultName" -DefaultValue "unknown"
+    Write-Status "Key Vault details query failed for $discoveryName" "WARNING"
+    Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "KV details query failed for $discoveryName" -ScoreImpact 10
+} elseif ((Get-ObjectPropertyValue -Object $KeyVaultLookup -PropertyName "State") -eq "DiscoveryShapeInvalid") {
+    Write-Status "Key Vault discovery returned an unexpected object shape" "WARNING"
+    Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "KV discovery object shape invalid" -ScoreImpact 10
+} elseif (-not $KeyVault) {
+    Write-Status "Key Vault details unavailable" "WARNING"
+    Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "KV details unavailable" -ScoreImpact 10
 } else {
-    if ($KeyVault.EnablePurgeProtection -ne $true) {
-        Write-Status "Purge protection DISABLED" "WARNING"
-        Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "Purge protection disabled" -ScoreImpact 5
+    $hasPurgeProtectionProperty = Test-ObjectProperty -Object $KeyVault -PropertyName "EnablePurgeProtection"
+    if (-not $hasPurgeProtectionProperty) {
+        Write-Status "Purge protection property unavailable on Key Vault details" "WARNING"
+        Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "Purge protection property unavailable" -ScoreImpact 5
     } else {
-        Write-Status "Purge protection enabled" "OK"
-        Add-HealthResult -Name "KeyVault" -Status "OK" -Details "Secure" -ScoreImpact 0
+        $purgeProtectionEnabled = Get-ObjectPropertyValue -Object $KeyVault -PropertyName "EnablePurgeProtection"
+        if ($purgeProtectionEnabled -ne $true) {
+            Write-Status "Purge protection DISABLED" "WARNING"
+            Add-HealthResult -Name "KeyVault" -Status "WARNING" -Details "Purge protection disabled" -ScoreImpact 5
+        } else {
+            Write-Status "Purge protection enabled" "OK"
+            Add-HealthResult -Name "KeyVault" -Status "OK" -Details "Secure" -ScoreImpact 0
+        }
     }
 }
 
@@ -303,7 +423,12 @@ if (-not $AppService) {
     Write-Status "App Service missing" "CRITICAL"
     Add-HealthResult -Name "AppService" -Status "CRITICAL" -Details "Missing" -ScoreImpact 20
 } else {
-    if ($AppService.HttpsOnly -eq $false) {
+    $appServiceName = Resolve-Name -Object $AppService -DefaultValue "unknown-appservice"
+    $appServiceHttpsOnly = Get-ObjectPropertyValue -Object $AppService -PropertyName "HttpsOnly"
+    if ($null -eq $appServiceHttpsOnly) {
+        Write-Status "HTTPS property unavailable for App Service $appServiceName" "WARNING"
+        Add-HealthResult -Name "AppService" -Status "WARNING" -Details "HTTPS property unavailable" -ScoreImpact 5
+    } elseif ($appServiceHttpsOnly -eq $false) {
         Write-Status "HTTPS disabled for App Service" "WARNING"
         Add-HealthResult -Name "AppService" -Status "WARNING" -Details "HTTPS disabled" -ScoreImpact 10
     } else {
@@ -326,36 +451,44 @@ Write-Section "Diagnostics"
 
 $diagnosticChecks = @()
 
-if ($VirtualNetwork -and $VirtualNetwork.Id) {
+$virtualNetworkId = Resolve-ResourceId -Object $VirtualNetwork
+if ($VirtualNetwork -and -not [string]::IsNullOrWhiteSpace($virtualNetworkId)) {
+    $vnetDiagnosticName = "diag-$(Resolve-Name -Object $VirtualNetwork -DefaultValue 'vnet')"
     $diagnosticChecks += [PSCustomObject]@{
         Name           = "VNet"
-        ResourceId     = $VirtualNetwork.Id
-        DiagnosticName = "diag-$($VirtualNetwork.Name)"
+        ResourceId     = $virtualNetworkId
+        DiagnosticName = $vnetDiagnosticName
     }
 }
 
-if ($KeyVault -and $KeyVault.ResourceId) {
+$keyVaultResourceId = Resolve-ResourceId -Object $KeyVault
+if ($KeyVault -and -not [string]::IsNullOrWhiteSpace($keyVaultResourceId)) {
+    $keyVaultDiagnosticName = "diag-$(Resolve-Name -Object $KeyVault -DefaultValue 'keyvault')"
     $diagnosticChecks += [PSCustomObject]@{
         Name           = "KeyVault"
-        ResourceId     = $KeyVault.ResourceId
-        DiagnosticName = "diag-$($KeyVault.VaultName)"
+        ResourceId     = $keyVaultResourceId
+        DiagnosticName = $keyVaultDiagnosticName
     }
 }
 
-if ($AppService -and $AppService.Id) {
+$appServiceResourceId = Resolve-ResourceId -Object $AppService
+if ($AppService -and -not [string]::IsNullOrWhiteSpace($appServiceResourceId)) {
+    $appServiceDiagnosticName = "diag-$(Resolve-Name -Object $AppService -DefaultValue 'appservice')"
     $diagnosticChecks += [PSCustomObject]@{
         Name           = "AppService"
-        ResourceId     = $AppService.Id
-        DiagnosticName = "diag-$($AppService.Name)"
+        ResourceId     = $appServiceResourceId
+        DiagnosticName = $appServiceDiagnosticName
     }
 }
 
 foreach ($st in $StorageAccounts) {
-    if ($st -and $st.Id) {
+    $storageResourceId = Resolve-ResourceId -Object $st
+    if ($st -and -not [string]::IsNullOrWhiteSpace($storageResourceId)) {
+        $storageDiagnosticName = "diag-$(Resolve-Name -Object $st -DefaultValue 'storage')"
         $diagnosticChecks += [PSCustomObject]@{
             Name           = "Storage"
-            ResourceId     = $st.Id
-            DiagnosticName = "diag-$($st.StorageAccountName)"
+            ResourceId     = $storageResourceId
+            DiagnosticName = $storageDiagnosticName
         }
     }
 }
@@ -373,11 +506,11 @@ foreach ($check in $diagnosticChecks) {
     }
 }
 
-if ($diagnosticChecks.Count -eq 0) {
+if (@($diagnosticChecks).Count -eq 0) {
     Write-Status "No diagnostic targets found" "WARNING"
     Add-HealthResult -Name "Diagnostics" -Status "WARNING" -Details "No diagnostic targets found" -ScoreImpact 10
-} elseif ($missingDiagnostics.Count -gt 0) {
-    Add-HealthResult -Name "Diagnostics" -Status "WARNING" -Details "$($missingDiagnostics.Count) resources missing diagnostics: $($missingDiagnostics -join ', ')" -ScoreImpact 10
+} elseif (@($missingDiagnostics).Count -gt 0) {
+    Add-HealthResult -Name "Diagnostics" -Status "WARNING" -Details "$(@($missingDiagnostics).Count) resources missing diagnostics: $($missingDiagnostics -join ', ')" -ScoreImpact 10
 } else {
     Add-HealthResult -Name "Diagnostics" -Status "OK" -Details "All expected diagnostics configured" -ScoreImpact 0
     Write-Status "All diagnostics correctly configured" "OK"
@@ -388,7 +521,8 @@ Write-Section "Alerts"
 $actionGroupName = "ag-$App-$Environment-$Region"
 
 if ($ResourceGroup) {
-    $ag = Get-AzActionGroup -Name $actionGroupName -ResourceGroupName $ResourceGroup.ResourceGroupName -ErrorAction SilentlyContinue
+    $resourceGroupName = Get-ObjectPropertyValue -Object $ResourceGroup -PropertyName "ResourceGroupName"
+    $ag = Get-AzActionGroup -Name $actionGroupName -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue
 } else {
     $ag = $null
 }
@@ -404,14 +538,19 @@ if (-not $ag) {
 Write-Section "RBAC"
 
 if ($ResourceGroup) {
-    $assignments = Get-AzRoleAssignment -ResourceGroupName $ResourceGroup.ResourceGroupName -ErrorAction SilentlyContinue
+    $resourceGroupName = Get-ObjectPropertyValue -Object $ResourceGroup -PropertyName "ResourceGroupName"
+    $assignments = @(Get-AzRoleAssignment -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue)
 } else {
     $assignments = @()
 }
 
-$unexpected = $assignments | Where-Object { $_.RoleDefinitionName -eq "Contributor" -and $_.ObjectId -notlike "*" }
+$unexpected = @($assignments | Where-Object {
+        $roleDefinitionName = Get-ObjectPropertyValue -Object $_ -PropertyName "RoleDefinitionName"
+        $objectId = Get-ObjectPropertyValue -Object $_ -PropertyName "ObjectId"
+        $roleDefinitionName -eq "Contributor" -and $objectId -notlike "*"
+    })
 
-if ($unexpected.Count -gt 0) {
+if (@($unexpected).Count -gt 0) {
     Write-Status "Unexpected Contributor assignments detected" "WARNING"
     Add-HealthResult -Name "RBAC" -Status "WARNING" -Details "Unexpected Contributor roles present" -ScoreImpact 10
 } else {
@@ -433,8 +572,9 @@ if (-not $ResourceGroup) {
     $dnsWarnings += "Resource Group missing"
 }
 else {
+    $resourceGroupName = Get-ObjectPropertyValue -Object $ResourceGroup -PropertyName "ResourceGroupName"
     $dnsZone = Get-AzPrivateDnsZone `
-        -ResourceGroupName $ResourceGroup.ResourceGroupName `
+        -ResourceGroupName $resourceGroupName `
         -Name $dnsZoneName `
         -ErrorAction SilentlyContinue
 
@@ -446,7 +586,7 @@ else {
         Write-Status "Private DNS Zone present: $dnsZoneName" "OK"
 
         $vnetLink = Get-AzPrivateDnsVirtualNetworkLink `
-            -ResourceGroupName $ResourceGroup.ResourceGroupName `
+            -ResourceGroupName $resourceGroupName `
             -ZoneName $dnsZoneName `
             -Name $vnetLinkName `
             -ErrorAction SilentlyContinue
@@ -460,7 +600,7 @@ else {
         }
 
         $recordSet = Get-AzPrivateDnsRecordSet `
-            -ResourceGroupName $ResourceGroup.ResourceGroupName `
+            -ResourceGroupName $resourceGroupName `
             -ZoneName $dnsZoneName `
             -Name $dnsRecordName `
             -RecordType A `
@@ -474,21 +614,48 @@ else {
             Write-Status "Private DNS A record present: $dnsRecordName.$dnsZoneName" "OK"
 
             $vm = Get-AzVM `
-                -ResourceGroupName $ResourceGroup.ResourceGroupName `
+                -ResourceGroupName $resourceGroupName `
                 -Name $vmName `
                 -ErrorAction SilentlyContinue
 
             if ($vm) {
-                $nicId = $vm.NetworkProfile.NetworkInterfaces[0].Id
+                $networkProfile = Get-ObjectPropertyValue -Object $vm -PropertyName "NetworkProfile"
+                $networkInterfaces = Get-ObjectPropertyValue -Object $networkProfile -PropertyName "NetworkInterfaces" -DefaultValue @()
+                $firstNetworkInterface = Get-FirstCollectionItem -Collection $networkInterfaces
+                $nicId = Get-ObjectPropertyValue -Object $firstNetworkInterface -PropertyName "Id"
+
+                if ([string]::IsNullOrWhiteSpace($nicId)) {
+                    Write-Status "VM network interface id missing on $vmName" "WARNING"
+                    $dnsWarnings += "VM NIC id missing"
+                    continue
+                }
+
                 $nicName = ($nicId -split "/")[-1]
 
                 $nic = Get-AzNetworkInterface `
-                    -ResourceGroupName $ResourceGroup.ResourceGroupName `
+                    -ResourceGroupName $resourceGroupName `
                     -Name $nicName `
                     -ErrorAction SilentlyContinue
 
-                $privateIp = $nic.IpConfigurations[0].PrivateIpAddress
-                $dnsIp = $recordSet.Records[0].Ipv4Address
+                if (-not $nic) {
+                    Write-Status "NIC not found for VM: $nicName" "WARNING"
+                    $dnsWarnings += "NIC missing"
+                    continue
+                }
+
+                $ipConfigurations = Get-ObjectPropertyValue -Object $nic -PropertyName "IpConfigurations" -DefaultValue @()
+                $firstIpConfiguration = Get-FirstCollectionItem -Collection $ipConfigurations
+                $privateIp = Get-ObjectPropertyValue -Object $firstIpConfiguration -PropertyName "PrivateIpAddress"
+
+                $records = @(Get-ObjectPropertyValue -Object $recordSet -PropertyName "Records" -DefaultValue @())
+                $firstRecord = Get-FirstCollectionItem -Collection $records
+                $dnsIp = Get-ObjectPropertyValue -Object $firstRecord -PropertyName "Ipv4Address"
+
+                if ([string]::IsNullOrWhiteSpace($privateIp) -or [string]::IsNullOrWhiteSpace($dnsIp)) {
+                    Write-Status "Unable to compare DNS/VM IP for $dnsRecordName.$dnsZoneName" "WARNING"
+                    $dnsWarnings += "DNS IP comparison data missing"
+                    continue
+                }
 
                 if ($dnsIp -eq $privateIp) {
                     Write-Status "Private DNS A record points to VM private IP: $privateIp" "OK"
@@ -502,7 +669,7 @@ else {
     }
 }
 
-if ($dnsWarnings.Count -gt 0) {
+if (@($dnsWarnings).Count -gt 0) {
     Add-HealthResult -Name "DNS" -Status "WARNING" -Details "$($dnsWarnings -join ', ')" -ScoreImpact 5
 }
 else {
@@ -541,13 +708,14 @@ $JsonSummary = [PSCustomObject]@{
     App         = $App
     Region      = $Region
     Location    = $Location
+    MonitoringLocation = $MonitoringLocation
     Score       = $GlobalScore
     Severity    = $FinalSeverity
     Timestamp   = (Get-Date)
-    Results     = $HealthResults
+    Results     = @($HealthResults)
 }
 
-$JsonSummary | ConvertTo-Json -Depth 10
+Write-Host ($JsonSummary | ConvertTo-Json -Depth 10)
 
 Write-Host ""
 Write-Host "Health check completed." -ForegroundColor Cyan

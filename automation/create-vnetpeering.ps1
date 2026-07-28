@@ -128,15 +128,14 @@ function Ensure-VNetPeering {
         Write-Host "Creating VNet peering '$PeeringName' from '$LocalVNetName' to '$RemoteVNetName'..."
 
         # Keep forwarding/transit/remote-gateway disabled until a routing stack exists (Azure Firewall/NVA/VPN Gateway/Route Server).
-        return New-AzVirtualNetworkPeering `
-            -Name $PeeringName `
-            -VirtualNetworkName $LocalVNetName `
-            -ResourceGroupName $resourceGroupName `
-            -RemoteVirtualNetworkId $RemoteVNetId `
-            -AllowVirtualNetworkAccess:$true `
-            -AllowForwardedTraffic:$false `
-            -AllowGatewayTransit:$false `
-            -UseRemoteGateways:$false
+        $localVNet = Get-AzVirtualNetwork `
+    -Name $LocalVNetName `
+    -ResourceGroupName $resourceGroupName
+
+        return Add-AzVirtualNetworkPeering `
+    -Name $PeeringName `
+    -VirtualNetwork $localVNet `
+    -RemoteVirtualNetworkId $RemoteVNetId
     }
 
     if (Test-PeeringConfigurationMatch -Peering $existingPeering -RemoteVirtualNetworkId $RemoteVNetId) {
