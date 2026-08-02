@@ -15,7 +15,7 @@ $ErrorActionPreference = "Stop"
 
 $resourceGroupName = "rg-$App-$Environment-$Region"
 $vnetName = "vnet-$App-$Environment-$Region"
-$vmName = "vm-$Environment-$App-$Region-01"
+$vmName = "vm-$App-$Environment-$Region-01"
 
 $dnsZoneName = "internal.cloudorg.local"
 $vnetLinkName = "link-$vnetName"

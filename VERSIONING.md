@@ -22,7 +22,7 @@ Examples:
 - new networking architecture  
 - switching identity model (e.g., migrate to Federated Credentials / OIDC)  
 - large-scale reorganization of module structure  
-- migration to Terraform-only or hybrid orchestration  
+- migration to orchestration changes aligned with the separate [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform) implementation
 
 ---
 

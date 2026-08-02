@@ -374,7 +374,7 @@ The automation framework follows several engineering principles:
 
 Planned roadmap items:
 
-* Terraform-based cloud-org-infra-v2
+* A separate Terraform implementation is available in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform).
 * Extended monitoring dashboards
 * Application Gateway and WAF integration
 * AKS integration modules

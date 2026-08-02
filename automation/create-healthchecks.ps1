@@ -563,7 +563,7 @@ Write-Section "Private DNS"
 $dnsZoneName = "internal.cloudorg.local"
 $vnetLinkName = "link-vnet-$App-$Environment-$Region"
 $dnsRecordName = "vm-$App-$Environment-$Region"
-$vmName = "vm-$Environment-$App-$Region-01"
+$vmName = "vm-$App-$Environment-$Region-01"
 
 $dnsWarnings = @()
 

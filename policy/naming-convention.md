@@ -1,7 +1,7 @@
 # Naming Convention Policy
 
 ## Pattern
-{env}-{svc}-{region}-{name}
+{app}-{env}-{region}-{name}
 
 ### Segmente
 - env: dev / test / prod
@@ -10,6 +10,6 @@
 - name: nume logic (api, data, vm01)
 
 ### Exemple
-- prod-app-weu-api
-- test-sql-weu-db
-- dev-kv-weu-secrets
+- app-prod-weu-api
+- sql-test-weu-db
+- kv-dev-weu-secrets

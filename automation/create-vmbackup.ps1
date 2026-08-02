@@ -14,7 +14,7 @@ $Region = $deploymentContext.Region
 $resourceGroupName = "rg-core-$Environment-$Region"
 $vaultName         = "rsv-$App-$Environment-$Region"
 $policyName        = "policy-vm-daily"
-$vmName            = "vm-$Environment-$App-$Region-01"
+$vmName            = "vm-$App-$Environment-$Region-01"
 
 Write-Host "Starting VM backup deployment..."
 Write-Host "Resource Group: $resourceGroupName"

@@ -227,7 +227,7 @@ Example naming patterns:
 * `stcoredevweuXXXXXX`
 * `kvcoredevweuXXXXXX`
 * `mi-core-dev-weu`
-* `vm-dev-core-weu-01`
+* `vm-core-dev-weu-01`
 * `asp-core-dev-weu`
 * `app-core-dev-weu`
 * `law-core-dev-weu`
@@ -407,7 +407,7 @@ The project intentionally focuses on operational infrastructure concerns commonl
 
 Planned future enhancements include:
 
-* Terraform-based Cloud Org Infra v2
+* A separate Terraform implementation is available in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform).
 * Multi-environment expansion
 * Extended CI/CD templates
 * Application Gateway and WAF support

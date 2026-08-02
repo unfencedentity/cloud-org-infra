@@ -89,7 +89,8 @@ The compute layer is tightly integrated with:
   - Managed identities instead of secrets  
   - Future NSGs for traffic control  
 - **Automation layer**:
-  - PowerShell / Terraform modules to deploy compute consistently  
+  - PowerShell modules in this repository to deploy compute consistently
+  - A separate Terraform implementation is available in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform).
 
 ---
 
