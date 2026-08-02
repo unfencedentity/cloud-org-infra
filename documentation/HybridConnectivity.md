@@ -395,7 +395,7 @@ Potential future improvements:
 - ExpressRoute integration
 - Azure Firewall integration
 - Hub-and-Spoke networking architecture
-- Terraform implementation
+- A separate Terraform implementation is available in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform).
 - Monitoring and alerting enhancements
 
 ---

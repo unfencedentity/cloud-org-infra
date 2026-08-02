@@ -76,7 +76,7 @@ function Get-DeploymentNames {
     $logAnalyticsName = "law-$App-$Environment-$Region"
     $appInsightsName = "appi-$App-$Environment-$Region"
     $privateEndpointName = "pe-storage-$Environment-$Region"
-    $vmName = "vm-$Environment-$App-$Region-01"
+    $vmName = "vm-$App-$Environment-$Region-01"
 
     $webAppHash = Get-DeterministicHash -Input "$App-$Environment-$Region-$resolvedSubscriptionId" -Length 10
     $webAppName = ("app-$App-$Environment-$Region-$webAppHash").ToLowerInvariant().Replace("-", "")

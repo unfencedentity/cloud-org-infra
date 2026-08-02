@@ -17,7 +17,7 @@ Connect-AzAccount
 
 ## Maintenance
 - **Tag Review:** Ensure all resources have required tags (`env`, `owner`, `costCenter`, `app`, `dataClass`).
-- **Naming Compliance:** All resources follow `{env}-{svc}-{region}-{name}`.
+- **Naming Compliance:** All resources follow `{app}-{env}-{region}-{name}`.
 - **Policy Updates:** Review policy JSONs quarterly.
 - **Automation Scripts:** Test new scripts in `dev` before merging to `main`.
 

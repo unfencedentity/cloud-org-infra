@@ -14,8 +14,8 @@ $Region = $deploymentContext.Region
 $Location = $deploymentContext.Location
 
 $resourceGroupName = "rg-core-$Environment-$Region"
-$vmName            = "vm-$Environment-$App-$Region-01"
-$snapshotName      = "snap-$Environment-$App-$Region-osdisk-01"
+$vmName            = "vm-$App-$Environment-$Region-01"
+$snapshotName      = "snap-$App-$Environment-$Region-osdisk-01"
 
 $tags = @{
     environment = $Environment

@@ -85,7 +85,7 @@ and this project adheres to a semantic, human-readable versioning scheme.
 
 Planned items (tracked at roadmap level, subject to change):
 
-- Terraform mirror repository (`cloud-org-infra2`)
+- Separate Terraform implementation available: [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform)
 - Optional Application Gateway + WAF module
 - Optional database modules (SQL / PostgreSQL)
 - GitHub Actions templates for continuous delivery of environments

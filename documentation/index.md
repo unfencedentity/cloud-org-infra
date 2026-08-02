@@ -227,7 +227,7 @@ Planned future enhancements include:
 - Azure Front Door
 - VPN Gateway
 - ExpressRoute
-- Terraform implementation
+- A separate Terraform implementation is available in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform).
 - Azure Kubernetes Service (AKS)
 - SQL & PostgreSQL modules
 

@@ -214,7 +214,7 @@ A module or feature may be deprecated when:
 
 • Azure announces retirement  
 • A newer architectural pattern replaces it  
-• Terraform takes over the same component through infra2  
+• The separate Terraform implementation in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform) supersedes it
 • Security or compliance concerns arise  
 
 Deprecated features will be marked in `CHANGELOG.md`.
@@ -233,4 +233,3 @@ The support model ensures:
 • enterprise-grade operational readiness  
 
 If you follow the standards described here, support will be fast, efficient, and professional.
-

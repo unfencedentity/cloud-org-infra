@@ -31,8 +31,8 @@ documentation/create-snapshots.md
 
 ```text
 Resource Group: rg-core-dev-weu
-VM: vm-dev-core-weu-01
-Snapshot: snap-dev-core-weu-osdisk-01
+VM: vm-core-dev-weu-01
+Snapshot: snap-core-dev-weu-osdisk-01
 ```
 
 ## Idempotency
@@ -79,7 +79,7 @@ Idempotency check succeeded
 This version creates one fixed snapshot:
 
 ```text
-snap-dev-core-weu-osdisk-01
+snap-core-dev-weu-osdisk-01
 ```
 
 It does not yet create multiple timestamped recovery points.

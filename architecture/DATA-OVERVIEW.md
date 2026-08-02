@@ -90,7 +90,7 @@ This data layer is suitable for:
 
 - App Service or Function Apps storing files  
 - Automation accounts or pipelines writing logs  
-- Terraform state (future)  
+- Terraform state workloads via the separate [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform) implementation
 - Analytics workloads (Synapse, Databricks, ML)  
 - General organization data lake foundations
 

@@ -199,9 +199,9 @@ This allows cloud-org-infra to act as a **cloud foundation platform**.
 
 ---
 
-# 11. Terraform Mirror Architecture (cloud-org-infra2)
+# 11. Terraform Implementation
 
-A 1:1 Terraform mirror is planned:
+A separate Terraform implementation is available in [cloud-org-infra-terraform](https://github.com/unfencedentity/cloud-org-infra-terraform).
 
 • Same naming conventions  
 • Same modules  

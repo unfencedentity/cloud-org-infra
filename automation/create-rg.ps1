@@ -9,7 +9,7 @@ param(
     [Parameter(Mandatory = $false)][hashtable]$AdditionalTags
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = "Stop"
 
 # Naming convention for the resource group
 $resourceGroupName = "rg-$App-$Environment-$Region"

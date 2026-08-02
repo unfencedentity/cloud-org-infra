@@ -22,5 +22,5 @@ dev, test, prod
 - CI/CD: GitHub Actions (+ self-hosted runner opțional)
 
 ## Naming & Tags
-- Name: {env}-{svc}-{region}-{name} (ex: prod-app-weu-api)
+- Name: {app}-{env}-{region}-{name} (ex: app-prod-weu-api)
 - Tags: env, owner, costCenter, app, dataClass
