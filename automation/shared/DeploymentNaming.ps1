@@ -44,15 +44,23 @@ function Get-DeploymentTenantId {
 
 function Get-DeterministicHash {
     param(
-        [Parameter(Mandatory = $true)][string]$Input,
-        [Parameter(Mandatory = $true)][int]$Length
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Value,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateRange(1, 64)]
+        [int]$Length
     )
 
     $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-        [System.Text.Encoding]::UTF8.GetBytes($Input)
+        [System.Text.Encoding]::UTF8.GetBytes($Value)
     )
 
-    return ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").Substring(0, $Length).ToLowerInvariant()
+    return ([System.BitConverter]::ToString($hashBytes)).
+        Replace("-", "").
+        Substring(0, $Length).
+        ToLowerInvariant()
 }
 
 function Get-DeploymentNames {
@@ -78,13 +86,13 @@ function Get-DeploymentNames {
     $privateEndpointName = "pe-storage-$Environment-$Region"
     $vmName = "vm-$App-$Environment-$Region-01"
 
-    $webAppHash = Get-DeterministicHash -Input "$App-$Environment-$Region-$resolvedSubscriptionId" -Length 10
+    $webAppHash = Get-DeterministicHash -Value "$App-$Environment-$Region-$resolvedSubscriptionId" -Length 10
     $webAppName = ("app-$App-$Environment-$Region-$webAppHash").ToLowerInvariant().Replace("-", "")
 
-    $storageHash = Get-DeterministicHash -Input "$resolvedSubscriptionId-$App-$Environment-$Region" -Length 6
+    $storageHash = Get-DeterministicHash -Value "$resolvedSubscriptionId-$App-$Environment-$Region" -Length 6
     $storageAccountName = ("st$App$Environment$Region$storageHash").ToLowerInvariant().Replace("-", "")
 
-    $keyVaultHash = Get-DeterministicHash -Input "$resolvedSubscriptionId-$App-$Environment-$Region" -Length 6
+    $keyVaultHash = Get-DeterministicHash -Value "$resolvedSubscriptionId-$App-$Environment-$Region" -Length 6
     $keyVaultName = ("kv$App$Environment$Region$keyVaultHash").ToLowerInvariant().Replace("-", "")
 
     return [PSCustomObject]@{
