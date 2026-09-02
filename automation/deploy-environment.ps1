@@ -15,6 +15,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\shared\DeploymentNaming.ps1"
 . "$PSScriptRoot\shared\Test-DeploymentPrerequisites.ps1"
 . "$PSScriptRoot\shared\New-DeploymentSummary.ps1"
+. "$PSScriptRoot\shared\Assert-DeploymentContext.ps1"
 
 $deploymentContext = Resolve-DeploymentRegionLocation -Region $Region -Location $Location
 $Region = $deploymentContext.Region
@@ -37,38 +38,9 @@ if ([string]::IsNullOrWhiteSpace($TenantId)) {
 Write-Host ("Starting full deployment for Env={0} App={1} Region={2} WorkloadLocation={3} MonitoringLocation={4}" -f `
     $Environment, $App, $Region, $Location, $MonitoringLocation)
 
-function Ensure-AzContext {
-    param(
-        [string]$SubscriptionId
-    )
-
-    $ctx = Get-AzContext -ErrorAction SilentlyContinue
-
-    if (-not $ctx) {
-        if ($env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET -and $env:AZURE_TENANT_ID) {
-            $sec = ConvertTo-SecureString $env:AZURE_CLIENT_SECRET -AsPlainText -Force
-            $cred = New-Object System.Management.Automation.PSCredential($env:AZURE_CLIENT_ID, $sec)
-
-            Connect-AzAccount -ServicePrincipal `
-                -Tenant $env:AZURE_TENANT_ID `
-                -Credential $cred `
-                -Subscription $SubscriptionId | Out-Null
-        }
-        else {
-            throw "No Azure context available. Run Connect-AzAccount or set SP environment variables."
-        }
-    }
-
-    if ($SubscriptionId) {
-        Select-AzSubscription -SubscriptionId $SubscriptionId | Out-Null
-    }
-
-    $ctx = Get-AzContext
-    Write-Host ("Using subscription: {0} - {1}" -f $ctx.Subscription.Id, $ctx.Subscription.Name)
-}
-
-Ensure-AzContext -SubscriptionId $SubscriptionId
-Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
+    Assert-DeploymentContext `
+    -SubscriptionId $SubscriptionId `
+    -TenantId $TenantId
 
 Test-DeploymentPrerequisites `
     -AppName $App `

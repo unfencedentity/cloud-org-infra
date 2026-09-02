@@ -178,35 +178,33 @@ Tagging enables:
 
 ## Authentication Model
 
-The automation engine supports:
+Authentication must happen before running `deploy-environment.ps1`.
 
 ### Local Interactive Authentication
 
+Authenticate to the intended tenant and subscription:
+
 ```powershell
-Connect-AzAccount
+Connect-AzAccount `
+    -Tenant "<tenant-id>" `
+    -Subscription "<subscription-id>" `
+    -ErrorAction "Stop"
 ```
 
-### Service Principal Authentication
-
-Supported environment variables:
-
-```text
-AZURE_CLIENT_ID
-AZURE_CLIENT_SECRET
-AZURE_TENANT_ID
-AZURE_SUBSCRIPTION_ID
-```
+Replace the placeholders with the intended deployment identifiers.
 
 ### GitHub Actions OIDC Authentication
 
-The project also supports Azure OIDC federation for passwordless CI/CD authentication.
+The deployment workflow authenticates using `azure/login` with OIDC and enables an Azure PowerShell session before invoking the deployment script. No client secret is required for this authentication flow.
 
-This enables:
+### Deployment Context Validation
 
-* Temporary authentication tokens
-* Reduced secret management
-* Improved CI/CD security posture
-* GitHub-native workload identity federation
+`Assert-DeploymentContext` checks that the active context contains an account, subscription, and tenant, and that its tenant and subscription IDs match the requested deployment target.
+
+The function does not authenticate, switch subscriptions, or modify Azure resources. It stops execution when context validation fails.
+
+The previous automatic client-secret login fallback has been removed. Setting Service Principal environment variables alone no longer authenticates the deployment script.
+
 
 ---
 

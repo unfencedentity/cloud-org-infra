@@ -12,13 +12,14 @@ when deploying Azure resources using this automation.
 # 1. Identity & Authentication
 
 ## 1.1 Azure Authentication Method
-The automation uses **Azure Federated Identity (OIDC)** by default when executed from
-GitHub Actions. This eliminates the need for stored service principal secrets.
 
-Local execution may use:
-- `Connect-AzAccount` (interactive)
-- Service Principal credentials via environment variables  
-  (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_CLIENT_SECRET`).
+GitHub Actions authenticates using OpenID Connect (OIDC), without a stored client secret for this authentication flow.
+
+For local execution, authenticate before deployment using `Connect-AzAccount` with the intended tenant and subscription.
+
+`deploy-environment.ps1` does not read `AZURE_CLIENT_SECRET` or attempt automatic authentication. `Assert-DeploymentContext` rejects missing, incomplete, or mismatched Azure contexts before deployment prerequisites run.
+
+Context validation checks the selected deployment target. It does not replace token validation, Azure RBAC authorization, or deployment prerequisite checks.
 
 ## 1.2 Least Privilege Access
 Each automation identity (GitHub workflow identity or local SP) should have:

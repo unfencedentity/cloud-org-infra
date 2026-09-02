@@ -312,33 +312,24 @@ in a fully automated sequence.
 
 ## Requirements
 
-* Microsoft Azure Subscription
+* Microsoft Azure subscription
 * PowerShell 7+
-* Az PowerShell Modules
-* Azure authentication via:
+* Required Az PowerShell modules
+* An Azure context established before deployment:
 
-  * `Connect-AzAccount`
-    OR
-  * GitHub Actions OIDC authentication
-    OR
-  * Service Principal credentials
+  * GitHub Actions: authenticate using OIDC with an Azure PowerShell session.
+  * Local execution: authenticate using `Connect-AzAccount` and select the intended tenant and subscription.
 
-Required environment variables for GitHub Actions OIDC authentication:
+The GitHub Actions workflows use these repository secrets as OIDC configuration:
 
-```text
-AZURE_CLIENT_ID
-AZURE_TENANT_ID
-AZURE_SUBSCRIPTION_ID
-```
+* `AZURE_CLIENT_ID`
+* `AZURE_TENANT_ID`
+* `AZURE_SUBSCRIPTION_ID`
 
-Required environment variables for Service Principal authentication:
+`deploy-environment.ps1` does not perform authentication or read `AZURE_CLIENT_SECRET`. It validates that the active Azure context matches the requested tenant and subscription before running deployment prerequisites.
 
-```text
-AZURE_CLIENT_ID
-AZURE_CLIENT_SECRET
-AZURE_TENANT_ID
-AZURE_SUBSCRIPTION_ID
-```
+A missing, incomplete, or mismatched context stops execution. Context validation alone does not prove token validity or sufficient Azure permissions.
+
 
 ---
 
@@ -348,7 +339,7 @@ The project is designed for CI/CD execution using:
 
 * GitHub Actions
 * Azure OIDC authentication
-* Service Principal authentication
+* Pre-authenticated Azure context validation
 * Validation workflows
 * Environment deployment orchestration
 * Start Environment workflow
