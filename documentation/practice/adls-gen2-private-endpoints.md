@@ -29,6 +29,16 @@ Traffic stays on the Azure backbone → zero public exposure.
     $vnet    = "vnet-org-dev-weu"
     $subData = "subnet-data"
 
+    $virtualNetwork = Get-AzVirtualNetwork `
+        -ResourceGroupName $rgNet `
+        -Name $vnet `
+        -ErrorAction "Stop"
+
+    $subData = Get-AzVirtualNetworkSubnetConfig `
+        -Name $subData `
+        -VirtualNetwork $virtualNetwork `
+        -ErrorAction "Stop"
+
 ---
 
 ## 2) Create Private Endpoint for Blob
