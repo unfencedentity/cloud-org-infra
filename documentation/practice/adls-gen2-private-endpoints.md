@@ -14,7 +14,7 @@ Virtual Network (VNet) | Logical private network boundary
 Subnet: subnet-data | Placement for the private endpoints
 Private Endpoints (Blob + DFS) | Secure internal access to Blob and DFS APIs
 Private DNS Zones | Internal name resolution for storage endpoints
-RBAC | Identity-based access (no shared keys)
+RBAC | Identity-based authorization for data access
 
 Traffic stays on the Azure backbone → zero public exposure.
 
@@ -103,6 +103,6 @@ Storage only reachable over VNet | ✅
 Blob endpoint private | ✅
 DFS endpoint private | ✅
 Public access disabled | ✅
-RBAC only access (no keys) | ✅
+Shared Key authorization disabled | Not covered by this example
 
 We now have a **production-grade secure data landing zone foundation**.
