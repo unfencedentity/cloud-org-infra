@@ -125,6 +125,7 @@ else {
             supportsHttpsTrafficOnly = $true
             minimumTlsVersion        = "TLS1_2"
             allowBlobPublicAccess    = $false
+            isHnsEnabled             = $true
         }
         tags       = $tags
     } | ConvertTo-Json -Depth 10
