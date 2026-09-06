@@ -28,6 +28,10 @@ on:
         required: true
         default: "Standard_B1s"
 
+concurrency:
+  group: deploy-${{ inputs.app }}-${{ inputs.environment }}-${{ inputs.region }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
