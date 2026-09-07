@@ -35,6 +35,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     permissions:
       id-token: write     # required for OIDC token
