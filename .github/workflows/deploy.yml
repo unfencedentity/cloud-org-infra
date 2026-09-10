@@ -34,6 +34,8 @@ concurrency:
 
 jobs:
   deploy:
+    name: Deploy to ${{ inputs.environment }}
+    environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
