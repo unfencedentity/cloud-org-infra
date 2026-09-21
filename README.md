@@ -221,19 +221,19 @@ This operational model aligns with modern Infrastructure as Code and DevOps depl
 
 Example naming patterns:
 
-* `rg-core-dev-weu`
-* `vnet-core-dev-weu`
-* `nsg-core-dev-weu`
-* `stcoredevweuXXXXXX`
-* `kvcoredevweuXXXXXX`
-* `mi-core-dev-weu`
-* `vm-core-dev-weu-01`
-* `asp-core-dev-weu`
-* `app-core-dev-weu`
-* `law-core-dev-weu`
-* `appi-core-dev-weu`
-* `ag-core-dev-weu`
-* `pe-storage-dev-weu`
+* `rg-core-dev-deu`
+* `vnet-core-dev-deu`
+* `nsg-core-dev-deu`
+* `stcoredevdeuXXXXXX`
+* `kvcoredevdeuXXXXXX`
+* `mi-core-dev-deu`
+* `vm-core-dev-deu-01`
+* `asp-core-dev-deu`
+* `app-core-dev-deu`
+* `law-core-dev-deu`
+* `appi-core-dev-deu`
+* `ag-core-dev-deu`
+* `pe-storage-dev-deu`
 
 This structure improves:
 
@@ -288,8 +288,9 @@ cd automation
 .\deploy-environment.ps1 `
   -Environment dev `
   -App core `
-  -Region weu `
-  -Location westeurope
+  -Region deu `
+  -Location denmarkeast `
+  -MonitoringLocation swedencentral
 ```
 
 This deployment provisions:
@@ -329,7 +330,6 @@ The GitHub Actions workflows use these repository secrets as OIDC configuration:
 `deploy-environment.ps1` does not perform authentication or read `AZURE_CLIENT_SECRET`. It validates that the active Azure context matches the requested tenant and subscription before running deployment prerequisites.
 
 A missing, incomplete, or mismatched context stops execution. Context validation alone does not prove token validity or sufficient Azure permissions.
-
 
 ---
 
