@@ -48,10 +48,10 @@ jobs:
         run: echo "Starting OIDC login…"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Azure Login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -60,7 +60,7 @@ jobs:
 
       # Ensure required Az modules are available in the runner
       - name: Install Az modules
-        uses: azure/powershell@v1
+        uses: azure/powershell@v3
         with:
           inlineScript: |
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
@@ -82,7 +82,7 @@ jobs:
           azPSVersion: latest
 
       - name: Deploy environment
-        uses: azure/powershell@v1
+        uses: azure/powershell@v3
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         with:
