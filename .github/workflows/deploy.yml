@@ -3,10 +3,15 @@ name: Deploy Azure infra
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Environment name"
+            environment:
+        description: "Target environment"
         required: true
+        type: choice
         default: "dev"
+        options:
+          - dev
+          - test
+          - prod
       app:
         description: "Application name"
         required: true
