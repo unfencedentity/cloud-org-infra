@@ -101,3 +101,24 @@ jobs:
       - name: Post Azure Login (OIDC)
         if: always()
         run: echo "Deployment finished."
+      - name: Publish deployment summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Azure deployment summary"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Status | \`${{ job.status }}\` |"
+            echo "| Environment | \`${{ inputs.environment }}\` |"
+            echo "| Application | \`${{ inputs.app }}\` |"
+            echo "| Region | \`${{ inputs.region }}\` |"
+            echo "| Azure location | \`${{ inputs.location }}\` |"
+            echo "| Monitoring location | \`${{ inputs.monitoring_location }}\` |"
+            echo "| VM size | \`${{ inputs.vm_size }}\` |"
+            echo "| Commit SHA | \`${{ github.sha }}\` |"
+            echo "| Triggered by | \`${{ github.actor }}\` |"
+            echo "| Workflow run | [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |"
+            echo "| Completed at | \`$(date -u +"%Y-%m-%dT%H:%M:%SZ")\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
