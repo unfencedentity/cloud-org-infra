@@ -3,7 +3,7 @@ name: Deploy Azure infra
 on:
   workflow_dispatch:
     inputs:
-            environment:
+      environment:
         description: "Target environment"
         required: true
         type: choice
@@ -52,6 +52,16 @@ jobs:
       - name: Pre Azure Login (OIDC)
         run: echo "Starting OIDC login…"
 
+      - name: Validate deployment source
+        shell: bash
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "::error::Production deployments are allowed only from the main branch."
+            exit 1
+          fi
+
+          echo "Deployment source validation passed."
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -62,6 +72,8 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
+
+     
 
       # Ensure required Az modules are available in the runner
       - name: Install Az modules
