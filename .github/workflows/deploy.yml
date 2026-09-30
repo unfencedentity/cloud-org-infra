@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment name"
+        description: "Target environment"
         required: true
+        type: choice
         default: "dev"
+        options:
+          - dev
+          - test
+          - prod
       app:
         description: "Application name"
         required: true
@@ -47,20 +52,32 @@ jobs:
       - name: Pre Azure Login (OIDC)
         run: echo "Starting OIDC login…"
 
+      - name: Validate deployment source
+        shell: bash
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "::error::Production deployments are allowed only from the main branch."
+            exit 1
+          fi
+
+          echo "Deployment source validation passed."
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Azure Login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
 
+     
+
       # Ensure required Az modules are available in the runner
       - name: Install Az modules
-        uses: azure/powershell@v1
+        uses: azure/powershell@v3
         with:
           inlineScript: |
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
@@ -82,7 +99,7 @@ jobs:
           azPSVersion: latest
 
       - name: Deploy environment
-        uses: azure/powershell@v1
+        uses: azure/powershell@v3
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         with:
@@ -101,3 +118,24 @@ jobs:
       - name: Post Azure Login (OIDC)
         if: always()
         run: echo "Deployment finished."
+      - name: Publish deployment summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Azure deployment summary"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Status | \`${{ job.status }}\` |"
+            echo "| Environment | \`${{ inputs.environment }}\` |"
+            echo "| Application | \`${{ inputs.app }}\` |"
+            echo "| Region | \`${{ inputs.region }}\` |"
+            echo "| Azure location | \`${{ inputs.location }}\` |"
+            echo "| Monitoring location | \`${{ inputs.monitoring_location }}\` |"
+            echo "| VM size | \`${{ inputs.vm_size }}\` |"
+            echo "| Commit SHA | \`${{ github.sha }}\` |"
+            echo "| Triggered by | \`${{ github.actor }}\` |"
+            echo "| Workflow run | [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |"
+            echo "| Completed at | \`$(date -u +"%Y-%m-%dT%H:%M:%SZ")\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
